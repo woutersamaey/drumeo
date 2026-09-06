@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456113,
+    "sanity_id": "157c8df1-8613-4ad1-87c1-c18d7024d775",
+    "type": "skill-pack-lesson",
+    "title": "A Toolbox Of Fills",
+    "slug": "d5-sp6-l5_a-toolbox-of-fills",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 340,
+    "length": "5:40",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-05-04T07:01:00.000Z",
+    "created_at": "2026-04-16T22:05:30Z",
+    "updated_at": "2026-04-24T17:52:58Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/455942/456113",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6b9daad5e1a5e09fb651b51939c3a569a5f30dfa-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 455942,
+      "type": "learning-path-v2",
+      "title": "Expand Your Groove And Feel",
+      "slug": "d5_expand-your-groove-and-feel",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/455942/456113"
+    },
+    "skill_pack": {
+      "id": 456108,
+      "sanity_id": "53912fe2-b988-40ca-85f1-e67836577d10",
+      "type": "skill-pack",
+      "title": "Crash Cymbal Fills",
+      "slug": "d5-sp6_crash-cymbal-fills",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1158831524"
+  }
+}

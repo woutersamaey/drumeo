@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 459427,
+    "sanity_id": "d9-sp3-l3",
+    "type": "skill-pack-lesson",
+    "title": "Listening & Timing",
+    "slug": "d9-sp3-l3_listening-and-timing",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 4,
+    "difficulty_string": "Intermediate",
+    "language": null,
+    "length_in_seconds": 343,
+    "length": "5:43",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-09-07T07:01:00Z",
+    "created_at": "2026-08-06T07:57:55Z",
+    "updated_at": "2026-08-08T00:42:45Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/459454/459427",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/f1e57231d0dff1dd418fa5c9c8801894c7c0a337-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 459454,
+      "type": "learning-path-v2",
+      "title": "Groove Variety & Vocabulary",
+      "slug": "d9_groove-variety-and-vocabulary",
+      "difficulty_string": "Intermediate",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/459454/459427"
+    },
+    "skill_pack": {
+      "id": 459430,
+      "sanity_id": "d9-sp3",
+      "type": "skill-pack",
+      "title": "Developing Timing",
+      "slug": "d9-sp3_developing-timing",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1208250304"
+  }
+}

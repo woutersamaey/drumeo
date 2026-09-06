@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456098,
+    "sanity_id": "3ded2ab1-3b7b-44ff-85a0-7adedfc6050d",
+    "type": "skill-pack-lesson",
+    "title": "Double It Up",
+    "slug": "d5-sp4-l2_double-it-up",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 303,
+    "length": "5:03",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-05-04T07:01:00.000Z",
+    "created_at": "2026-04-16T19:43:29Z",
+    "updated_at": "2026-04-24T17:53:07Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/455942/456098",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/c25c4c0d694f19673b437e8cc0fd3e96b66f8e0d-1920x1080.jpg",
+    "instructor": {
+      "name": "Rich Redmond",
+      "slug": "rich-redmond",
+      "profile_url": "https://app.musora.com/drumeo/instructors/rich-redmond",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/73267922c6e8a6b11ff182c7643dcafcdff59945-200x200.png",
+      "short_bio": "Rich Redmond is the drumming powerhouse behind multi-platinum country artist Jason Aldean."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 455942,
+      "type": "learning-path-v2",
+      "title": "Expand Your Groove And Feel",
+      "slug": "d5_expand-your-groove-and-feel",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/455942/456098"
+    },
+    "skill_pack": {
+      "id": 456096,
+      "sanity_id": "db5b02f1-ec8c-44be-8c23-caf4f675f5fb",
+      "type": "skill-pack",
+      "title": "6/8 And 12/8 Fills",
+      "slug": "d5-sp4_6-8-and-12-8-fills",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1151071865"
+  }
+}

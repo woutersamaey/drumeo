@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456504,
+    "sanity_id": "049bab30-8575-4d90-a7c4-72eeac3fabee",
+    "type": "skill-pack-lesson",
+    "title": "Speeding It Up",
+    "slug": "d6-sp2-l3_speeding-it-up",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 300,
+    "length": "5:00",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-06-01T07:01:00.000Z",
+    "created_at": "2026-05-11T15:06:33Z",
+    "updated_at": "2026-05-11T21:53:46Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/456457/456504",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/3159a52d72f8eef8af6ad9c786343466d7bae5d3-1920x1080.jpg",
+    "instructor": {
+      "name": "Heather Thomas",
+      "slug": "heather-thomas",
+      "profile_url": "https://app.musora.com/drumeo/instructors/heather-thomas",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/bdd088aed9edca16c496b9568f4c51767215f3c3-500x500.jpg",
+      "short_bio": "Heather is an experienced studio and live musician who has traveled the world performing as the drummer for Grammy-nominated singer, Mary Lambert"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 456457,
+      "type": "learning-path-v2",
+      "title": "Develop & Coordinate Your Groove",
+      "slug": "d6_develop-and-coordinate-your-groove",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/456457/456504"
+    },
+    "skill_pack": {
+      "id": 456485,
+      "sanity_id": "c7b12e82-627a-42a3-9963-df6bb20c71fa",
+      "type": "skill-pack",
+      "title": "Accents And Taps",
+      "slug": "d6-sp2_accents-and-taps",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1167391264"
+  }
+}

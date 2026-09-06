@@ -1,0 +1,79 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 452347,
+    "sanity_id": "d2-sp1-l5",
+    "type": "skill-pack-lesson",
+    "title": "The Full-Bar Fill",
+    "slug": "d2-sp1-l5_the-full-bar-fill",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": "en-US",
+    "length_in_seconds": 252,
+    "length": "4:12",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 14107,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:31:44Z",
+    "updated_at": "2026-04-24T17:56:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452387/452347",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/d25d5b09a34efb157446df5d080e8f5bd3703fe4-1920x1080.jpg",
+    "instructor": {
+      "name": "Brandon Toews",
+      "slug": "brandon-toews",
+      "profile_url": "https://app.musora.com/drumeo/instructors/brandon-toews",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/fee635f6f18f35a0a95a5520f7e00be803d4f178-2418x2417.jpg",
+      "short_bio": "Brandon Toews is a drummer, author, educator, and content producer."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452387,
+      "type": "learning-path-v2",
+      "title": "Add Variety To Your Drumming",
+      "slug": "d2_add-variety-to-your-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452387/452347"
+    },
+    "skill_pack": {
+      "id": 452342,
+      "sanity_id": "d2-sp1",
+      "type": "skill-pack",
+      "title": "8th-Note Drum Fills",
+      "slug": "d2-sp1_8th-note-drum-fills",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1092156332"
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

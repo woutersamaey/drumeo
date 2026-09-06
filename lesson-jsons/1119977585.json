@@ -1,0 +1,79 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 452425,
+    "sanity_id": "d3-st1-l1",
+    "type": "song-tutorial-lesson",
+    "title": "Learn The Verse",
+    "slug": "d3-st1-l1_learn-the-verse",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": "en-US",
+    "length_in_seconds": 314,
+    "length": "5:14",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 9847,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:32:13Z",
+    "updated_at": "2026-07-08T05:15:29Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452434/452425",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6e838c83dbcc748718bbd3f00e5560ec9963ac58-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452434,
+      "type": "learning-path-v2",
+      "title": "Essentials For Popular Music",
+      "slug": "d3_essentials-for-popular-music",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452434/452425"
+    },
+    "skill_pack": {
+      "id": 452424,
+      "sanity_id": "d3-st1",
+      "type": "song-tutorial",
+      "title": "Learn \"Between The Lines\"",
+      "slug": "d3-st1_learn-between-the-lines",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1119977585"
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 452328,
+    "sanity_id": "d1-sp6-l4",
+    "type": "skill-pack-lesson",
+    "title": "Crashing On Transitions",
+    "slug": "d1-sp6-l4_crashing-on-transitions",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 1,
+    "difficulty_string": "Introductory",
+    "language": "en-US",
+    "length_in_seconds": 321,
+    "length": "5:21",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 17443,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:31:33Z",
+    "updated_at": "2026-04-24T17:56:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452340/452328",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/8f6c42b5fdf90cff22d9c7556787f114a18d7b73-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452340,
+      "type": "learning-path-v2",
+      "title": "Learn To Play The Drums",
+      "slug": "d1_learn-to-play-the-drums",
+      "difficulty_string": "Introductory",
+      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452340/452328"
+    },
+    "skill_pack": {
+      "id": 452324,
+      "sanity_id": "d1-sp6",
+      "type": "skill-pack",
+      "title": "Adding Crash Cymbals",
+      "slug": "d1-sp6_adding-crash-cymbals",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1095148662"
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

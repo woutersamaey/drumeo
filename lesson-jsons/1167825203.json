@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456463,
+    "sanity_id": "23915245-5ee9-4e99-ba04-9e6a54edf0ac",
+    "type": "skill-pack-lesson",
+    "title": "Transitioning Around The Kit",
+    "slug": "d6-sp1-l5_transitioning-around-the-kit",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 312,
+    "length": "5:12",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-06-01T07:01:00.000Z",
+    "created_at": "2026-05-08T22:28:15Z",
+    "updated_at": "2026-05-11T21:54:54Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/456457/456463",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/32d1adfdb9dd3e4b4cbd60f970941aa33966a810-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 456457,
+      "type": "learning-path-v2",
+      "title": "Develop & Coordinate Your Groove",
+      "slug": "d6_develop-and-coordinate-your-groove",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/456457/456463"
+    },
+    "skill_pack": {
+      "id": 456459,
+      "sanity_id": "36b0acc4-02d9-42c6-83b9-1ec93858b53b",
+      "type": "skill-pack",
+      "title": "Double Time Grooves",
+      "slug": "d6-sp1_double-time-grooves",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1167825203"
+  }
+}

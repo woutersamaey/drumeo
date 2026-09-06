@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 458182,
+    "sanity_id": "d8-sp6-l3",
+    "type": "skill-pack-lesson",
+    "title": "How To Approach Fills",
+    "slug": "d8-sp6-l3_how-to-approach-fills",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 328,
+    "length": "5:28",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-08-04T07:01:00.000Z",
+    "created_at": "2026-06-24T22:36:54Z",
+    "updated_at": "2026-07-22T21:15:27Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/458192/458182",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/f30537b36fb6be5a8fd34c79238be042b4266f2e-1920x1080.jpg",
+    "instructor": {
+      "name": "Gregg Bissonette",
+      "slug": "gregg-bissonette",
+      "profile_url": "https://app.musora.com/drumeo/instructors/gregg-bissonette",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/082d039e956d4d671c10a03cf50c9e531efb0fa0-500x500.jpg",
+      "short_bio": "Gregg Bissonette is one of the world’s top professional drummers due to his versatility on the kit and incredible experience playing pretty much any style of music."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 458192,
+      "type": "learning-path-v2",
+      "title": "Modern Rock & Pop Drumming",
+      "slug": "d8_modern-rock-and-pop-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/458192/458182"
+    },
+    "skill_pack": {
+      "id": 458185,
+      "sanity_id": "d8-sp6",
+      "type": "skill-pack",
+      "title": "Counting Bars & Phrases",
+      "slug": "d8-sp6_counting-bars-and-phrases",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1174868363"
+  }
+}

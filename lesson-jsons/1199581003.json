@@ -1,0 +1,50 @@
+{
+  "role": "path-intro",
+  "lesson": {
+    "id": 458149,
+    "sanity_id": "d8w",
+    "type": "learning-path-intro",
+    "title": "Welcome To Modern Rock & Pop Drumming",
+    "slug": "d8w_welcome-to-modern-rock-and-pop-drumming",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 23,
+    "length": "0:23",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-08-03T07:01:00Z",
+    "created_at": "2026-06-24T22:36:54Z",
+    "updated_at": "2026-08-04T02:18:12Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/intro/458192",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6770724612628fa496eeff0a3e42668e59cf7486-1920x1077.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 458192,
+      "type": "learning-path-v2",
+      "title": "Modern Rock & Pop Drumming",
+      "slug": "d8_modern-rock-and-pop-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/intro/458192"
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1199581003"
+  }
+}

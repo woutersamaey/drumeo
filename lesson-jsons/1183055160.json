@@ -1,0 +1,50 @@
+{
+  "role": "path-intro",
+  "lesson": {
+    "id": 456073,
+    "sanity_id": "3743952c-ea3e-4acf-b6fd-0dc9071eb6f8",
+    "type": "learning-path-intro",
+    "title": "Welcome To Expand Your Groove And Feel",
+    "slug": "d5w_welcome",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": null,
+    "difficulty_string": null,
+    "language": null,
+    "length_in_seconds": 32,
+    "length": "0:32",
+    "membership_tier": null,
+    "lifetime": null,
+    "popularity": null,
+    "published_on": null,
+    "created_at": "2026-04-15T22:39:34Z",
+    "updated_at": "2026-04-24T17:53:07Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/intro/455942",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/da1ccb864189a86900ffd412eeff4836da46b5e8-1920x1077.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 455942,
+      "type": "learning-path-v2",
+      "title": "Expand Your Groove And Feel",
+      "slug": "d5_expand-your-groove-and-feel",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/intro/455942"
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1183055160"
+  }
+}

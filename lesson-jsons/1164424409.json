@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456094,
+    "sanity_id": "8f594b86-5ec4-4eec-b2f1-ab937ce5adb3",
+    "type": "skill-pack-lesson",
+    "title": "Bring In A Fill",
+    "slug": "d5-sp3-l4_bring-in-a-fill",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 297,
+    "length": "4:57",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-05-04T07:01:00.000Z",
+    "created_at": "2026-04-16T19:28:27Z",
+    "updated_at": "2026-04-24T17:53:23Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/455942/456094",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/632d756aa066def6ea99d8756b0f4b4945563ed3-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 455942,
+      "type": "learning-path-v2",
+      "title": "Expand Your Groove And Feel",
+      "slug": "d5_expand-your-groove-and-feel",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/455942/456094"
+    },
+    "skill_pack": {
+      "id": 456090,
+      "sanity_id": "f62db95c-5016-497e-bbb2-6dcbd18e3ff1",
+      "type": "skill-pack",
+      "title": "Intro To Paradiddles",
+      "slug": "d5-sp3_intro-to-paradiddles",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1164424409"
+  }
+}

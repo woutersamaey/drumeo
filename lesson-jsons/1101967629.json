@@ -1,0 +1,79 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 452320,
+    "sanity_id": "d1-sp5-l2",
+    "type": "skill-pack-lesson",
+    "title": "Orchestrate Your Beats",
+    "slug": "d1-sp5-l2_orchestrate-your-beats",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 1,
+    "difficulty_string": "Introductory",
+    "language": "en-US",
+    "length_in_seconds": 322,
+    "length": "5:22",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 18411,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:31:32Z",
+    "updated_at": "2026-04-24T17:56:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452340/452320",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/1948380131beff31ce97004b358161d0ca620e60-1920x1080.jpg",
+    "instructor": {
+      "name": "Brandon Toews",
+      "slug": "brandon-toews",
+      "profile_url": "https://app.musora.com/drumeo/instructors/brandon-toews",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/fee635f6f18f35a0a95a5520f7e00be803d4f178-2418x2417.jpg",
+      "short_bio": "Brandon Toews is a drummer, author, educator, and content producer."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452340,
+      "type": "learning-path-v2",
+      "title": "Learn To Play The Drums",
+      "slug": "d1_learn-to-play-the-drums",
+      "difficulty_string": "Introductory",
+      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452340/452320"
+    },
+    "skill_pack": {
+      "id": 452318,
+      "sanity_id": "d1-sp5",
+      "type": "skill-pack",
+      "title": "8th-Note Grooves Around The Kit",
+      "slug": "d1-sp5_8th-note-grooves-around-the-kit",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1101967629"
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

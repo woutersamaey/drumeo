@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456524,
+    "sanity_id": "71654828-b26a-43dc-9b16-f0061b895e4d",
+    "type": "skill-pack-lesson",
+    "title": "Vary The Pattern",
+    "slug": "d6-sp5-l3_vary-the-pattern",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 310,
+    "length": "5:10",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-06-01T07:01:00.000Z",
+    "created_at": "2026-05-11T17:25:20Z",
+    "updated_at": "2026-05-11T21:58:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/456457/456524",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/48ffbc069dd8893b6aea88b969ee704a122b0c38-1920x1080.jpg",
+    "instructor": {
+      "name": "Heather Thomas",
+      "slug": "heather-thomas",
+      "profile_url": "https://app.musora.com/drumeo/instructors/heather-thomas",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/bdd088aed9edca16c496b9568f4c51767215f3c3-500x500.jpg",
+      "short_bio": "Heather is an experienced studio and live musician who has traveled the world performing as the drummer for Grammy-nominated singer, Mary Lambert"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 456457,
+      "type": "learning-path-v2",
+      "title": "Develop & Coordinate Your Groove",
+      "slug": "d6_develop-and-coordinate-your-groove",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/456457/456524"
+    },
+    "skill_pack": {
+      "id": 456527,
+      "sanity_id": "3dfc0c33-b505-4c95-b43a-fc1f6cf86a18",
+      "type": "skill-pack",
+      "title": "Developing Ghost Notes",
+      "slug": "d6-sp5_developing-ghost-notes",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1170357318"
+  }
+}

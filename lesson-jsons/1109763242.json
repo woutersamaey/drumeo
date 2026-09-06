@@ -1,0 +1,79 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 452414,
+    "sanity_id": "d3-sp6-l1",
+    "type": "skill-pack-lesson",
+    "title": "What Is A Flam?",
+    "slug": "d3-sp6-l1_what-is-a-flam",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": "en-US",
+    "length_in_seconds": 258,
+    "length": "4:18",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 10476,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:32:10Z",
+    "updated_at": "2026-04-24T17:56:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452434/452414",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/e1657ec8df82d65ce9fbb97e9b48280975bb3a96-1920x1080.jpg",
+    "instructor": {
+      "name": "Brandon Toews",
+      "slug": "brandon-toews",
+      "profile_url": "https://app.musora.com/drumeo/instructors/brandon-toews",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/fee635f6f18f35a0a95a5520f7e00be803d4f178-2418x2417.jpg",
+      "short_bio": "Brandon Toews is a drummer, author, educator, and content producer."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452434,
+      "type": "learning-path-v2",
+      "title": "Essentials For Popular Music",
+      "slug": "d3_essentials-for-popular-music",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452434/452414"
+    },
+    "skill_pack": {
+      "id": 452413,
+      "sanity_id": "d3-sp6",
+      "type": "skill-pack",
+      "title": "The Flam",
+      "slug": "d3-sp6_the-flam",
+      "child_count": 4
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1109763242"
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

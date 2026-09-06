@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 459423,
+    "sanity_id": "d9-sp2-l5",
+    "type": "skill-pack-lesson",
+    "title": "Review & Challenge",
+    "slug": "d9-sp2-l5_review-and-challenge",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 4,
+    "difficulty_string": "Intermediate",
+    "language": null,
+    "length_in_seconds": 366,
+    "length": "6:06",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-09-07T07:01:00Z",
+    "created_at": "2026-08-06T07:57:55Z",
+    "updated_at": "2026-08-06T08:08:37Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/459454/459423",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/7f12d524bfea4fb643e02aa8e34ebcc0ddc11aff-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 459454,
+      "type": "learning-path-v2",
+      "title": "Groove Variety & Vocabulary",
+      "slug": "d9_groove-variety-and-vocabulary",
+      "difficulty_string": "Intermediate",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/459454/459423"
+    },
+    "skill_pack": {
+      "id": 459424,
+      "sanity_id": "d9-sp2",
+      "type": "skill-pack",
+      "title": "Changing Time Feels",
+      "slug": "d9-sp2_changing-time-feels",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1208247072"
+  }
+}

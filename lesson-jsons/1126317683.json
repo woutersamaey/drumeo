@@ -1,0 +1,79 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 452465,
+    "sanity_id": "d4-sp5-l5",
+    "type": "skill-pack-lesson",
+    "title": "Playing Around The Kit",
+    "slug": "d4-sp5-l5_playing-around-the-kit",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": "en-US",
+    "length_in_seconds": 310,
+    "length": "5:10",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 2570,
+    "published_on": "2026-04-06T07:01:00.000Z",
+    "created_at": "2026-02-11T02:32:25Z",
+    "updated_at": "2026-04-24T17:56:10Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452478/452465",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/a6a019735929ce86812f403d5a2eb41320668406-1920x1078.jpg",
+    "instructor": {
+      "name": "Heather Thomas",
+      "slug": "heather-thomas",
+      "profile_url": "https://app.musora.com/drumeo/instructors/heather-thomas",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/bdd088aed9edca16c496b9568f4c51767215f3c3-500x500.jpg",
+      "short_bio": "Heather is an experienced studio and live musician who has traveled the world performing as the drummer for Grammy-nominated singer, Mary Lambert"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452478,
+      "type": "learning-path-v2",
+      "title": "Play Faster With Confidence",
+      "slug": "d4_play-faster-with-confidence",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452478/452465"
+    },
+    "skill_pack": {
+      "id": 452460,
+      "sanity_id": "d4-sp5",
+      "type": "skill-pack",
+      "title": "16th-Note Grooves",
+      "slug": "d4-sp5_16th-note-grooves",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1126317683"
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

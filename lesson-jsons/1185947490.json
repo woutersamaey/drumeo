@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 458174,
+    "sanity_id": "d8-sp5-l1",
+    "type": "skill-pack-lesson",
+    "title": "Around The Kit",
+    "slug": "d8-sp5-l1_around-the-kit",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 364,
+    "length": "6:04",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-08-04T07:01:00.000Z",
+    "created_at": "2026-06-24T22:36:54Z",
+    "updated_at": "2026-07-22T21:13:09Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/458192/458174",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/e4913f311bee9598927a42f61b0fd8be2d8e4943-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 458192,
+      "type": "learning-path-v2",
+      "title": "Modern Rock & Pop Drumming",
+      "slug": "d8_modern-rock-and-pop-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/458192/458174"
+    },
+    "skill_pack": {
+      "id": 458179,
+      "sanity_id": "d8-sp5",
+      "type": "skill-pack",
+      "title": "Four On The Floor Variations",
+      "slug": "d8-sp5_four-on-the-floor-variations",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1185947490"
+  }
+}

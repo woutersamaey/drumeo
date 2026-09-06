@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 458150,
+    "sanity_id": "d8-sp1-l1",
+    "type": "skill-pack-lesson",
+    "title": "The And-Ah",
+    "slug": "d8-sp1-l1_the-and-ah",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 306,
+    "length": "5:06",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-08-04T07:01:00.000Z",
+    "created_at": "2026-06-24T22:36:54Z",
+    "updated_at": "2026-08-06T08:23:51Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/458192/458150",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/84df0598e59e2235b65de7210dc552cf2063f892-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 458192,
+      "type": "learning-path-v2",
+      "title": "Modern Rock & Pop Drumming",
+      "slug": "d8_modern-rock-and-pop-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/458192/458150"
+    },
+    "skill_pack": {
+      "id": 458155,
+      "sanity_id": "d8-sp1",
+      "type": "skill-pack",
+      "title": "Pop Fills",
+      "slug": "d8-sp1_pop-fills",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1199581848"
+  }
+}

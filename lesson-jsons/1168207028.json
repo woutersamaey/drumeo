@@ -1,0 +1,58 @@
+{
+  "role": "lesson",
+  "lesson": {
+    "id": 456528,
+    "sanity_id": "ac7adce2-30ae-4850-bbc1-0353b78ad869",
+    "type": "skill-pack-lesson",
+    "title": "What Are Double Strokes?",
+    "slug": "d6-sp6-l1_what-are-double-strokes",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 317,
+    "length": "5:17",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-06-01T07:01:00.000Z",
+    "created_at": "2026-05-11T17:55:39Z",
+    "updated_at": "2026-05-11T21:56:45Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/456457/456528",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/d6b0b920737fe52d9ff67cfd111c5f8e5cb41624-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 456457,
+      "type": "learning-path-v2",
+      "title": "Develop & Coordinate Your Groove",
+      "slug": "d6_develop-and-coordinate-your-groove",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/456457/456528"
+    },
+    "skill_pack": {
+      "id": 456533,
+      "sanity_id": "3dd6d43a-8ed4-4693-a0c2-3ec143a2d5ef",
+      "type": "skill-pack",
+      "title": "Intro To Double Strokes",
+      "slug": "intro-to-double-strokes",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1168207028"
+  }
+}
