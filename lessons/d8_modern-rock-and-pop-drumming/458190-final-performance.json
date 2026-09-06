@@ -1,0 +1,266 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "role": "lesson",
+  "source": [
+    "https://app.musora.com/drumeo/method/lesson/458192/458190",
+    "Sanity CMS (sanity.musora.com)"
+  ],
+  "notes": {
+    "video_host": "Vimeo (not YouTube). Played in the Musora web app via Bitmovin over HLS.",
+    "signed_stream_urls_omitted": "Playback URLs from Vimeo include oauth tokens and signatures; those expire and are not stored here.",
+    "sheet_music": "Method skill-pack lessons have no downloadable sheet music in CMS. Notation is shown in-video. Songs (outside Method) use Soundslice.",
+    "audio_tracks": "CMS does not list dubbed audio. Sampled Method player menus include the languages in video.audio_tracks_sampled; not re-opened for every file."
+  },
+  "lesson": {
+    "id": 458190,
+    "sanity_id": "d8-st1-l5",
+    "type": "song-tutorial-lesson",
+    "title": "Final Performance",
+    "slug": "d8-st1-l5_final-performance",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 229,
+    "length": "3:49",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-08-04T07:01:00.000Z",
+    "created_at": "2026-06-24T22:36:54Z",
+    "updated_at": "2026-07-31T04:43:29Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/458192/458190",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/b51f6ed6e1b4e0b98a0b499ac2f1288cbfa83c17-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 458192,
+      "type": "learning-path-v2",
+      "title": "Modern Rock & Pop Drumming",
+      "slug": "d8_modern-rock-and-pop-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/458192/458190"
+    },
+    "skill_pack": {
+      "id": 458191,
+      "sanity_id": "d8-st1",
+      "type": "song-tutorial",
+      "title": "Learn \"One More Mile\"",
+      "slug": "d8-st1_learn-one-more-mile",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1199582904",
+    "urls": {
+      "vimeo": "https://vimeo.com/1199582904",
+      "vimeo_player": "https://player.vimeo.com/video/1199582904",
+      "vimeo_hls_external": "https://player.vimeo.com/external/1199582904.m3u8",
+      "poster": "https://i.vimeocdn.com/video/2166449016-07ddb9b7bc338b6d3cfc50c44d61e904337021d5f0f6146b45875d54b8a78a8f-d_1280x720"
+    },
+    "playback_in_app": {
+      "player": "Bitmovin",
+      "delivery": "HLS (Media Source Extensions, blob: URL in the <video> element)",
+      "cdn": "vod-adaptive-ak.vimeocdn.com"
+    },
+    "renditions": [
+      {
+        "label": "240p",
+        "width": 426,
+        "height": 240
+      },
+      {
+        "label": "360p",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "label": "540p",
+        "width": 960,
+        "height": 540
+      },
+      {
+        "label": "720p",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "label": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "label": "1440p",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "label": "2160p",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "audio_tracks_sampled": [
+      "English",
+      "Deutsch",
+      "español",
+      "日本語",
+      "Nederlands",
+      "português",
+      "română",
+      "русский",
+      "français",
+      "हिन्दी",
+      "italiano",
+      "polski",
+      "українська",
+      "中文"
+    ],
+    "captions": [
+      {
+        "display_language": "Spanish",
+        "language": "es",
+        "name": "Español",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001053"
+      },
+      {
+        "display_language": "Portuguese",
+        "language": "pt",
+        "name": "Português",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001079"
+      },
+      {
+        "display_language": "German",
+        "language": "de",
+        "name": "Deutsch",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001195"
+      },
+      {
+        "display_language": "Italian",
+        "language": "it",
+        "name": "Italiano",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001352"
+      },
+      {
+        "display_language": "French",
+        "language": "fr",
+        "name": "Français",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001582"
+      },
+      {
+        "display_language": "Chinese",
+        "language": "zh",
+        "name": "Chinese",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001737"
+      },
+      {
+        "display_language": "Japanese",
+        "language": "ja",
+        "name": "Japanese",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316001873"
+      },
+      {
+        "display_language": "Hindi",
+        "language": "hi",
+        "name": "Hindi",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316002004"
+      },
+      {
+        "display_language": "English",
+        "language": "en",
+        "name": "English",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1199582904/texttracks/316002038"
+      }
+    ],
+    "subtitles": {
+      "count": 9,
+      "cms_texttracks": [
+        {
+          "display_language": "Spanish",
+          "language": "es",
+          "name": "Español",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001053"
+        },
+        {
+          "display_language": "Portuguese",
+          "language": "pt",
+          "name": "Português",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001079"
+        },
+        {
+          "display_language": "German",
+          "language": "de",
+          "name": "Deutsch",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001195"
+        },
+        {
+          "display_language": "Italian",
+          "language": "it",
+          "name": "Italiano",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001352"
+        },
+        {
+          "display_language": "French",
+          "language": "fr",
+          "name": "Français",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001582"
+        },
+        {
+          "display_language": "Chinese",
+          "language": "zh",
+          "name": "Chinese",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001737"
+        },
+        {
+          "display_language": "Japanese",
+          "language": "ja",
+          "name": "Japanese",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316001873"
+        },
+        {
+          "display_language": "Hindi",
+          "language": "hi",
+          "name": "Hindi",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316002004"
+        },
+        {
+          "display_language": "English",
+          "language": "en",
+          "name": "English",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1199582904/texttracks/316002038"
+        }
+      ]
+    }
+  }
+}

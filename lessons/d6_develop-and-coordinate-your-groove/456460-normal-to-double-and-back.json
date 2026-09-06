@@ -1,0 +1,138 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "role": "lesson",
+  "source": [
+    "https://app.musora.com/drumeo/method/lesson/456457/456460",
+    "Sanity CMS (sanity.musora.com)"
+  ],
+  "notes": {
+    "video_host": "Vimeo (not YouTube). Played in the Musora web app via Bitmovin over HLS.",
+    "signed_stream_urls_omitted": "Playback URLs from Vimeo include oauth tokens and signatures; those expire and are not stored here.",
+    "sheet_music": "Method skill-pack lessons have no downloadable sheet music in CMS. Notation is shown in-video. Songs (outside Method) use Soundslice.",
+    "audio_tracks": "CMS does not list dubbed audio. Sampled Method player menus include the languages in video.audio_tracks_sampled; not re-opened for every file."
+  },
+  "lesson": {
+    "id": 456460,
+    "sanity_id": "64639485-1ed6-4a9d-8db3-1d486de1c848",
+    "type": "skill-pack-lesson",
+    "title": "Normal To Double And Back",
+    "slug": "d6-sp1-l2_normal-to-double-and-back",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 313,
+    "length": "5:13",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-06-01T07:01:00.000Z",
+    "created_at": "2026-05-08T22:17:06Z",
+    "updated_at": "2026-05-11T21:52:50Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/456457/456460",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/7924d7aeeb0f12ca9fbef74aa62246f5b0c8adc2-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 456457,
+      "type": "learning-path-v2",
+      "title": "Develop & Coordinate Your Groove",
+      "slug": "d6_develop-and-coordinate-your-groove",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/456457/456460"
+    },
+    "skill_pack": {
+      "id": 456459,
+      "sanity_id": "36b0acc4-02d9-42c6-83b9-1ec93858b53b",
+      "type": "skill-pack",
+      "title": "Double Time Grooves",
+      "slug": "d6-sp1_double-time-grooves",
+      "child_count": null
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1167824879",
+    "urls": {
+      "vimeo": "https://vimeo.com/1167824879",
+      "vimeo_player": "https://player.vimeo.com/video/1167824879",
+      "vimeo_hls_external": "https://player.vimeo.com/external/1167824879.m3u8",
+      "poster": null
+    },
+    "playback_in_app": {
+      "player": "Bitmovin",
+      "delivery": "HLS (Media Source Extensions, blob: URL in the <video> element)",
+      "cdn": "vod-adaptive-ak.vimeocdn.com"
+    },
+    "renditions": [
+      {
+        "label": "240p",
+        "width": 426,
+        "height": 240
+      },
+      {
+        "label": "360p",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "label": "540p",
+        "width": 960,
+        "height": 540
+      },
+      {
+        "label": "720p",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "label": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "label": "1440p",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "label": "2160p",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "audio_tracks_sampled": [
+      "English",
+      "Deutsch",
+      "español",
+      "日本語",
+      "Nederlands",
+      "português",
+      "română",
+      "русский",
+      "français",
+      "हिन्दी",
+      "italiano",
+      "polski",
+      "українська",
+      "中文"
+    ],
+    "captions": [],
+    "subtitles": {
+      "count": 0,
+      "cms_texttracks": []
+    }
+  }
+}

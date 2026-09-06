@@ -1,0 +1,363 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "learning_path": {
+    "id": 452340,
+    "type": "learning-path-v2",
+    "title": "Learn To Play The Drums",
+    "slug": "d1_learn-to-play-the-drums",
+    "status": "published",
+    "difficulty_string": "Introductory",
+    "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+    "published_on": "2026-02-06 00:01:00",
+    "child_count": 35,
+    "url": "https://app.musora.com/drumeo/method"
+  },
+  "resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key",
+      "resource_url": null
+    }
+  ],
+  "videos": [
+    {
+      "role": "path-intro",
+      "id": 456068,
+      "title": "Welcome To Learn To Play The Drums",
+      "file": "lessons/d1_learn-to-play-the-drums/456068-welcome-to-learn-to-play-the-drums.json",
+      "vimeo_id": "1132195987",
+      "seconds": 25
+    },
+    {
+      "role": "lesson",
+      "id": 452295,
+      "title": "The Hi-Hat And Snare Drum",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452295-the-hi-hat-and-snare-drum.json",
+      "vimeo_id": "1101964379",
+      "seconds": 316
+    },
+    {
+      "role": "lesson",
+      "id": 452307,
+      "title": "The Ride And Floor Tom",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452307-the-ride-and-floor-tom.json",
+      "vimeo_id": "1095148234",
+      "seconds": 277
+    },
+    {
+      "role": "lesson",
+      "id": 452301,
+      "title": "What Are Single Strokes?",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452301-what-are-single-strokes.json",
+      "vimeo_id": "1105227741",
+      "seconds": 303
+    },
+    {
+      "role": "lesson",
+      "id": 452296,
+      "title": "Add The Kick",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452296-add-the-kick.json",
+      "vimeo_id": "1101966669",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 452308,
+      "title": "The Low-End Foundation",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452308-the-low-end-foundation.json",
+      "vimeo_id": "1095148448",
+      "seconds": 264
+    },
+    {
+      "role": "lesson",
+      "id": 452302,
+      "title": "Singles Around The Drums",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452302-singles-around-the-drums.json",
+      "vimeo_id": "1105227944",
+      "seconds": 291
+    },
+    {
+      "role": "lesson",
+      "id": 452297,
+      "title": "Combine The Three",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452297-combine-the-three.json",
+      "vimeo_id": "1101966957",
+      "seconds": 325
+    },
+    {
+      "role": "lesson",
+      "id": 452309,
+      "title": "Coordination Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452309-coordination-around-the-kit.json",
+      "vimeo_id": "1095148948",
+      "seconds": 283
+    },
+    {
+      "role": "lesson",
+      "id": 452303,
+      "title": "Groupings Of Four",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452303-groupings-of-four.json",
+      "vimeo_id": "1105228192",
+      "seconds": 278
+    },
+    {
+      "role": "lesson",
+      "id": 452298,
+      "title": "Skip The Steps",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452298-skip-the-steps.json",
+      "vimeo_id": "1101967295",
+      "seconds": 282
+    },
+    {
+      "role": "lesson",
+      "id": 452310,
+      "title": "Moving The Left Hand",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452310-moving-the-left-hand.json",
+      "vimeo_id": "1095149626",
+      "seconds": 299
+    },
+    {
+      "role": "lesson",
+      "id": 452304,
+      "title": "Single Stroke Combinations",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452304-single-stroke-combinations.json",
+      "vimeo_id": "1105228453",
+      "seconds": 272
+    },
+    {
+      "role": "lesson",
+      "id": 452299,
+      "title": "Solidify The Groove",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452299-solidify-the-groove.json",
+      "vimeo_id": "1101967908",
+      "seconds": 318
+    },
+    {
+      "role": "lesson",
+      "id": 452311,
+      "title": "Expand Your Groove Options",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452311-expand-your-groove-options.json",
+      "vimeo_id": "1095150304",
+      "seconds": 288
+    },
+    {
+      "role": "lesson",
+      "id": 452305,
+      "title": "Combination Practice",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452305-combination-practice.json",
+      "vimeo_id": "1105228672",
+      "seconds": 277
+    },
+    {
+      "role": "lesson",
+      "id": 452313,
+      "title": "What Is The Money Beat?",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452313-what-is-the-money-beat.json",
+      "vimeo_id": "1101962455",
+      "seconds": 340
+    },
+    {
+      "role": "lesson",
+      "id": 452319,
+      "title": "8ths On The Ride Cymbal",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452319-8ths-on-the-ride-cymbal.json",
+      "vimeo_id": "1105481582",
+      "seconds": 319
+    },
+    {
+      "role": "lesson",
+      "id": 452325,
+      "title": "Coordinating Our Hands",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452325-coordinating-our-hands.json",
+      "vimeo_id": "1095148108",
+      "seconds": 291
+    },
+    {
+      "role": "lesson",
+      "id": 452314,
+      "title": "A Foundational Groove",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452314-a-foundational-groove.json",
+      "vimeo_id": "1101963624",
+      "seconds": 327
+    },
+    {
+      "role": "lesson",
+      "id": 452320,
+      "title": "Orchestrate Your Beats",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452320-orchestrate-your-beats.json",
+      "vimeo_id": "1101967629",
+      "seconds": 322
+    },
+    {
+      "role": "lesson",
+      "id": 452315,
+      "title": "The Groove That Pays",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452315-the-groove-that-pays.json",
+      "vimeo_id": "1101965024",
+      "seconds": 318
+    },
+    {
+      "role": "lesson",
+      "id": 452326,
+      "title": "Get Comfortable With Crashing",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452326-get-comfortable-with-crashing.json",
+      "vimeo_id": "1095148177",
+      "seconds": 273
+    },
+    {
+      "role": "lesson",
+      "id": 452321,
+      "title": "Grooving On The Ride",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452321-grooving-on-the-ride.json",
+      "vimeo_id": "1101969288",
+      "seconds": 317
+    },
+    {
+      "role": "lesson",
+      "id": 452327,
+      "title": "Crashing From The Floor Tom",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452327-crashing-from-the-floor-tom.json",
+      "vimeo_id": "1095148258",
+      "seconds": 319
+    },
+    {
+      "role": "lesson",
+      "id": 452316,
+      "title": "Own The Money Beat",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452316-own-the-money-beat.json",
+      "vimeo_id": "1101967373",
+      "seconds": 318
+    },
+    {
+      "role": "lesson",
+      "id": 452322,
+      "title": "Expand Your Drum-Set Sounds",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452322-expand-your-drum-set-sounds.json",
+      "vimeo_id": "1101971637",
+      "seconds": 255
+    },
+    {
+      "role": "lesson",
+      "id": 452328,
+      "title": "Crashing On Transitions",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452328-crashing-on-transitions.json",
+      "vimeo_id": "1095148662",
+      "seconds": 321
+    },
+    {
+      "role": "lesson",
+      "id": 452317,
+      "title": "Unlock The Most Iconic Groove",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452317-unlock-the-most-iconic-groove.json",
+      "vimeo_id": "1101968478",
+      "seconds": 353
+    },
+    {
+      "role": "lesson",
+      "id": 452323,
+      "title": "Break Free From The Hi-Hat",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452323-break-free-from-the-hi-hat.json",
+      "vimeo_id": "1101971986",
+      "seconds": 339
+    },
+    {
+      "role": "lesson",
+      "id": 452329,
+      "title": "Lock In With Crashes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452329-lock-in-with-crashes.json",
+      "vimeo_id": "1095151670",
+      "seconds": 292
+    },
+    {
+      "role": "lesson",
+      "id": 452331,
+      "title": "The First Verse And Chorus",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452331-the-first-verse-and-chorus.json",
+      "vimeo_id": "1092591850",
+      "seconds": 284
+    },
+    {
+      "role": "lesson",
+      "id": 452332,
+      "title": "The Second Verse And Chorus",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452332-the-second-verse-and-chorus.json",
+      "vimeo_id": "1092591937",
+      "seconds": 345
+    },
+    {
+      "role": "lesson",
+      "id": 452333,
+      "title": "The Bridge",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452333-the-bridge.json",
+      "vimeo_id": "1092592098",
+      "seconds": 333
+    },
+    {
+      "role": "lesson",
+      "id": 452334,
+      "title": "Guided Playthrough",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452334-guided-playthrough.json",
+      "vimeo_id": "1092592269",
+      "seconds": 351
+    },
+    {
+      "role": "lesson",
+      "id": 452335,
+      "title": "Final Performance",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d1_learn-to-play-the-drums/452335-final-performance.json",
+      "vimeo_id": "1092592441",
+      "seconds": 358
+    }
+  ],
+  "video_count": 36
+}

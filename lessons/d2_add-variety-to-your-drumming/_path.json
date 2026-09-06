@@ -1,0 +1,354 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "learning_path": {
+    "id": 452387,
+    "type": "learning-path-v2",
+    "title": "Add Variety To Your Drumming",
+    "slug": "d2_add-variety-to-your-drumming",
+    "status": "published",
+    "difficulty_string": "Beginner",
+    "description": null,
+    "published_on": "2026-02-06 00:01:00",
+    "child_count": 34,
+    "url": "https://app.musora.com/drumeo/method"
+  },
+  "resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key",
+      "resource_url": null
+    }
+  ],
+  "videos": [
+    {
+      "role": "path-intro",
+      "id": 452388,
+      "title": "Welcome To Add Variety To Your Drumming",
+      "file": "lessons/d2_add-variety-to-your-drumming/452388-welcome.json",
+      "vimeo_id": "1132195963",
+      "seconds": 40
+    },
+    {
+      "role": "lesson",
+      "id": 452343,
+      "title": "The 8th-Note Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452343-the-8thnote-fill.json",
+      "vimeo_id": "1092156957",
+      "seconds": 274
+    },
+    {
+      "role": "lesson",
+      "id": 452349,
+      "title": "An Iconic Snare Groove",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452349-an-iconic-snare-groove.json",
+      "vimeo_id": "1098826668",
+      "seconds": 280
+    },
+    {
+      "role": "lesson",
+      "id": 452355,
+      "title": "The Sloshy Hi-Hat",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452355-the-sloshy-hi-hat.json",
+      "vimeo_id": "1096948831",
+      "seconds": 345
+    },
+    {
+      "role": "lesson",
+      "id": 452344,
+      "title": "Incorporate The Toms",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452344-incorporate-the-toms.json",
+      "vimeo_id": "1092156783",
+      "seconds": 274
+    },
+    {
+      "role": "lesson",
+      "id": 452350,
+      "title": "A New Variation",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452350-a-new-variation.json",
+      "vimeo_id": "1098826930",
+      "seconds": 274
+    },
+    {
+      "role": "lesson",
+      "id": 452356,
+      "title": "Hi-Hat Transitions",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452356-hi-hat-transitions.json",
+      "vimeo_id": "1096948940",
+      "seconds": 340
+    },
+    {
+      "role": "lesson",
+      "id": 452345,
+      "title": "Fill Transitions",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452345-fill-transitions.json",
+      "vimeo_id": "1092156657",
+      "seconds": 260
+    },
+    {
+      "role": "lesson",
+      "id": 452351,
+      "title": "Playing Both Patterns",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452351-playing-both-patterns.json",
+      "vimeo_id": "1098827195",
+      "seconds": 278
+    },
+    {
+      "role": "lesson",
+      "id": 452357,
+      "title": "The Ride Bell",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452357-the-ride-bell.json",
+      "vimeo_id": "1096949088",
+      "seconds": 350
+    },
+    {
+      "role": "lesson",
+      "id": 452346,
+      "title": "Double Up On The Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452346-double-up-on-the-fill.json",
+      "vimeo_id": "1092156507",
+      "seconds": 313
+    },
+    {
+      "role": "lesson",
+      "id": 452352,
+      "title": "Variations As Fills",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452352-variations-as-fills.json",
+      "vimeo_id": "1098827460",
+      "seconds": 322
+    },
+    {
+      "role": "lesson",
+      "id": 452358,
+      "title": "Cymbal Sounds Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452358-cymbal-sounds-around-the-kit.json",
+      "vimeo_id": "1096949207",
+      "seconds": 342
+    },
+    {
+      "role": "lesson",
+      "id": 452347,
+      "title": "The Full-Bar Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452347-the-full-bar-fill.json",
+      "vimeo_id": "1092156332",
+      "seconds": 252
+    },
+    {
+      "role": "lesson",
+      "id": 452353,
+      "title": "Combine The Two",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452353-combine-the-two.json",
+      "vimeo_id": "1098827829",
+      "seconds": 287
+    },
+    {
+      "role": "lesson",
+      "id": 452360,
+      "title": "What Are 16th Notes?",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452360-what-are-16th-notes.json",
+      "vimeo_id": "1109152547",
+      "seconds": 301
+    },
+    {
+      "role": "lesson",
+      "id": 452366,
+      "title": "An Extra Bass Drum Note",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452366-an-extra-bass-drum-note.json",
+      "vimeo_id": "1098827694",
+      "seconds": 279
+    },
+    {
+      "role": "lesson",
+      "id": 452372,
+      "title": "Quarter And 8th Notes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452372-quarter-and-8th-notes.json",
+      "vimeo_id": "1122015812",
+      "seconds": 319
+    },
+    {
+      "role": "lesson",
+      "id": 452361,
+      "title": "Bring In The Groove",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452361-bring-in-the-groove.json",
+      "vimeo_id": "1109152739",
+      "seconds": 312
+    },
+    {
+      "role": "lesson",
+      "id": 452367,
+      "title": "Even More Kick Drum!",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452367-even-more-kick-drum.json",
+      "vimeo_id": "1098828401",
+      "seconds": 310
+    },
+    {
+      "role": "lesson",
+      "id": 452373,
+      "title": "8th-Note Variations",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452373-8th-note-variations.json",
+      "vimeo_id": "1122015953",
+      "seconds": 306
+    },
+    {
+      "role": "lesson",
+      "id": 452362,
+      "title": "Double Up Those 16ths",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452362-double-up-those-16ths.json",
+      "vimeo_id": "1109152907",
+      "seconds": 259
+    },
+    {
+      "role": "lesson",
+      "id": 452368,
+      "title": "Bass Drum Creativity",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452368-bass-drum-creativity.json",
+      "vimeo_id": "1098829217",
+      "seconds": 287
+    },
+    {
+      "role": "lesson",
+      "id": 452374,
+      "title": "16th Notes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452374-16th-notes.json",
+      "vimeo_id": "1122016065",
+      "seconds": 329
+    },
+    {
+      "role": "lesson",
+      "id": 452363,
+      "title": "Crashing Through The 16ths",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452363-crashing-through-the-16ths.json",
+      "vimeo_id": "1109153145",
+      "seconds": 259
+    },
+    {
+      "role": "lesson",
+      "id": 452369,
+      "title": "Transitioning Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452369-transitioning-around-the-kit.json",
+      "vimeo_id": "1098829499",
+      "seconds": 289
+    },
+    {
+      "role": "lesson",
+      "id": 452375,
+      "title": "Adding Crashes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452375-adding-crashes.json",
+      "vimeo_id": "1122016207",
+      "seconds": 326
+    },
+    {
+      "role": "lesson",
+      "id": 452364,
+      "title": "Increase Your Speed",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452364-increase-your-speed.json",
+      "vimeo_id": "1109153321",
+      "seconds": 268
+    },
+    {
+      "role": "lesson",
+      "id": 452370,
+      "title": "A Crash To Top It Off",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452370-a-crash-to-top-it-off.json",
+      "vimeo_id": "1098829785",
+      "seconds": 327
+    },
+    {
+      "role": "lesson",
+      "id": 452376,
+      "title": "Adding Rests",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452376-adding-rests.json",
+      "vimeo_id": "1122016372",
+      "seconds": 315
+    },
+    {
+      "role": "lesson",
+      "id": 452378,
+      "title": "The Verse",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452378-the-verse.json",
+      "vimeo_id": "1113319472",
+      "seconds": 272
+    },
+    {
+      "role": "lesson",
+      "id": 452379,
+      "title": "The Chorus",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452379-the-chorus.json",
+      "vimeo_id": "1113319612",
+      "seconds": 289
+    },
+    {
+      "role": "lesson",
+      "id": 452380,
+      "title": "The Bridge",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452380-the-bridge.json",
+      "vimeo_id": "1113319742",
+      "seconds": 286
+    },
+    {
+      "role": "lesson",
+      "id": 452381,
+      "title": "Guided Playthrough",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452381-guided-playthrough.json",
+      "vimeo_id": "1113319882",
+      "seconds": 311
+    },
+    {
+      "role": "lesson",
+      "id": 452382,
+      "title": "Final Performance",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d2_add-variety-to-your-drumming/452382-final-performance.json",
+      "vimeo_id": "1113320003",
+      "seconds": 315
+    }
+  ],
+  "video_count": 35
+}

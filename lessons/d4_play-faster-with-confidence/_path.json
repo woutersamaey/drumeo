@@ -1,0 +1,372 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "learning_path": {
+    "id": 452478,
+    "type": "learning-path-v2",
+    "title": "Play Faster With Confidence",
+    "slug": "d4_play-faster-with-confidence",
+    "status": "published",
+    "difficulty_string": "Beginner",
+    "description": null,
+    "published_on": "2026-04-06 00:01:00",
+    "child_count": 35,
+    "url": "https://app.musora.com/drumeo/method"
+  },
+  "resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key",
+      "resource_url": null
+    }
+  ],
+  "videos": [
+    {
+      "role": "path-intro",
+      "id": 452479,
+      "title": "Welcome To Play Faster With Confidence",
+      "file": "lessons/d4_play-faster-with-confidence/452479-welcome.json",
+      "vimeo_id": "1132195826",
+      "seconds": 23
+    },
+    {
+      "role": "lesson",
+      "id": 452437,
+      "title": "What Is Cross-Stick?",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452437-what-is-cross-stick.json",
+      "vimeo_id": "1125938037",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 452443,
+      "title": "The Wrist Motion",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452443-the-wrist-motion.json",
+      "vimeo_id": "1122977474",
+      "seconds": 309
+    },
+    {
+      "role": "lesson",
+      "id": 452449,
+      "title": "A Kick Before The Backbeat",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452449-a-kick-before-the-backbeat.json",
+      "vimeo_id": "1119560658",
+      "seconds": 281
+    },
+    {
+      "role": "lesson",
+      "id": 452438,
+      "title": "Moving Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452438-moving-around-the-kit.json",
+      "vimeo_id": "1125939751",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 452444,
+      "title": "The Secret To Playing Fast",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452444-the-secret-to-playing-fast.json",
+      "vimeo_id": "1122977722",
+      "seconds": 298
+    },
+    {
+      "role": "lesson",
+      "id": 452450,
+      "title": "A Kick After The Backbeat",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452450-a-kick-after-the-backbeat.json",
+      "vimeo_id": "1119560792",
+      "seconds": 303
+    },
+    {
+      "role": "lesson",
+      "id": 452439,
+      "title": "Switching With Our Snare Hand",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452439-switching-with-our-snare-hand.json",
+      "vimeo_id": "1125941997",
+      "seconds": 312
+    },
+    {
+      "role": "lesson",
+      "id": 452445,
+      "title": "Speeding It Up",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452445-speeding-it-up.json",
+      "vimeo_id": "1122977919",
+      "seconds": 342
+    },
+    {
+      "role": "lesson",
+      "id": 452451,
+      "title": "Review The Patterns",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452451-review-the-patterns.json",
+      "vimeo_id": "1119560926",
+      "seconds": 303
+    },
+    {
+      "role": "lesson",
+      "id": 452440,
+      "title": "Getting Comfortable With Switching",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452440-getting-comfortable-with-switching.json",
+      "vimeo_id": "1125943924",
+      "seconds": 324
+    },
+    {
+      "role": "lesson",
+      "id": 452446,
+      "title": "Staying Relaxed",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452446-staying-relaxed.json",
+      "vimeo_id": "1122978120",
+      "seconds": 324
+    },
+    {
+      "role": "lesson",
+      "id": 452452,
+      "title": "Combine The Patterns",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452452-combine-the-patterns.json",
+      "vimeo_id": "1119561063",
+      "seconds": 322
+    },
+    {
+      "role": "lesson",
+      "id": 452441,
+      "title": "Transitioning With A Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452441-transitioning-with-a-fill.json",
+      "vimeo_id": "1125945728",
+      "seconds": 246
+    },
+    {
+      "role": "lesson",
+      "id": 452447,
+      "title": "Now We're Cookin'",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452447-now-were-cookin.json",
+      "vimeo_id": "1122978277",
+      "seconds": 342
+    },
+    {
+      "role": "lesson",
+      "id": 452453,
+      "title": "Patterns Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452453-patterns-around-the-kit.json",
+      "vimeo_id": "1119561196",
+      "seconds": 280
+    },
+    {
+      "role": "lesson",
+      "id": 452455,
+      "title": "Unlocking Our Lead Hand",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452455-unlocking-our-lead-hand.json",
+      "vimeo_id": "1123762180",
+      "seconds": 334
+    },
+    {
+      "role": "lesson",
+      "id": 452461,
+      "title": "8ths-To-16ths Transitions",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452461-8ths-to16ths-transitions.json",
+      "vimeo_id": "1126317255",
+      "seconds": 317
+    },
+    {
+      "role": "lesson",
+      "id": 452467,
+      "title": "The 4e&- Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452467-the-4eand-fill.json",
+      "vimeo_id": "1119977353",
+      "seconds": 297
+    },
+    {
+      "role": "lesson",
+      "id": 452456,
+      "title": "Playing From The Ride",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452456-playing-from-the-ride.json",
+      "vimeo_id": "1123762292",
+      "seconds": 327
+    },
+    {
+      "role": "lesson",
+      "id": 452462,
+      "title": "16ths With One Hand",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452462-16ths-with-one-hand.json",
+      "vimeo_id": "1126317346",
+      "seconds": 317
+    },
+    {
+      "role": "lesson",
+      "id": 452468,
+      "title": "The 4-&Ah Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452468-the-4-andah-fill.json",
+      "vimeo_id": "1119977840",
+      "seconds": 275
+    },
+    {
+      "role": "lesson",
+      "id": 452457,
+      "title": "Crashing On Transitions",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452457-crashing-on-transitions.json",
+      "vimeo_id": "1123762388",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 452463,
+      "title": "Adding A Crash",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452463-adding-a-crash.json",
+      "vimeo_id": "1126317473",
+      "seconds": 308
+    },
+    {
+      "role": "lesson",
+      "id": 452469,
+      "title": "Combining The Two",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452469-combining-the-two.json",
+      "vimeo_id": "1119978686",
+      "seconds": 273
+    },
+    {
+      "role": "lesson",
+      "id": 452458,
+      "title": "All Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452458-all-around-the-kit.json",
+      "vimeo_id": "1123762479",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 452464,
+      "title": "Changing Up The Kick",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452464-changing-up-the-kick.json",
+      "vimeo_id": "1126317582",
+      "seconds": 305
+    },
+    {
+      "role": "lesson",
+      "id": 452470,
+      "title": "Playing For Two Beats",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452470-playing-for-two-beats.json",
+      "vimeo_id": "1119979970",
+      "seconds": 262
+    },
+    {
+      "role": "lesson",
+      "id": 452459,
+      "title": "Changing Everything At Once",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452459-changing-everything-at-once.json",
+      "vimeo_id": "1123762574",
+      "seconds": 297
+    },
+    {
+      "role": "lesson",
+      "id": 452465,
+      "title": "Playing Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452465-playing-around-the-kit.json",
+      "vimeo_id": "1126317683",
+      "seconds": 310
+    },
+    {
+      "role": "lesson",
+      "id": 452471,
+      "title": "An Iconic Drum Fill",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452471-an-iconic-drum-fill.json",
+      "vimeo_id": "1119979357",
+      "seconds": 292
+    },
+    {
+      "role": "lesson",
+      "id": 452473,
+      "title": "Learn The Verse ",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452473-learn-the-verse.json",
+      "vimeo_id": "1124977149",
+      "seconds": 341
+    },
+    {
+      "role": "lesson",
+      "id": 452474,
+      "title": "Learn The Chorus",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452474-learn-the-chorus.json",
+      "vimeo_id": "1124981258",
+      "seconds": 302
+    },
+    {
+      "role": "lesson",
+      "id": 452475,
+      "title": "Learn The Bridge",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452475-learn-the-bridge.json",
+      "vimeo_id": "1124981512",
+      "seconds": 332
+    },
+    {
+      "role": "lesson",
+      "id": 455013,
+      "title": "Learn The Fill",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/455013-learn-the-fill.json",
+      "vimeo_id": "1124989161",
+      "seconds": 336
+    },
+    {
+      "role": "lesson",
+      "id": 452476,
+      "title": "Guided Playthrough",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452476-guided-playthrough.json",
+      "vimeo_id": "1124989335",
+      "seconds": 287
+    },
+    {
+      "role": "lesson",
+      "id": 452477,
+      "title": "Final Performance",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d4_play-faster-with-confidence/452477-final-performance.json",
+      "vimeo_id": "1124989440",
+      "seconds": 270
+    }
+  ],
+  "video_count": 37
+}

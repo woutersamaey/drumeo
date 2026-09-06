@@ -1,0 +1,333 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "learning_path": {
+    "id": 457503,
+    "type": "learning-path-v2",
+    "title": "Make Your Drumming Musical",
+    "slug": "d7_make-your-drumming-musical",
+    "status": "published",
+    "difficulty_string": "Beginner",
+    "description": null,
+    "published_on": "2026-07-06T07:01:00Z",
+    "child_count": 34,
+    "url": "https://app.musora.com/drumeo/method"
+  },
+  "resources": [],
+  "videos": [
+    {
+      "role": "path-intro",
+      "id": 457461,
+      "title": "Welcome To Make Your Drumming Musical",
+      "file": "lessons/d7_make-your-drumming-musical/457461-welcome.json",
+      "vimeo_id": "1196007547",
+      "seconds": 22
+    },
+    {
+      "role": "lesson",
+      "id": 457462,
+      "title": "Train Grooves",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457462-train-grooves.json",
+      "vimeo_id": "1196031047",
+      "seconds": 335
+    },
+    {
+      "role": "lesson",
+      "id": 457468,
+      "title": "Quarter Note Accents",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457468-quarter-note-accents.json",
+      "vimeo_id": "1196008720",
+      "seconds": 351
+    },
+    {
+      "role": "lesson",
+      "id": 457474,
+      "title": "Using The Hi-Hat Pedal",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457474-using-the-hihat-pedal.json",
+      "vimeo_id": "1196030376",
+      "seconds": 310
+    },
+    {
+      "role": "lesson",
+      "id": 457463,
+      "title": "Offbeat Accents",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457463-offbeat-accents.json",
+      "vimeo_id": "1196031043",
+      "seconds": 334
+    },
+    {
+      "role": "lesson",
+      "id": 457469,
+      "title": "Accents On The Toms",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457469-accents-on-the-toms.json",
+      "vimeo_id": "1196008725",
+      "seconds": 361
+    },
+    {
+      "role": "lesson",
+      "id": 457475,
+      "title": "Getting Comfortable",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457475-getting-comfortable.json",
+      "vimeo_id": "1196030386",
+      "seconds": 308
+    },
+    {
+      "role": "lesson",
+      "id": 457464,
+      "title": "16th Note Train Grooves",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457464-16th-note-train-grooves.json",
+      "vimeo_id": "1196031044",
+      "seconds": 344
+    },
+    {
+      "role": "lesson",
+      "id": 457470,
+      "title": "Splitting It Up",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457470-splitting-it-up.json",
+      "vimeo_id": "1196008721",
+      "seconds": 336
+    },
+    {
+      "role": "lesson",
+      "id": 457476,
+      "title": "Removing Some Steps",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457476-removing-some-steps.json",
+      "vimeo_id": "1196030378",
+      "seconds": 316
+    },
+    {
+      "role": "lesson",
+      "id": 457465,
+      "title": "Adding The Kick",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457465-adding-the-kick.json",
+      "vimeo_id": "1196031042",
+      "seconds": 364
+    },
+    {
+      "role": "lesson",
+      "id": 457471,
+      "title": "Going Clockwise",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457471-going-clockwise.json",
+      "vimeo_id": "1196008726",
+      "seconds": 378
+    },
+    {
+      "role": "lesson",
+      "id": 457477,
+      "title": "Adding 8th Notes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457477-adding-8th-notes.json",
+      "vimeo_id": "1196030387",
+      "seconds": 314
+    },
+    {
+      "role": "lesson",
+      "id": 457466,
+      "title": "Putting It All Together",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457466-putting-it-all-together.json",
+      "vimeo_id": "1196033280",
+      "seconds": 361
+    },
+    {
+      "role": "lesson",
+      "id": 457472,
+      "title": "An Accent Challenge",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457472-an-accent-challenge.json",
+      "vimeo_id": "1196009576",
+      "seconds": 379
+    },
+    {
+      "role": "lesson",
+      "id": 457478,
+      "title": "4-Way Coordination",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457478-4way-coordination.json",
+      "vimeo_id": "1196032155",
+      "seconds": 318
+    },
+    {
+      "role": "lesson",
+      "id": 457480,
+      "title": "Starting With 8th Notes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457480-starting-with-8th-notes.json",
+      "vimeo_id": "1196029512",
+      "seconds": 374
+    },
+    {
+      "role": "lesson",
+      "id": 457486,
+      "title": "Double On Beat 1",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457486-double-on-beat-1.json",
+      "vimeo_id": "1196031467",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 457492,
+      "title": "Dynamic Choices",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457492-dynamic-choices.json",
+      "vimeo_id": "1196029960",
+      "seconds": 354
+    },
+    {
+      "role": "lesson",
+      "id": 457481,
+      "title": "Add More Accents",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457481-add-more-accents.json",
+      "vimeo_id": "1196029565",
+      "seconds": 365
+    },
+    {
+      "role": "lesson",
+      "id": 457487,
+      "title": "Getting More Reps In",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457487-getting-more-reps-in.json",
+      "vimeo_id": "1196031470",
+      "seconds": 306
+    },
+    {
+      "role": "lesson",
+      "id": 457493,
+      "title": "Mixing It Up",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457493-mixing-it-up.json",
+      "vimeo_id": "1196029978",
+      "seconds": 343
+    },
+    {
+      "role": "lesson",
+      "id": 457482,
+      "title": "Change It To 16ths",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457482-change-it-to-16ths.json",
+      "vimeo_id": "1196029511",
+      "seconds": 312
+    },
+    {
+      "role": "lesson",
+      "id": 457488,
+      "title": "Double Into Beat 3",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457488-double-into-beat-3.json",
+      "vimeo_id": "1196031466",
+      "seconds": 324
+    },
+    {
+      "role": "lesson",
+      "id": 457494,
+      "title": "Changing Sections",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457494-changing-sections.json",
+      "vimeo_id": "1196029959",
+      "seconds": 379
+    },
+    {
+      "role": "lesson",
+      "id": 457483,
+      "title": "Even More Accents",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457483-even-more-accents.json",
+      "vimeo_id": "1196029566",
+      "seconds": 352
+    },
+    {
+      "role": "lesson",
+      "id": 457489,
+      "title": "Getting The Coordination",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457489-getting-the-coordination.json",
+      "vimeo_id": "1196031471",
+      "seconds": 307
+    },
+    {
+      "role": "lesson",
+      "id": 457495,
+      "title": "Being Subtle",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457495-being-subtle.json",
+      "vimeo_id": "1196029958",
+      "seconds": 282
+    },
+    {
+      "role": "lesson",
+      "id": 457484,
+      "title": "Applying The Accents",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457484-applying-the-accents.json",
+      "vimeo_id": "1196030196",
+      "seconds": 334
+    },
+    {
+      "role": "lesson",
+      "id": 457490,
+      "title": "Further Practice",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457490-further-practice.json",
+      "vimeo_id": "1196033513",
+      "seconds": 303
+    },
+    {
+      "role": "lesson",
+      "id": 457497,
+      "title": "Learn The Verse",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457497-learn-the-verse.json",
+      "vimeo_id": "1196031787",
+      "seconds": 345
+    },
+    {
+      "role": "lesson",
+      "id": 457498,
+      "title": "Learn The Chorus",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457498-learn-the-chorus.json",
+      "vimeo_id": "1196031789",
+      "seconds": 305
+    },
+    {
+      "role": "lesson",
+      "id": 457499,
+      "title": "Learn The Bridge",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457499-learn-the-bridge.json",
+      "vimeo_id": "1196031788",
+      "seconds": 358
+    },
+    {
+      "role": "lesson",
+      "id": 457500,
+      "title": "Guided Playthrough",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457500-guided-playthrough.json",
+      "vimeo_id": "1196031790",
+      "seconds": 331
+    },
+    {
+      "role": "lesson",
+      "id": 457501,
+      "title": "Final Performance",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d7_make-your-drumming-musical/457501-final-performance.json",
+      "vimeo_id": "1196033679",
+      "seconds": 313
+    }
+  ],
+  "video_count": 35
+}

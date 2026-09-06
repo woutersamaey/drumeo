@@ -1,0 +1,138 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "role": "lesson",
+  "source": [
+    "https://app.musora.com/drumeo/method/lesson/457503/457466",
+    "Sanity CMS (sanity.musora.com)"
+  ],
+  "notes": {
+    "video_host": "Vimeo (not YouTube). Played in the Musora web app via Bitmovin over HLS.",
+    "signed_stream_urls_omitted": "Playback URLs from Vimeo include oauth tokens and signatures; those expire and are not stored here.",
+    "sheet_music": "Method skill-pack lessons have no downloadable sheet music in CMS. Notation is shown in-video. Songs (outside Method) use Soundslice.",
+    "audio_tracks": "CMS does not list dubbed audio. Sampled Method player menus include the languages in video.audio_tracks_sampled; not re-opened for every file."
+  },
+  "lesson": {
+    "id": 457466,
+    "sanity_id": "d7-sp1-l5",
+    "type": "skill-pack-lesson",
+    "title": "Putting It All Together",
+    "slug": "d7-sp1-l5_putting-it-all-together",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 361,
+    "length": "6:01",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-07-06T07:01:00Z",
+    "created_at": "2026-06-05T00:21:46Z",
+    "updated_at": "2026-06-05T00:24:00Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/457503/457466",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/4fca015903ec0aa04c3e85df60c81dc9b75680ff-1920x1080.jpg",
+    "instructor": {
+      "name": "Aaron Graham",
+      "slug": "aaron-graham",
+      "profile_url": "https://app.musora.com/drumeo/instructors/aaron-graham",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/2d7db7167bcd6cd8c68015751ae192b3ff1a5f50-2175x2175.jpg",
+      "short_bio": "Aaron Graham is an award-winning drummer, composer, and educator, and is Musora’s Director of Education"
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 457503,
+      "type": "learning-path-v2",
+      "title": "Make Your Drumming Musical",
+      "slug": "d7_make-your-drumming-musical",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/457503/457466"
+    },
+    "skill_pack": {
+      "id": 457467,
+      "sanity_id": "d7-sp1",
+      "type": "skill-pack",
+      "title": "Accented Snare Grooves",
+      "slug": "d7-sp1_accented-snare-grooves",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1196033280",
+    "urls": {
+      "vimeo": "https://vimeo.com/1196033280",
+      "vimeo_player": "https://player.vimeo.com/video/1196033280",
+      "vimeo_hls_external": "https://player.vimeo.com/external/1196033280.m3u8",
+      "poster": "https://i.vimeocdn.com/video/2162042291-7abdb73a3285a8f5007e4cb9ab947749b0cc8a8c1cee461f9a5e4740f7745883-d_1280x720"
+    },
+    "playback_in_app": {
+      "player": "Bitmovin",
+      "delivery": "HLS (Media Source Extensions, blob: URL in the <video> element)",
+      "cdn": "vod-adaptive-ak.vimeocdn.com"
+    },
+    "renditions": [
+      {
+        "label": "240p",
+        "width": 426,
+        "height": 240
+      },
+      {
+        "label": "360p",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "label": "540p",
+        "width": 960,
+        "height": 540
+      },
+      {
+        "label": "720p",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "label": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "label": "1440p",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "label": "2160p",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "audio_tracks_sampled": [
+      "English",
+      "Deutsch",
+      "español",
+      "日本語",
+      "Nederlands",
+      "português",
+      "română",
+      "русский",
+      "français",
+      "हिन्दी",
+      "italiano",
+      "polski",
+      "українська",
+      "中文"
+    ],
+    "captions": [],
+    "subtitles": {
+      "count": 0,
+      "cms_texttracks": []
+    }
+  }
+}

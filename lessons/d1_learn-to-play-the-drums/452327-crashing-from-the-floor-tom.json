@@ -1,0 +1,175 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "role": "lesson",
+  "source": [
+    "https://app.musora.com/drumeo/method/lesson/452340/452327",
+    "Sanity CMS (sanity.musora.com)"
+  ],
+  "notes": {
+    "video_host": "Vimeo (not YouTube). Played in the Musora web app via Bitmovin over HLS.",
+    "signed_stream_urls_omitted": "Playback URLs from Vimeo include oauth tokens and signatures; those expire and are not stored here.",
+    "sheet_music": "Method skill-pack lessons have no downloadable sheet music in CMS. Notation is shown in-video. Songs (outside Method) use Soundslice.",
+    "audio_tracks": "CMS does not list dubbed audio. Sampled Method player menus include the languages in video.audio_tracks_sampled; not re-opened for every file."
+  },
+  "lesson": {
+    "id": 452327,
+    "sanity_id": "d1-sp6-l3",
+    "type": "skill-pack-lesson",
+    "title": "Crashing From The Floor Tom",
+    "slug": "d1-sp6-l3_crashing-from-the-floor-tom",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 1,
+    "difficulty_string": "Introductory",
+    "language": "en-US",
+    "length_in_seconds": 319,
+    "length": "5:19",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 17860,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:31:33Z",
+    "updated_at": "2026-04-24T17:56:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452340/452327",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/3d93c58296c365183db63ec69ca1f6d63e6bf411-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452340,
+      "type": "learning-path-v2",
+      "title": "Learn To Play The Drums",
+      "slug": "d1_learn-to-play-the-drums",
+      "difficulty_string": "Introductory",
+      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452340/452327"
+    },
+    "skill_pack": {
+      "id": 452324,
+      "sanity_id": "d1-sp6",
+      "type": "skill-pack",
+      "title": "Adding Crash Cymbals",
+      "slug": "d1-sp6_adding-crash-cymbals",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1095148258",
+    "urls": {
+      "vimeo": "https://vimeo.com/1095148258",
+      "vimeo_player": "https://player.vimeo.com/video/1095148258",
+      "vimeo_hls_external": "https://player.vimeo.com/external/1095148258.m3u8",
+      "poster": "https://i.vimeocdn.com/video/2118024577-0f8b8b6daf93a98a3c395eb260d19e0e15fdb2ac58eff43c3f3d92c0e72c61e5-d_1280x720"
+    },
+    "playback_in_app": {
+      "player": "Bitmovin",
+      "delivery": "HLS (Media Source Extensions, blob: URL in the <video> element)",
+      "cdn": "vod-adaptive-ak.vimeocdn.com"
+    },
+    "renditions": [
+      {
+        "label": "240p",
+        "width": 426,
+        "height": 240
+      },
+      {
+        "label": "360p",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "label": "540p",
+        "width": 960,
+        "height": 540
+      },
+      {
+        "label": "720p",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "label": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "label": "1440p",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "label": "2160p",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "audio_tracks_sampled": [
+      "English",
+      "Deutsch",
+      "español",
+      "日本語",
+      "Nederlands",
+      "português",
+      "română",
+      "русский",
+      "français",
+      "हिन्दी",
+      "italiano",
+      "polski",
+      "українська",
+      "中文"
+    ],
+    "captions": [
+      {
+        "display_language": "English (auto-generated)",
+        "language": "en-x-autogen",
+        "name": "auto_generated_captions.vtt",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1095148258/texttracks/238161749"
+      }
+    ],
+    "subtitles": {
+      "count": 1,
+      "cms_texttracks": [
+        {
+          "display_language": "English (auto-generated)",
+          "language": "en-x-autogen",
+          "name": "auto_generated_captions.vtt",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1095148258/texttracks/238161749"
+        }
+      ]
+    }
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "role": "lesson",
+  "source": [
+    "https://app.musora.com/drumeo/method/lesson/458192/458178",
+    "Sanity CMS (sanity.musora.com)"
+  ],
+  "notes": {
+    "video_host": "Vimeo (not YouTube). Played in the Musora web app via Bitmovin over HLS.",
+    "signed_stream_urls_omitted": "Playback URLs from Vimeo include oauth tokens and signatures; those expire and are not stored here.",
+    "sheet_music": "Method skill-pack lessons have no downloadable sheet music in CMS. Notation is shown in-video. Songs (outside Method) use Soundslice.",
+    "audio_tracks": "CMS does not list dubbed audio. Sampled Method player menus include the languages in video.audio_tracks_sampled; not re-opened for every file."
+  },
+  "lesson": {
+    "id": 458178,
+    "sanity_id": "d8-sp5-l5",
+    "type": "skill-pack-lesson",
+    "title": "The Iconic 4OTF Groove",
+    "slug": "d8-sp5-l5_the-iconic-4otf-groove",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 3,
+    "difficulty_string": "Beginner",
+    "language": null,
+    "length_in_seconds": 322,
+    "length": "5:22",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": null,
+    "published_on": "2026-08-04T07:01:00.000Z",
+    "created_at": "2026-06-24T22:36:54Z",
+    "updated_at": "2026-07-22T21:16:33Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/458192/458178",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/798b152f3c7c4095216cd39ed7245ec4f95218bc-1920x1080.jpg",
+    "instructor": {
+      "name": "Domino Santantonio",
+      "slug": "domino-santantonio",
+      "profile_url": "https://app.musora.com/drumeo/instructors/domino-santantonio",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/6aeb31ea090f20106f915cf2e6c5b638986ec309-900x1050.jpg",
+      "short_bio": "Domino Santantonio is a professional touring and studio drummer who was known primarily for her work with Quebec artist Roxane Bruneau until she became a viral sensation on TikTok."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 458192,
+      "type": "learning-path-v2",
+      "title": "Modern Rock & Pop Drumming",
+      "slug": "d8_modern-rock-and-pop-drumming",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/458192/458178"
+    },
+    "skill_pack": {
+      "id": 458179,
+      "sanity_id": "d8-sp5",
+      "type": "skill-pack",
+      "title": "Four On The Floor Variations",
+      "slug": "d8-sp5_four-on-the-floor-variations",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1185947862",
+    "urls": {
+      "vimeo": "https://vimeo.com/1185947862",
+      "vimeo_player": "https://player.vimeo.com/video/1185947862",
+      "vimeo_hls_external": "https://player.vimeo.com/external/1185947862.m3u8",
+      "poster": "https://i.vimeocdn.com/video/2149519919-7080bcb6a4b02b0cce10156340ad28c7b17443c6673375c5c0c1f25e506eb377-d_1280x720"
+    },
+    "playback_in_app": {
+      "player": "Bitmovin",
+      "delivery": "HLS (Media Source Extensions, blob: URL in the <video> element)",
+      "cdn": "vod-adaptive-ak.vimeocdn.com"
+    },
+    "renditions": [
+      {
+        "label": "240p",
+        "width": 426,
+        "height": 240
+      },
+      {
+        "label": "360p",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "label": "540p",
+        "width": 960,
+        "height": 540
+      },
+      {
+        "label": "720p",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "label": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "label": "1440p",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "label": "2160p",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "audio_tracks_sampled": [
+      "English",
+      "Deutsch",
+      "español",
+      "日本語",
+      "Nederlands",
+      "português",
+      "română",
+      "русский",
+      "français",
+      "हिन्दी",
+      "italiano",
+      "polski",
+      "українська",
+      "中文"
+    ],
+    "captions": [],
+    "subtitles": {
+      "count": 0,
+      "cms_texttracks": []
+    }
+  }
+}

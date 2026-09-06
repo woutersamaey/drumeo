@@ -1,0 +1,175 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "role": "lesson",
+  "source": [
+    "https://app.musora.com/drumeo/method/lesson/452434/452396",
+    "Sanity CMS (sanity.musora.com)"
+  ],
+  "notes": {
+    "video_host": "Vimeo (not YouTube). Played in the Musora web app via Bitmovin over HLS.",
+    "signed_stream_urls_omitted": "Playback URLs from Vimeo include oauth tokens and signatures; those expire and are not stored here.",
+    "sheet_music": "Method skill-pack lessons have no downloadable sheet music in CMS. Notation is shown in-video. Songs (outside Method) use Soundslice.",
+    "audio_tracks": "CMS does not list dubbed audio. Sampled Method player menus include the languages in video.audio_tracks_sampled; not re-opened for every file."
+  },
+  "lesson": {
+    "id": 452396,
+    "sanity_id": "d3-sp2-l1",
+    "type": "skill-pack-lesson",
+    "title": "Starting On Beat 4",
+    "slug": "d3-sp2-l1_starting-on-beat-4",
+    "brand": "drumeo",
+    "status": "published",
+    "difficulty": 2,
+    "difficulty_string": "Beginner",
+    "language": "en-US",
+    "length_in_seconds": 287,
+    "length": "4:47",
+    "membership_tier": "basic",
+    "lifetime": false,
+    "popularity": 12578,
+    "published_on": "2026-02-06 00:01:00",
+    "created_at": "2026-02-11T02:32:01Z",
+    "updated_at": "2026-04-24T17:56:02Z",
+    "description": null,
+    "page_url": "https://app.musora.com/drumeo/method/lesson/452434/452396",
+    "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/a4eb2141c7aa660f8af796fbc993032370eed84f-1920x1080.jpg",
+    "instructor": {
+      "name": "Brandon Toews",
+      "slug": "brandon-toews",
+      "profile_url": "https://app.musora.com/drumeo/instructors/brandon-toews",
+      "thumbnail_url": "https://cdn.sanity.io/images/4032r8py/production_v2/fee635f6f18f35a0a95a5520f7e00be803d4f178-2418x2417.jpg",
+      "short_bio": "Brandon Toews is a drummer, author, educator, and content producer."
+    }
+  },
+  "hierarchy": {
+    "learning_path": {
+      "id": 452434,
+      "type": "learning-path-v2",
+      "title": "Essentials For Popular Music",
+      "slug": "d3_essentials-for-popular-music",
+      "difficulty_string": "Beginner",
+      "description": null,
+      "status": "published",
+      "url": "https://app.musora.com/drumeo/method/lesson/452434/452396"
+    },
+    "skill_pack": {
+      "id": 452395,
+      "sanity_id": "d3-sp2",
+      "type": "skill-pack",
+      "title": "Drum-Fill Timing",
+      "slug": "d3-sp2_drum-fill-timing",
+      "child_count": 5
+    }
+  },
+  "video": {
+    "host": "Vimeo",
+    "cms_type": "vimeo-video",
+    "vimeo_id": "1109826625",
+    "urls": {
+      "vimeo": "https://vimeo.com/1109826625",
+      "vimeo_player": "https://player.vimeo.com/video/1109826625",
+      "vimeo_hls_external": "https://player.vimeo.com/external/1109826625.m3u8",
+      "poster": "https://i.vimeocdn.com/video/2118089432-2409f6d429ea8b4557a9b1038f85819a66d30322eb64eeb8c7e65ef759e46990-d_1280x720"
+    },
+    "playback_in_app": {
+      "player": "Bitmovin",
+      "delivery": "HLS (Media Source Extensions, blob: URL in the <video> element)",
+      "cdn": "vod-adaptive-ak.vimeocdn.com"
+    },
+    "renditions": [
+      {
+        "label": "240p",
+        "width": 426,
+        "height": 240
+      },
+      {
+        "label": "360p",
+        "width": 640,
+        "height": 360
+      },
+      {
+        "label": "540p",
+        "width": 960,
+        "height": 540
+      },
+      {
+        "label": "720p",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "label": "1080p",
+        "width": 1920,
+        "height": 1080
+      },
+      {
+        "label": "1440p",
+        "width": 2560,
+        "height": 1440
+      },
+      {
+        "label": "2160p",
+        "width": 3840,
+        "height": 2160
+      }
+    ],
+    "audio_tracks_sampled": [
+      "English",
+      "Deutsch",
+      "español",
+      "日本語",
+      "Nederlands",
+      "português",
+      "română",
+      "русский",
+      "français",
+      "हिन्दी",
+      "italiano",
+      "polski",
+      "українська",
+      "中文"
+    ],
+    "captions": [
+      {
+        "display_language": "English (auto-generated)",
+        "language": "en-x-autogen",
+        "name": "auto_generated_captions.vtt",
+        "type": "subtitles",
+        "vimeo_uri": "/videos/1109826625/texttracks/280005969"
+      }
+    ],
+    "subtitles": {
+      "count": 1,
+      "cms_texttracks": [
+        {
+          "display_language": "English (auto-generated)",
+          "language": "en-x-autogen",
+          "name": "auto_generated_captions.vtt",
+          "type": "subtitles",
+          "vimeo_uri": "/videos/1109826625/texttracks/280005969"
+        }
+      ]
+    }
+  },
+  "path_resources": [
+    {
+      "resource_name": "Setting Up Your Acoustic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
+    },
+    {
+      "resource_name": "Setting Up Your Electronic Kit",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
+    },
+    {
+      "resource_name": "Using Musora In Your Space",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
+    },
+    {
+      "resource_name": "The Basics Of Drum Tuning",
+      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
+    },
+    {
+      "resource_name": "PDF Notation Key"
+    }
+  ]
+}

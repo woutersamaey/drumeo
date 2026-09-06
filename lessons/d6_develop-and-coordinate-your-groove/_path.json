@@ -1,0 +1,342 @@
+{
+  "collected_at": "2026-09-06T09:09:35Z",
+  "learning_path": {
+    "id": 456457,
+    "type": "learning-path-v2",
+    "title": "Develop & Coordinate Your Groove",
+    "slug": "d6_develop-and-coordinate-your-groove",
+    "status": "published",
+    "difficulty_string": "Beginner",
+    "description": null,
+    "published_on": "2026-06-01T07:01:00.000Z",
+    "child_count": 35,
+    "url": "https://app.musora.com/drumeo/method"
+  },
+  "resources": [],
+  "videos": [
+    {
+      "role": "path-intro",
+      "id": 456456,
+      "title": "Welcome To Develop & Coordinate Your Groove",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456456-welcome.json",
+      "vimeo_id": "1190550421",
+      "seconds": 22
+    },
+    {
+      "role": "lesson",
+      "id": 456458,
+      "title": "What Is Double Time?",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456458-what-is-double-time.json",
+      "vimeo_id": "1167825320",
+      "seconds": 295
+    },
+    {
+      "role": "lesson",
+      "id": 456486,
+      "title": "The Full & Tap Strokes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456486-the-full-and-tap-strokes.json",
+      "vimeo_id": "1167390814",
+      "seconds": 323
+    },
+    {
+      "role": "lesson",
+      "id": 456507,
+      "title": "Syncopated Grooves",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456507-syncopated-grooves.json",
+      "vimeo_id": "1167849703",
+      "seconds": 326
+    },
+    {
+      "role": "lesson",
+      "id": 456460,
+      "title": "Normal To Double And Back",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456460-normal-to-double-and-back.json",
+      "vimeo_id": "1167824879",
+      "seconds": 313
+    },
+    {
+      "role": "lesson",
+      "id": 456487,
+      "title": "The Down & Up Strokes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456487-the-down-and-up-strokes.json",
+      "vimeo_id": "1167390953",
+      "seconds": 283
+    },
+    {
+      "role": "lesson",
+      "id": 456508,
+      "title": "Moving The Kick",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456508-moving-the-kick.json",
+      "vimeo_id": "1168166492",
+      "seconds": 306
+    },
+    {
+      "role": "lesson",
+      "id": 456461,
+      "title": "Changing Up The Kick",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456461-changing-up-the-kick.json",
+      "vimeo_id": "1167824955",
+      "seconds": 303
+    },
+    {
+      "role": "lesson",
+      "id": 456504,
+      "title": "Speeding It Up",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456504-speeding-it-up.json",
+      "vimeo_id": "1167391264",
+      "seconds": 300
+    },
+    {
+      "role": "lesson",
+      "id": 456509,
+      "title": "Adding More Kick",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456509-adding-more-kick.json",
+      "vimeo_id": "1168166618",
+      "seconds": 300
+    },
+    {
+      "role": "lesson",
+      "id": 456462,
+      "title": "Double And Back",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456462-double-and-back.json",
+      "vimeo_id": "1167825082",
+      "seconds": 293
+    },
+    {
+      "role": "lesson",
+      "id": 456505,
+      "title": "Different Patterns",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456505-different-patterns.json",
+      "vimeo_id": "1167391422",
+      "seconds": 312
+    },
+    {
+      "role": "lesson",
+      "id": 456510,
+      "title": "An Iconic Groove",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456510-an-iconic-groove.json",
+      "vimeo_id": "1168166699",
+      "seconds": 283
+    },
+    {
+      "role": "lesson",
+      "id": 456463,
+      "title": "Transitioning Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456463-transitioning-around-the-kit.json",
+      "vimeo_id": "1167825203",
+      "seconds": 312
+    },
+    {
+      "role": "lesson",
+      "id": 456506,
+      "title": "Putting It All Together",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456506-putting-it-all-together.json",
+      "vimeo_id": "1167391671",
+      "seconds": 325
+    },
+    {
+      "role": "lesson",
+      "id": 456511,
+      "title": "Review The Pattern",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456511-review-the-pattern.json",
+      "vimeo_id": "1168166368",
+      "seconds": 310
+    },
+    {
+      "role": "lesson",
+      "id": 456513,
+      "title": "Two-Handed 16th Grooves",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456513-two-handed-16th-grooves.json",
+      "vimeo_id": "1168168353",
+      "seconds": 257
+    },
+    {
+      "role": "lesson",
+      "id": 456519,
+      "title": "Building Coordination",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456519-building-coordination.json",
+      "vimeo_id": "1170357120",
+      "seconds": 324
+    },
+    {
+      "role": "lesson",
+      "id": 456528,
+      "title": "What Are Double Strokes?",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456528-what-are-double-strokes.json",
+      "vimeo_id": "1168207028",
+      "seconds": 317
+    },
+    {
+      "role": "lesson",
+      "id": 456514,
+      "title": "Adding A Crash",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456514-adding-a-crash.json",
+      "vimeo_id": "1168168456",
+      "seconds": 290
+    },
+    {
+      "role": "lesson",
+      "id": 456523,
+      "title": "Adding More Ghost Notes",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456523-adding-more-ghost-notes.json",
+      "vimeo_id": "1170357214",
+      "seconds": 325
+    },
+    {
+      "role": "lesson",
+      "id": 456529,
+      "title": "Solidify The Pattern",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456529-solidify-the-pattern.json",
+      "vimeo_id": "1168207117",
+      "seconds": 276
+    },
+    {
+      "role": "lesson",
+      "id": 456515,
+      "title": "Adding The Ride",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456515-adding-the-ride.json",
+      "vimeo_id": "1168168581",
+      "seconds": 263
+    },
+    {
+      "role": "lesson",
+      "id": 456524,
+      "title": "Vary The Pattern",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456524-vary-the-pattern.json",
+      "vimeo_id": "1170357318",
+      "seconds": 310
+    },
+    {
+      "role": "lesson",
+      "id": 456530,
+      "title": "Getting More Comfortable",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456530-getting-more-comfortable.json",
+      "vimeo_id": "1168207177",
+      "seconds": 317
+    },
+    {
+      "role": "lesson",
+      "id": 456516,
+      "title": "Picking Up The Tempo",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456516-picking-up-the-tempo.json",
+      "vimeo_id": "1168168688",
+      "seconds": 288
+    },
+    {
+      "role": "lesson",
+      "id": 456525,
+      "title": "Filling Up The Bar",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456525-filling-up-the-bar.json",
+      "vimeo_id": "1170357440",
+      "seconds": 313
+    },
+    {
+      "role": "lesson",
+      "id": 456531,
+      "title": "Getting Faster",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456531-getting-faster.json",
+      "vimeo_id": "1168207235",
+      "seconds": 317
+    },
+    {
+      "role": "lesson",
+      "id": 456517,
+      "title": "Getting Even Faster",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456517-getting-even-faster.json",
+      "vimeo_id": "1168168807",
+      "seconds": 276
+    },
+    {
+      "role": "lesson",
+      "id": 456526,
+      "title": "Move It Around The Kit",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456526-move-it-around-the-kit.json",
+      "vimeo_id": "1170361610",
+      "seconds": 314
+    },
+    {
+      "role": "lesson",
+      "id": 456532,
+      "title": "Speeding Up Your Doubles",
+      "type": "skill-pack-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456532-speeding-up-your-doubles.json",
+      "vimeo_id": "1168215929",
+      "seconds": 294
+    },
+    {
+      "role": "lesson",
+      "id": 456534,
+      "title": "Learn The Verse",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456534-learn-the-verse.json",
+      "vimeo_id": "1184967400",
+      "seconds": 372
+    },
+    {
+      "role": "lesson",
+      "id": 456535,
+      "title": "Learn The Chorus",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456535-learn-the-chorus.json",
+      "vimeo_id": "1184967449",
+      "seconds": 328
+    },
+    {
+      "role": "lesson",
+      "id": 456536,
+      "title": "Learn The Bridge",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456536-learn-the-bridge.json",
+      "vimeo_id": "1184967488",
+      "seconds": 324
+    },
+    {
+      "role": "lesson",
+      "id": 456538,
+      "title": "Guided Play Through",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456538-guided-play-through.json",
+      "vimeo_id": "1184967542",
+      "seconds": 345
+    },
+    {
+      "role": "lesson",
+      "id": 456539,
+      "title": "Final Performance",
+      "type": "song-tutorial-lesson",
+      "file": "lessons/d6_develop-and-coordinate-your-groove/456539-final-performance.json",
+      "vimeo_id": "1184967610",
+      "seconds": 297
+    }
+  ],
+  "video_count": 36
+}
