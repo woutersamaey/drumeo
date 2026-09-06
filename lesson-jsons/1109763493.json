@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Playing Flams On The Toms",
     "slug": "d3-sp6-l2_playing-flams-on-the-toms",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 276,
-    "length": "4:36",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 9982,
     "published_on": "2026-02-06 00:01:00",
     "created_at": "2026-02-11T02:32:10Z",
@@ -38,7 +33,6 @@
       "slug": "d3_essentials-for-popular-music",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452434/452415"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1109763493"
   },
   "path_resources": [

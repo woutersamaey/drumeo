@@ -6,15 +6,10 @@
     "type": "learning-path-intro",
     "title": "Welcome To Expand Your Groove And Feel",
     "slug": "d5w_welcome",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": null,
     "difficulty_string": null,
     "language": null,
     "length_in_seconds": 32,
-    "length": "0:32",
-    "membership_tier": null,
-    "lifetime": null,
     "popularity": null,
     "published_on": null,
     "created_at": "2026-04-15T22:39:34Z",
@@ -38,13 +33,10 @@
       "slug": "d5_expand-your-groove-and-feel",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/intro/455942"
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1183055160"
   }
 }

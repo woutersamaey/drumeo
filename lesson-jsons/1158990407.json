@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Getting Comfortable With Rimshots",
     "slug": "d5-sp5-l4_getting-comfortable-with-rimshots",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 302,
-    "length": "5:02",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-05-04T07:01:00.000Z",
     "created_at": "2026-04-16T20:15:23Z",
@@ -38,7 +33,6 @@
       "slug": "d5_expand-your-groove-and-feel",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456106"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1158990407"
   }
 }

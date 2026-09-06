@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Add More Accents",
     "slug": "d7-sp4-l2_add-more-accents",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 3,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 365,
-    "length": "6:05",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-07-06T07:01:00Z",
     "created_at": "2026-06-05T00:21:46Z",
@@ -38,7 +33,6 @@
       "slug": "d7_make-your-drumming-musical",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/457503/457481"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1196029565"
   }
 }

@@ -6,15 +6,10 @@
     "type": "song-tutorial-lesson",
     "title": "Learn The Fill",
     "slug": "learn-the-fill",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 336,
-    "length": "5:36",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 197,
     "published_on": "2026-04-06T07:01:00.000Z",
     "created_at": "2026-03-17T22:59:45Z",
@@ -38,7 +33,6 @@
       "slug": "d4_play-faster-with-confidence",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452478/455013"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1124989161"
   },
   "path_resources": [

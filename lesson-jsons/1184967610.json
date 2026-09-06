@@ -6,15 +6,10 @@
     "type": "song-tutorial-lesson",
     "title": "Final Performance",
     "slug": "d6-st1-l5_final-performance",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 3,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 297,
-    "length": "4:57",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-06-01T07:01:00.000Z",
     "created_at": "2026-05-11T21:27:46Z",
@@ -38,7 +33,6 @@
       "slug": "d6_develop-and-coordinate-your-groove",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/456457/456539"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1184967610"
   }
 }

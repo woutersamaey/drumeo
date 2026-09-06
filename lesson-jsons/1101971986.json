@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Break Free From The Hi-Hat",
     "slug": "d1-sp5-l5_break-free-from-the-hi-hat",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 1,
     "difficulty_string": "Introductory",
     "language": "en-US",
     "length_in_seconds": 339,
-    "length": "5:39",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 16785,
     "published_on": "2026-02-06 00:01:00",
     "created_at": "2026-02-11T02:31:32Z",
@@ -38,7 +33,6 @@
       "slug": "d1_learn-to-play-the-drums",
       "difficulty_string": "Introductory",
       "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452340/452323"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1101971986"
   },
   "path_resources": [

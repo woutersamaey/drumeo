@@ -6,15 +6,10 @@
     "type": "learning-path-intro",
     "title": "Welcome To Make Your Drumming Musical",
     "slug": "d7w_welcome",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": null,
     "difficulty_string": "All",
     "language": null,
     "length_in_seconds": 22,
-    "length": "0:22",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-07-06T07:01:00Z",
     "created_at": "2026-06-05T00:21:46Z",
@@ -38,13 +33,10 @@
       "slug": "d7_make-your-drumming-musical",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/intro/457503"
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1196007547"
   }
 }

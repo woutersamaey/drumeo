@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Learn A New Fill",
     "slug": "d5-sp6-l2_learn-a-new-fill",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 336,
-    "length": "5:36",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-05-04T07:01:00.000Z",
     "created_at": "2026-04-16T20:23:02Z",
@@ -38,7 +33,6 @@
       "slug": "d5_expand-your-groove-and-feel",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456110"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1158831300"
   }
 }

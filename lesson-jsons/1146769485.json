@@ -6,15 +6,10 @@
     "type": "method-intro",
     "title": "Welcome To The Drumeo Method",
     "slug": "drumeo_method_intro",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 1,
     "difficulty_string": "Introductory",
     "language": null,
     "length_in_seconds": 58,
-    "length": "0:58",
-    "membership_tier": null,
-    "lifetime": null,
     "popularity": 22550,
     "published_on": null,
     "created_at": "2026-02-11T02:42:12Z",
@@ -32,8 +27,6 @@
   },
   "hierarchy": {},
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1146769485"
   }
 }

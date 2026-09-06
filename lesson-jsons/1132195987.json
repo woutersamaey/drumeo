@@ -6,15 +6,10 @@
     "type": "learning-path-intro",
     "title": "Welcome To Learn To Play The Drums",
     "slug": "d1w_welcome-to-learn-to-play-the-drums",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": null,
     "difficulty_string": null,
     "language": null,
     "length_in_seconds": 25,
-    "length": "0:25",
-    "membership_tier": null,
-    "lifetime": null,
     "popularity": null,
     "published_on": null,
     "created_at": "2026-04-14T15:54:51Z",
@@ -38,13 +33,10 @@
       "slug": "d1_learn-to-play-the-drums",
       "difficulty_string": "Introductory",
       "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/intro/452340"
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1132195987"
   },
   "path_resources": [

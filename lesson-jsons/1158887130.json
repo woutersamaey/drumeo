@@ -6,15 +6,10 @@
     "type": "song-tutorial-lesson",
     "title": "Learn The Fills",
     "slug": "d5-st1-l2_learn-the-fills",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 266,
-    "length": "4:26",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-05-04T07:01:00.000Z",
     "created_at": "2026-04-17T20:14:27Z",
@@ -38,7 +33,6 @@
       "slug": "d5_expand-your-groove-and-feel",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456120"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1158887130"
   }
 }

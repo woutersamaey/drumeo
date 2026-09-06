@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "A New Variation",
     "slug": "d2-sp2-l2_a-new-variation",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 274,
-    "length": "4:34",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 15692,
     "published_on": "2026-02-06 00:01:00",
     "created_at": "2026-02-11T02:31:46Z",
@@ -38,7 +33,6 @@
       "slug": "d2_add-variety-to-your-drumming",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452387/452350"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1098826930"
   },
   "path_resources": [

@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Adding Sixteenths",
     "slug": "d9-sp1-l1_adding-sixteenths",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 4,
     "difficulty_string": "Intermediate",
     "language": null,
     "length_in_seconds": 303,
-    "length": "5:03",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-09-07T07:01:00Z",
     "created_at": "2026-08-06T07:57:55Z",
@@ -38,7 +33,6 @@
       "slug": "d9_groove-variety-and-vocabulary",
       "difficulty_string": "Intermediate",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459413"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1208247608"
   }
 }

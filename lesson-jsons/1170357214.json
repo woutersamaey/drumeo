@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Adding More Ghost Notes",
     "slug": "d6-sp5-l2_adding-more-ghost-notes",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 3,
     "difficulty_string": "Beginner",
     "language": null,
     "length_in_seconds": 325,
-    "length": "5:25",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": null,
     "published_on": "2026-06-01T07:01:00.000Z",
     "created_at": "2026-05-11T17:14:26Z",
@@ -38,7 +33,6 @@
       "slug": "d6_develop-and-coordinate-your-groove",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/456457/456523"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1170357214"
   }
 }

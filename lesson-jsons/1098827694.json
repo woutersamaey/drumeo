@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "An Extra Bass Drum Note",
     "slug": "d2-sp5-l1_an-extra-bass-drum-note",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 279,
-    "length": "4:39",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 13956,
     "published_on": "2026-02-06 00:01:00",
     "created_at": "2026-02-11T02:31:51Z",
@@ -38,7 +33,6 @@
       "slug": "d2_add-variety-to-your-drumming",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452387/452366"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1098827694"
   },
   "path_resources": [

@@ -6,15 +6,10 @@
     "type": "learning-path-intro",
     "title": "Welcome To Essentials For Popular Music",
     "slug": "d3w_welcome",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": null,
     "difficulty_string": null,
     "language": null,
     "length_in_seconds": 26,
-    "length": "0:26",
-    "membership_tier": null,
-    "lifetime": null,
     "popularity": 8504,
     "published_on": null,
     "created_at": "2026-02-11T02:32:16Z",
@@ -38,13 +33,10 @@
       "slug": "d3_essentials-for-popular-music",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/intro/452434"
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1132195937"
   },
   "path_resources": [

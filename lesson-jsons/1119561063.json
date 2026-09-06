@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Combine The Patterns",
     "slug": "d4-sp3-l4_combine-the-patterns",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 322,
-    "length": "5:22",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 6572,
     "published_on": "2026-04-06T07:01:00.000Z",
     "created_at": "2026-02-11T02:32:21Z",
@@ -38,7 +33,6 @@
       "slug": "d4_play-faster-with-confidence",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452452"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1119561063"
   },
   "path_resources": [

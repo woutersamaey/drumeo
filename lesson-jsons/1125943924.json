@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Getting Comfortable With Switching",
     "slug": "d4-sp1-l4_getting-comfortable-with-switching",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 324,
-    "length": "5:24",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 6896,
     "published_on": "2026-04-06T07:01:00.000Z",
     "created_at": "2026-02-11T02:32:18Z",
@@ -38,7 +33,6 @@
       "slug": "d4_play-faster-with-confidence",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452440"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1125943924"
   },
   "path_resources": [

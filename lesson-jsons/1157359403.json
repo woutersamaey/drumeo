@@ -6,15 +6,10 @@
     "type": "skill-pack-lesson",
     "title": "Leaving Out Even More Notes",
     "slug": "d3-sp0-l4_leaving-out-even-more-notes",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 360,
-    "length": "6:00",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 11775,
     "published_on": "2026-02-06 00:01:00",
     "created_at": "2026-02-11T02:32:07Z",
@@ -38,7 +33,6 @@
       "slug": "d3_essentials-for-popular-music",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452434/452405"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1157359403"
   },
   "path_resources": [

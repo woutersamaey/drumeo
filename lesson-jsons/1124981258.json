@@ -6,15 +6,10 @@
     "type": "song-tutorial-lesson",
     "title": "Learn The Chorus",
     "slug": "d4-st1-l2_learn-the-chorus",
-    "brand": "drumeo",
-    "status": "published",
     "difficulty": 2,
     "difficulty_string": "Beginner",
     "language": "en-US",
     "length_in_seconds": 302,
-    "length": "5:02",
-    "membership_tier": "basic",
-    "lifetime": false,
     "popularity": 2401,
     "published_on": "2026-04-06T07:01:00.000Z",
     "created_at": "2026-02-11T02:32:28Z",
@@ -38,7 +33,6 @@
       "slug": "d4_play-faster-with-confidence",
       "difficulty_string": "Beginner",
       "description": null,
-      "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452474"
     },
     "skill_pack": {
@@ -51,8 +45,6 @@
     }
   },
   "video": {
-    "host": "Vimeo",
-    "cms_type": "vimeo-video",
     "vimeo_id": "1124981258"
   },
   "path_resources": [
