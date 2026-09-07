@@ -5,3 +5,5 @@
 /downloads/*.mkv
 /downloads/*.jpg
 downloads/already_done.txt
+*.part*
+*.ytdl
