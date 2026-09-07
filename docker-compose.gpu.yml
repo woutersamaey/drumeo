@@ -1,0 +1,15 @@
+# Optional GPU access. Use:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#
+# Intel/AMD: /dev/dri is enough for QSV/VAAPI.
+# NVIDIA: uncomment gpus: all and comment devices if you have the NVIDIA container toolkit.
+
+services:
+  video-api:
+    devices:
+      - /dev/dri:/dev/dri
+    # gpus: all
+  video-worker:
+    devices:
+      - /dev/dri:/dev/dri
+    # gpus: all

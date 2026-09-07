@@ -1,0 +1,134 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: drumeo
+      MYSQL_DATABASE: drumeo
+      MYSQL_USER: drumeo
+      MYSQL_PASSWORD: drumeo
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./frontend/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pdrumeo"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  video-api:
+    build:
+      context: ./video-backend
+    restart: unless-stopped
+    user: "0:0"
+    environment:
+      SOURCE_DIR: /media/bron
+      CACHE_DIR: /media/cache
+      METADATA_DIR: /media/meta
+      API_TOKEN: ${API_TOKEN:-}
+      FFMPEG_VCODEC: ${FFMPEG_VCODEC:-auto}
+      MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-2}
+      MAX_CONCURRENT_VIDEO_TRANSCODES: ${MAX_CONCURRENT_VIDEO_TRANSCODES:-1}
+      PUBLIC_HLS_BASE: /hls
+      TMPDIR: /shared-tmp
+    volumes:
+      - ${DRUMEO_MEDIA:-/Volumes/private/Drumeo}:/media/bron:ro
+      - video-cache:/media/cache
+      - video-meta:/media/meta
+      - video-tmp:/shared-tmp
+    healthcheck:
+      test: ["CMD-SHELL", "php -r 'exit(@fsockopen(\"127.0.0.1\",9000)?0:1);'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  video-worker:
+    build:
+      context: ./video-backend
+    restart: unless-stopped
+    user: "0:0"
+    command: ["php", "/app/bin/worker.php"]
+    environment:
+      SOURCE_DIR: /media/bron
+      CACHE_DIR: /media/cache
+      METADATA_DIR: /media/meta
+      FFMPEG_VCODEC: ${FFMPEG_VCODEC:-auto}
+      MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-2}
+      MAX_CONCURRENT_VIDEO_TRANSCODES: ${MAX_CONCURRENT_VIDEO_TRANSCODES:-1}
+      JOB_TIMEOUT_SECONDS: ${JOB_TIMEOUT_SECONDS:-14400}
+      TMPDIR: /shared-tmp
+    volumes:
+      - ${DRUMEO_MEDIA:-/Volumes/private/Drumeo}:/media/bron:ro
+      - video-cache:/media/cache
+      - video-meta:/media/meta
+      - video-tmp:/shared-tmp
+    depends_on:
+      - video-api
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    user: "0:0"
+    environment:
+      DB_HOST: mysql
+      DB_NAME: drumeo
+      DB_USER: drumeo
+      DB_PASS: drumeo
+      REDIS_HOST: redis
+      LESSONS_DIR: /app/lessons
+      MEDIA_DIR: /media/nas
+      IMAGE_CACHE_DIR: /media/img-cache
+      NOTATION_PATH: /app/notation.pdf
+    volumes:
+      - ./lessons:/app/lessons:ro
+      - ${DRUMEO_MEDIA:-/Volumes/private/Drumeo}:/media/nas:ro
+      - ./drumeo-method-notation-key.pdf:/app/notation.pdf:ro
+      - image-cache:/media/img-cache
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/public:/var/www/frontend:ro
+      - video-cache:/media/cache:ro
+      - image-cache:/media/img-cache:ro
+    depends_on:
+      - video-api
+      - frontend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/app/health >/dev/null && wget -qO- http://127.0.0.1/api/health >/dev/null"]
+      interval: 15s
+      timeout: 8s
+      retries: 15
+      start_period: 30s
+
+volumes:
+  mysql-data:
+  redis-data:
+  video-cache:
+  video-meta:
+  video-tmp:
+  image-cache:

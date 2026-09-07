@@ -1,0 +1,24 @@
+{
+  "name": "drumeo/video-backend",
+  "description": "Homelab HLS video backend for local MKV sources",
+  "type": "project",
+  "require": {
+    "php": ">=8.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Drumeo\\Video\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Drumeo\\Video\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit"
+  }
+}
