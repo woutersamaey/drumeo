@@ -90,12 +90,12 @@ services:
       DB_USER: drumeo
       DB_PASS: drumeo
       REDIS_HOST: redis
-      LESSONS_DIR: /app/lessons
+      CATALOG_PATH: /app/catalog.json
       MEDIA_DIR: /media/nas
       IMAGE_CACHE_DIR: /media/img-cache
       NOTATION_PATH: /app/notation.pdf
     volumes:
-      - ./lessons:/app/lessons:ro
+      - ./catalog.json:/app/catalog.json:ro
       - ${DRUMEO_MEDIA:-/Volumes/private/Drumeo}:/media/nas:ro
       - ./drumeo-method-notation-key.pdf:/app/notation.pdf:ro
       - ./frontend/public/assets:/app/public/assets:ro

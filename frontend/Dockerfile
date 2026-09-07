@@ -28,7 +28,7 @@ RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' 
     && sed -i 's/^pm.max_children = .*/pm.max_children = 20/; s/^pm.start_servers = .*/pm.start_servers = 4/; s/^pm.min_spare_servers = .*/pm.min_spare_servers = 2/; s/^pm.max_spare_servers = .*/pm.max_spare_servers = 8/' /usr/local/etc/php-fpm.d/www.conf \
     && printf '\n[www]\nclear_env = no\n' >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
-ENV LESSONS_DIR=/app/lessons \
+ENV CATALOG_PATH=/app/catalog.json \
     MEDIA_DIR=/media/nas \
     IMAGE_CACHE_DIR=/media/img-cache \
     NOTATION_PATH=/app/notation.pdf
