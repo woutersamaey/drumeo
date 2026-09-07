@@ -22,7 +22,7 @@ fi
 
 log "rsync → $HOST:$REMOTE_DIR"
 ssh -o StrictHostKeyChecking=accept-new "$HOST" "mkdir -p $(printf %q "$REMOTE_DIR")"
-rsync -az --delete --human-readable --stats \
+rsync -az --delete --stats \
   --exclude '.git/' \
   --exclude '.env' \
   --exclude '.idea/' \
@@ -30,7 +30,6 @@ rsync -az --delete --human-readable --stats \
   --exclude '.DS_Store' \
   --exclude 'downloads/' \
   --exclude 'data/' \
-
   --exclude 'frontend/node_modules/' \
   --exclude 'frontend/vendor/' \
   --exclude 'video-backend/vendor/' \
