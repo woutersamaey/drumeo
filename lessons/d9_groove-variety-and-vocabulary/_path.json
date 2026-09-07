@@ -3,21 +3,29 @@
   "learning_path": {
     "id": 459454,
     "type": "learning-path-v2",
-    "title": "Groove Variety & Vocabulary",
+    "title": {
+      "en": "Groove Variety & Vocabulary",
+      "nl": "Groove-variatie en vocabulaire"
+    },
     "slug": "d9_groove-variety-and-vocabulary",
     "status": "published",
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "description": null,
     "published_on": "2026-09-07T07:01:00Z",
     "child_count": 34,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [],
   "videos": [
     {
       "role": "path-intro",
       "id": 459412,
-      "title": "Welcome To Groove Variety & Vocabulary",
+      "title": {
+        "en": "Welcome To Groove Variety & Vocabulary",
+        "nl": "Welkom bij Groove-variatie en vocabulaire"
+      },
       "file": "lessons/d9_groove-variety-and-vocabulary/459412-welcome-to-groove-variety-and-vocabulary.json",
       "vimeo_id": "1208249052",
       "seconds": 23
@@ -25,7 +33,10 @@
     {
       "role": "lesson",
       "id": 459413,
-      "title": "Adding Sixteenths",
+      "title": {
+        "en": "Adding Sixteenths",
+        "nl": "16den toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459413-adding-sixteenths.json",
       "vimeo_id": "1208247608",
@@ -34,7 +45,10 @@
     {
       "role": "lesson",
       "id": 459419,
-      "title": "Four On The Floor",
+      "title": {
+        "en": "Four On The Floor",
+        "nl": "Four on the floor"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459419-four-on-the-floor.json",
       "vimeo_id": "1208246917",
@@ -43,7 +57,10 @@
     {
       "role": "lesson",
       "id": 459425,
-      "title": "Time Feel",
+      "title": {
+        "en": "Time Feel",
+        "nl": "Time feel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459425-time-feel.json",
       "vimeo_id": "1208250305",
@@ -52,7 +69,10 @@
     {
       "role": "lesson",
       "id": 459414,
-      "title": "Add An Extra Kick",
+      "title": {
+        "en": "Add An Extra Kick",
+        "nl": "Voeg een extra kick toe"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459414-add-an-extra-kick.json",
       "vimeo_id": "1208247605",
@@ -61,7 +81,10 @@
     {
       "role": "lesson",
       "id": 459420,
-      "title": "Boom, Boom, Bap!",
+      "title": {
+        "en": "Boom, Boom, Bap!",
+        "nl": "Boom, boom, bap!"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459420-boom-boom-bap.json",
       "vimeo_id": "1208246919",
@@ -70,7 +93,10 @@
     {
       "role": "lesson",
       "id": 459426,
-      "title": "Listen With Intention",
+      "title": {
+        "en": "Listen With Intention",
+        "nl": "Luister met intentie"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459426-listen-with-intention.json",
       "vimeo_id": "1208250306",
@@ -79,7 +105,10 @@
     {
       "role": "lesson",
       "id": 459415,
-      "title": "Incorporating Ghost Notes",
+      "title": {
+        "en": "Incorporating Ghost Notes",
+        "nl": "Ghost notes verwerken"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459415-incorporating-ghost-notes.json",
       "vimeo_id": "1208247607",
@@ -88,7 +117,10 @@
     {
       "role": "lesson",
       "id": 459421,
-      "title": "The Funky Kick",
+      "title": {
+        "en": "The Funky Kick",
+        "nl": "De funky kick"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459421-the-funky-kick.json",
       "vimeo_id": "1208246916",
@@ -97,7 +129,10 @@
     {
       "role": "lesson",
       "id": 459427,
-      "title": "Listening & Timing",
+      "title": {
+        "en": "Listening & Timing",
+        "nl": "Luisteren en timing"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459427-listening-and-timing.json",
       "vimeo_id": "1208250304",
@@ -106,7 +141,10 @@
     {
       "role": "lesson",
       "id": 459416,
-      "title": "Changing Up The Feel",
+      "title": {
+        "en": "Changing Up The Feel",
+        "nl": "De feel veranderen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459416-changing-up-the-feel.json",
       "vimeo_id": "1208247606",
@@ -115,7 +153,10 @@
     {
       "role": "lesson",
       "id": 459422,
-      "title": "Two Funky Kicks",
+      "title": {
+        "en": "Two Funky Kicks",
+        "nl": "Twee funky kicks"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459422-two-funky-kicks.json",
       "vimeo_id": "1208246918",
@@ -124,7 +165,10 @@
     {
       "role": "lesson",
       "id": 459428,
-      "title": "The Gap Challenge",
+      "title": {
+        "en": "The Gap Challenge",
+        "nl": "De gat-uitdaging"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459428-the-gap-challenge.json",
       "vimeo_id": "1208252422",
@@ -133,7 +177,10 @@
     {
       "role": "lesson",
       "id": 459417,
-      "title": "Going Further With 12/8",
+      "title": {
+        "en": "Going Further With 12/8",
+        "nl": "Verder met 12/8"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459417-going-further-with-12-8.json",
       "vimeo_id": "1208247745",
@@ -142,7 +189,10 @@
     {
       "role": "lesson",
       "id": 459423,
-      "title": "Review & Challenge",
+      "title": {
+        "en": "Review & Challenge",
+        "nl": "Herhaling en uitdaging"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459423-review-and-challenge.json",
       "vimeo_id": "1208247072",
@@ -151,7 +201,10 @@
     {
       "role": "lesson",
       "id": 459429,
-      "title": "Review & Challenge",
+      "title": {
+        "en": "Review & Challenge",
+        "nl": "Herhaling en uitdaging"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459429-review-and-challenge.json",
       "vimeo_id": "1208252423",
@@ -160,7 +213,10 @@
     {
       "role": "lesson",
       "id": 459431,
-      "title": "Two Different Fills",
+      "title": {
+        "en": "Two Different Fills",
+        "nl": "Twee verschillende fills"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459431-two-different-fills.json",
       "vimeo_id": "1208247792",
@@ -169,7 +225,10 @@
     {
       "role": "lesson",
       "id": 459437,
-      "title": "Find Your Balance",
+      "title": {
+        "en": "Find Your Balance",
+        "nl": "Vind je balans"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459437-find-your-balance.json",
       "vimeo_id": "1208247279",
@@ -178,7 +237,10 @@
     {
       "role": "lesson",
       "id": 459443,
-      "title": "Backbeats",
+      "title": {
+        "en": "Backbeats",
+        "nl": "Backbeats"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459443-backbeats.json",
       "vimeo_id": "1208248221",
@@ -187,7 +249,10 @@
     {
       "role": "lesson",
       "id": 459432,
-      "title": "Play It Twice",
+      "title": {
+        "en": "Play It Twice",
+        "nl": "Speel het twee keer"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459432-play-it-twice.json",
       "vimeo_id": "1208247794",
@@ -196,7 +261,10 @@
     {
       "role": "lesson",
       "id": 459438,
-      "title": "The Money Beat",
+      "title": {
+        "en": "The Money Beat",
+        "nl": "De Money Beat"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459438-the-money-beat.json",
       "vimeo_id": "1208247276",
@@ -205,7 +273,10 @@
     {
       "role": "lesson",
       "id": 459444,
-      "title": "Embellishing The Groove",
+      "title": {
+        "en": "Embellishing The Groove",
+        "nl": "De groove versieren"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459444-embellishing-the-groove.json",
       "vimeo_id": "1208248222",
@@ -214,7 +285,10 @@
     {
       "role": "lesson",
       "id": 459433,
-      "title": "Fill Combination",
+      "title": {
+        "en": "Fill Combination",
+        "nl": "Fillcombinatie"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459433-fill-combination.json",
       "vimeo_id": "1208247793",
@@ -223,7 +297,10 @@
     {
       "role": "lesson",
       "id": 459439,
-      "title": "Transitioning Sections",
+      "title": {
+        "en": "Transitioning Sections",
+        "nl": "Secties overbruggen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459439-transitioning-sections.json",
       "vimeo_id": "1208247277",
@@ -232,7 +309,10 @@
     {
       "role": "lesson",
       "id": 459445,
-      "title": "Offbeats",
+      "title": {
+        "en": "Offbeats",
+        "nl": "Offbeats"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459445-offbeats.json",
       "vimeo_id": "1208248223",
@@ -241,7 +321,10 @@
     {
       "role": "lesson",
       "id": 459434,
-      "title": "Developing Vocab",
+      "title": {
+        "en": "Developing Vocab",
+        "nl": "Vocabulaire ontwikkelen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459434-developing-vocab.json",
       "vimeo_id": "1208247795",
@@ -250,7 +333,10 @@
     {
       "role": "lesson",
       "id": 459440,
-      "title": "Snare Embellishments",
+      "title": {
+        "en": "Snare Embellishments",
+        "nl": "Snareversieringen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459440-snare-embellishments.json",
       "vimeo_id": "1208247278",
@@ -259,7 +345,10 @@
     {
       "role": "lesson",
       "id": 459446,
-      "title": "Embellished Offbeats",
+      "title": {
+        "en": "Embellished Offbeats",
+        "nl": "Versierde offbeats"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459446-embellished-offbeats.json",
       "vimeo_id": "1208248224",
@@ -268,7 +357,10 @@
     {
       "role": "lesson",
       "id": 459435,
-      "title": "Putting It All Together",
+      "title": {
+        "en": "Putting It All Together",
+        "nl": "Alles samenbrengen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459435-putting-it-all-together.json",
       "vimeo_id": "1208247953",
@@ -277,7 +369,10 @@
     {
       "role": "lesson",
       "id": 459441,
-      "title": "Review",
+      "title": {
+        "en": "Review",
+        "nl": "Herhaling"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459441-review.json",
       "vimeo_id": "1208247421",
@@ -286,7 +381,10 @@
     {
       "role": "lesson",
       "id": 459448,
-      "title": "Learn The Verse",
+      "title": {
+        "en": "Learn The Verse",
+        "nl": "Leer het couplet"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459448-learn-the-verse.json",
       "vimeo_id": "1208248636",
@@ -295,7 +393,10 @@
     {
       "role": "lesson",
       "id": 459449,
-      "title": "Learn The Bridge",
+      "title": {
+        "en": "Learn The Bridge",
+        "nl": "Leer de bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459449-learn-the-bridge.json",
       "vimeo_id": "1208248638",
@@ -304,7 +405,10 @@
     {
       "role": "lesson",
       "id": 459450,
-      "title": "Learn The Choruses",
+      "title": {
+        "en": "Learn The Choruses",
+        "nl": "Leer de refreinen"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459450-learn-the-choruses.json",
       "vimeo_id": "1208248637",
@@ -313,7 +417,10 @@
     {
       "role": "lesson",
       "id": 459451,
-      "title": "Guided Playthrough",
+      "title": {
+        "en": "Guided Playthrough",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459451-guided-playthrough.json",
       "vimeo_id": "1208248634",
@@ -322,7 +429,10 @@
     {
       "role": "lesson",
       "id": 459452,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d9_groove-variety-and-vocabulary/459452-final-performance.json",
       "vimeo_id": "1208248904",

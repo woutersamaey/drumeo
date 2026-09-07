@@ -4,10 +4,16 @@
     "id": 459439,
     "sanity_id": "d9-sp5-l3",
     "type": "skill-pack-lesson",
-    "title": "Transitioning Sections",
+    "title": {
+      "en": "Transitioning Sections",
+      "nl": "Secties overbruggen"
+    },
     "slug": "d9-sp5-l3_transitioning-sections",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 358,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459439"
     },
@@ -39,7 +51,10 @@
       "id": 459442,
       "sanity_id": "d9-sp5",
       "type": "skill-pack",
-      "title": "Keeping Time with The Hi-Hat Foot",
+      "title": {
+        "en": "Keeping Time with The Hi-Hat Foot",
+        "nl": "Tijd houden met de hi-hatvoet"
+      },
       "slug": "d9-sp5_keeping-time-with-the-hi-hat-foot",
       "child_count": 5
     }

@@ -4,10 +4,16 @@
     "id": 452438,
     "sanity_id": "d4-sp1-l2",
     "type": "skill-pack-lesson",
-    "title": "Moving Around The Kit",
+    "title": {
+      "en": "Moving Around The Kit",
+      "nl": "Over het drumstel bewegen"
+    },
     "slug": "d4-sp1-l2_moving-around-the-kit",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 307,
     "popularity": 9562,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452478,
       "type": "learning-path-v2",
-      "title": "Play Faster With Confidence",
+      "title": {
+        "en": "Play Faster With Confidence",
+        "nl": "Speel sneller met vertrouwen"
+      },
       "slug": "d4_play-faster-with-confidence",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452438"
     },
@@ -39,33 +51,15 @@
       "id": 452436,
       "sanity_id": "d4-sp1",
       "type": "skill-pack",
-      "title": "Introduction To Cross-Stick",
+      "title": {
+        "en": "Introduction To Cross-Stick",
+        "nl": "Intro tot cross-stick"
+      },
       "slug": "d4-sp1_introduction-to-cross-stick",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1125939751"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

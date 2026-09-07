@@ -4,10 +4,16 @@
     "id": 458149,
     "sanity_id": "d8w",
     "type": "learning-path-intro",
-    "title": "Welcome To Modern Rock & Pop Drumming",
+    "title": {
+      "en": "Welcome To Modern Rock & Pop Drumming",
+      "nl": "Welkom bij Modern rock- en popdrummen"
+    },
     "slug": "d8w_welcome-to-modern-rock-and-pop-drumming",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 23,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 458192,
       "type": "learning-path-v2",
-      "title": "Modern Rock & Pop Drumming",
+      "title": {
+        "en": "Modern Rock & Pop Drumming",
+        "nl": "Modern rock- en popdrummen"
+      },
       "slug": "d8_modern-rock-and-pop-drumming",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/intro/458192"
     }

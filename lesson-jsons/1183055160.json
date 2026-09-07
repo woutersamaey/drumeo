@@ -4,7 +4,10 @@
     "id": 456073,
     "sanity_id": "3743952c-ea3e-4acf-b6fd-0dc9071eb6f8",
     "type": "learning-path-intro",
-    "title": "Welcome To Expand Your Groove And Feel",
+    "title": {
+      "en": "Welcome To Expand Your Groove And Feel",
+      "nl": "Welkom bij Verbreed je groove en feel"
+    },
     "slug": "d5w_welcome",
     "difficulty": null,
     "difficulty_string": null,
@@ -29,9 +32,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/intro/455942"
     }

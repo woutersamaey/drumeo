@@ -4,10 +4,16 @@
     "id": 452476,
     "sanity_id": "d4-st1-l4",
     "type": "song-tutorial-lesson",
-    "title": "Guided Playthrough",
+    "title": {
+      "en": "Guided Playthrough",
+      "nl": "Begeleide playthrough"
+    },
     "slug": "d4-st1-l4_guided-playthrough",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 287,
     "popularity": 2214,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452478,
       "type": "learning-path-v2",
-      "title": "Play Faster With Confidence",
+      "title": {
+        "en": "Play Faster With Confidence",
+        "nl": "Speel sneller met vertrouwen"
+      },
       "slug": "d4_play-faster-with-confidence",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452476"
     },
@@ -39,33 +51,15 @@
       "id": 452472,
       "sanity_id": "d4-st1",
       "type": "song-tutorial",
-      "title": "Learn \"Chasing Rolling Thunder\"",
+      "title": {
+        "en": "Learn \"Chasing Rolling Thunder\"",
+        "nl": "Leer \"Chasing Rolling Thunder\""
+      },
       "slug": "d4-st1_learn-chasing-rolling-thunder",
       "child_count": 6
     }
   },
   "video": {
     "vimeo_id": "1124989335"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

@@ -15,7 +15,10 @@
     "id": 452435,
     "sanity_id": "d3w",
     "type": "learning-path-intro",
-    "title": "Welcome To Essentials For Popular Music",
+    "title": {
+      "en": "Welcome To Essentials For Popular Music",
+      "nl": "Welkom bij Essentials voor populaire muziek"
+    },
     "slug": "d3w_welcome",
     "brand": "drumeo",
     "status": "published",
@@ -45,9 +48,15 @@
     "learning_path": {
       "id": 452434,
       "type": "learning-path-v2",
-      "title": "Essentials For Popular Music",
+      "title": {
+        "en": "Essentials For Popular Music",
+        "nl": "Essentials voor populaire muziek"
+      },
       "slug": "d3_essentials-for-popular-music",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/intro/452434"
@@ -142,26 +151,5 @@
         }
       ]
     }
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

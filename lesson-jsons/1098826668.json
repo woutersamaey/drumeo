@@ -4,10 +4,16 @@
     "id": 452349,
     "sanity_id": "d2-sp2-l1",
     "type": "skill-pack-lesson",
-    "title": "An Iconic Snare Groove",
+    "title": {
+      "en": "An Iconic Snare Groove",
+      "nl": "Een iconische snaregroove"
+    },
     "slug": "d2-sp2-l1_an-iconic-snare-groove",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 280,
     "popularity": 16917,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452387,
       "type": "learning-path-v2",
-      "title": "Add Variety To Your Drumming",
+      "title": {
+        "en": "Add Variety To Your Drumming",
+        "nl": "Breng variatie in je drummen"
+      },
       "slug": "d2_add-variety-to-your-drumming",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452387/452349"
     },
@@ -39,33 +51,15 @@
       "id": 452348,
       "sanity_id": "d2-sp2",
       "type": "skill-pack",
-      "title": "Snare Drum Variations",
+      "title": {
+        "en": "Snare Drum Variations",
+        "nl": "Snarevariaties"
+      },
       "slug": "d2-sp2_snare-drum-variations",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1098826668"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

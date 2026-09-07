@@ -3,42 +3,29 @@
   "learning_path": {
     "id": 452434,
     "type": "learning-path-v2",
-    "title": "Essentials For Popular Music",
+    "title": {
+      "en": "Essentials For Popular Music",
+      "nl": "Essentials voor populaire muziek"
+    },
     "slug": "d3_essentials-for-popular-music",
     "status": "published",
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "description": null,
     "published_on": "2026-02-06 00:01:00",
     "child_count": 34,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key",
-      "resource_url": null
-    }
-  ],
   "videos": [
     {
       "role": "path-intro",
       "id": 452435,
-      "title": "Welcome To Essentials For Popular Music",
+      "title": {
+        "en": "Welcome To Essentials For Popular Music",
+        "nl": "Welkom bij Essentials voor populaire muziek"
+      },
       "file": "lessons/d3_essentials-for-popular-music/452435-welcome.json",
       "vimeo_id": "1132195937",
       "seconds": 26
@@ -46,7 +33,10 @@
     {
       "role": "lesson",
       "id": 452390,
-      "title": "What Is Four On The Floor?",
+      "title": {
+        "en": "What Is Four On The Floor?",
+        "nl": "Wat is four on the floor?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452390-what-is-four-on-the-floor.json",
       "vimeo_id": "1125619463",
@@ -55,7 +45,10 @@
     {
       "role": "lesson",
       "id": 452396,
-      "title": "Starting On Beat 4",
+      "title": {
+        "en": "Starting On Beat 4",
+        "nl": "Starten op beat 4"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452396-starting-on-beat-4.json",
       "vimeo_id": "1109826625",
@@ -64,7 +57,10 @@
     {
       "role": "lesson",
       "id": 452402,
-      "title": "Staying Relaxed",
+      "title": {
+        "en": "Staying Relaxed",
+        "nl": "Ontspannen blijven"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452402-staying-relaxed.json",
       "vimeo_id": "1157359255",
@@ -73,7 +69,10 @@
     {
       "role": "lesson",
       "id": 452391,
-      "title": "Moving To The Ride",
+      "title": {
+        "en": "Moving To The Ride",
+        "nl": "Naar de ride"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452391-moving-to-the-ride.json",
       "vimeo_id": "1125619661",
@@ -82,7 +81,10 @@
     {
       "role": "lesson",
       "id": 452397,
-      "title": "Starting On Beat 3",
+      "title": {
+        "en": "Starting On Beat 3",
+        "nl": "Starten op beat 3"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452397-starting-on-beat-3.json",
       "vimeo_id": "1109826740",
@@ -91,7 +93,10 @@
     {
       "role": "lesson",
       "id": 452403,
-      "title": "Leaving Out Notes",
+      "title": {
+        "en": "Leaving Out Notes",
+        "nl": "Noten weglaten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452403-leaving-out-notes.json",
       "vimeo_id": "1157359289",
@@ -100,7 +105,10 @@
     {
       "role": "lesson",
       "id": 452392,
-      "title": "Four-On-The-Floor Transitions",
+      "title": {
+        "en": "Four-On-The-Floor Transitions",
+        "nl": "Four-on-the-floor-overgangen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452392-four-on-the-floor-transitions.json",
       "vimeo_id": "1125619911",
@@ -109,7 +117,10 @@
     {
       "role": "lesson",
       "id": 452398,
-      "title": "Starting On Beat 2",
+      "title": {
+        "en": "Starting On Beat 2",
+        "nl": "Starten op beat 2"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452398-starting-on-beat-2.json",
       "vimeo_id": "1109826848",
@@ -118,7 +129,10 @@
     {
       "role": "lesson",
       "id": 452404,
-      "title": "Thinking Ahead",
+      "title": {
+        "en": "Thinking Ahead",
+        "nl": "Vooruitdenken"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452404-thinking-ahead.json",
       "vimeo_id": "1157359350",
@@ -127,7 +141,10 @@
     {
       "role": "lesson",
       "id": 452393,
-      "title": "Changing Up The Snare Drum",
+      "title": {
+        "en": "Changing Up The Snare Drum",
+        "nl": "De snare veranderen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452393-changing-up-the-snare-drum.json",
       "vimeo_id": "1125620117",
@@ -136,7 +153,10 @@
     {
       "role": "lesson",
       "id": 452399,
-      "title": "Starting On Beat 1",
+      "title": {
+        "en": "Starting On Beat 1",
+        "nl": "Starten op beat 1"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452399-starting-on-beat-1.json",
       "vimeo_id": "1109826957",
@@ -145,7 +165,10 @@
     {
       "role": "lesson",
       "id": 452405,
-      "title": "Leaving Out Even More Notes",
+      "title": {
+        "en": "Leaving Out Even More Notes",
+        "nl": "Nog meer noten weglaten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452405-leaving-out-even-more-notes.json",
       "vimeo_id": "1157359403",
@@ -154,7 +177,10 @@
     {
       "role": "lesson",
       "id": 452394,
-      "title": "Four-On-The-Floor Creativity",
+      "title": {
+        "en": "Four-On-The-Floor Creativity",
+        "nl": "Four-on-the-floor-creativiteit"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452394-four-on-the-floor-creativity.json",
       "vimeo_id": "1125620394",
@@ -163,7 +189,10 @@
     {
       "role": "lesson",
       "id": 452400,
-      "title": "Timing Combinations",
+      "title": {
+        "en": "Timing Combinations",
+        "nl": "Timingcombinaties"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452400-timing-combinations.json",
       "vimeo_id": "1109827046",
@@ -172,7 +201,10 @@
     {
       "role": "lesson",
       "id": 452406,
-      "title": "Finding Your Comfort Zone",
+      "title": {
+        "en": "Finding Your Comfort Zone",
+        "nl": "Je comfortzone vinden"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452406-finding-your-comfort-zone.json",
       "vimeo_id": "1157359452",
@@ -181,7 +213,10 @@
     {
       "role": "lesson",
       "id": 452408,
-      "title": "Coordinate The Left Foot",
+      "title": {
+        "en": "Coordinate The Left Foot",
+        "nl": "De linkervoet coördineren"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452408-coordinate-the-left-foot.json",
       "vimeo_id": "1125906368",
@@ -190,7 +225,10 @@
     {
       "role": "lesson",
       "id": 452414,
-      "title": "What Is A Flam?",
+      "title": {
+        "en": "What Is A Flam?",
+        "nl": "Wat is een flam?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452414-what-is-a-flam.json",
       "vimeo_id": "1109763242",
@@ -199,7 +237,10 @@
     {
       "role": "lesson",
       "id": 452419,
-      "title": "What Are Ghost Notes?",
+      "title": {
+        "en": "What Are Ghost Notes?",
+        "nl": "Wat zijn ghost notes?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452419-what-are-ghost-notes.json",
       "vimeo_id": "1101961998",
@@ -208,7 +249,10 @@
     {
       "role": "lesson",
       "id": 452409,
-      "title": "The 8th-Note Groove",
+      "title": {
+        "en": "The 8th-Note Groove",
+        "nl": "De 8ste-nootgroove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452409-the-8th-note-groove.json",
       "vimeo_id": "1125908156",
@@ -217,7 +261,10 @@
     {
       "role": "lesson",
       "id": 452415,
-      "title": "Playing Flams On The Toms",
+      "title": {
+        "en": "Playing Flams On The Toms",
+        "nl": "Flams op de toms"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452415-playing-flams-on-the-toms.json",
       "vimeo_id": "1109763493",
@@ -226,7 +273,10 @@
     {
       "role": "lesson",
       "id": 452420,
-      "title": "Bring In The Kick",
+      "title": {
+        "en": "Bring In The Kick",
+        "nl": "De kick erin"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452420-bring-in-the-kick.json",
       "vimeo_id": "1101962229",
@@ -235,7 +285,10 @@
     {
       "role": "lesson",
       "id": 452410,
-      "title": "Getting Comfy With Coordination",
+      "title": {
+        "en": "Getting Comfy With Coordination",
+        "nl": "Comfortabel met coördinatie"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452410-getting-comfy-with-coordination.json",
       "vimeo_id": "1125910083",
@@ -244,7 +297,10 @@
     {
       "role": "lesson",
       "id": 452416,
-      "title": "Flam Tom Fills",
+      "title": {
+        "en": "Flam Tom Fills",
+        "nl": "Flam-tomfills"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452416-flam-tom-fills.json",
       "vimeo_id": "1109763893",
@@ -253,7 +309,10 @@
     {
       "role": "lesson",
       "id": 452421,
-      "title": "An Iconic Groove",
+      "title": {
+        "en": "An Iconic Groove",
+        "nl": "Een iconische groove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452421-an-iconic-groove.json",
       "vimeo_id": "1101962432",
@@ -262,7 +321,10 @@
     {
       "role": "lesson",
       "id": 452411,
-      "title": "Opening On A Different Beat",
+      "title": {
+        "en": "Opening On A Different Beat",
+        "nl": "Openen op een andere beat"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452411-opening-on-a-different-beat.json",
       "vimeo_id": "1125910275",
@@ -271,7 +333,10 @@
     {
       "role": "lesson",
       "id": 452417,
-      "title": "Flams Around The Kit",
+      "title": {
+        "en": "Flams Around The Kit",
+        "nl": "Flams over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452417-combining-flams-and-16ths.json",
       "vimeo_id": "1109762968",
@@ -280,7 +345,10 @@
     {
       "role": "lesson",
       "id": 452422,
-      "title": "Changing Up The Kick",
+      "title": {
+        "en": "Changing Up The Kick",
+        "nl": "De kick veranderen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452422-changing-up-the-kick.json",
       "vimeo_id": "1101963283",
@@ -289,7 +357,10 @@
     {
       "role": "lesson",
       "id": 452412,
-      "title": "Putting It All Together",
+      "title": {
+        "en": "Putting It All Together",
+        "nl": "Alles samenbrengen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452412-putting-it-all-together.json",
       "vimeo_id": "1125910468",
@@ -298,7 +369,10 @@
     {
       "role": "lesson",
       "id": 452423,
-      "title": "Solidify The Groove",
+      "title": {
+        "en": "Solidify The Groove",
+        "nl": "De groove vastzetten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452423-solidify-the-groove.json",
       "vimeo_id": "1101964369",
@@ -307,7 +381,10 @@
     {
       "role": "lesson",
       "id": 452425,
-      "title": "Learn The Verse",
+      "title": {
+        "en": "Learn The Verse",
+        "nl": "Leer het couplet"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452425-learn-the-verse.json",
       "vimeo_id": "1119977585",
@@ -316,7 +393,10 @@
     {
       "role": "lesson",
       "id": 452426,
-      "title": "Learn The Chorus",
+      "title": {
+        "en": "Learn The Chorus",
+        "nl": "Leer het refrein"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452426-learn-the-chorus.json",
       "vimeo_id": "1119978346",
@@ -325,7 +405,10 @@
     {
       "role": "lesson",
       "id": 452427,
-      "title": "Learn The Bridge",
+      "title": {
+        "en": "Learn The Bridge",
+        "nl": "Leer de bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452427-learn-the-bridge.json",
       "vimeo_id": "1119979294",
@@ -334,7 +417,10 @@
     {
       "role": "lesson",
       "id": 452428,
-      "title": "Guided Playthrough",
+      "title": {
+        "en": "Guided Playthrough",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452428-guided-playthrough.json",
       "vimeo_id": "1119990249",
@@ -343,7 +429,10 @@
     {
       "role": "lesson",
       "id": 452429,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d3_essentials-for-popular-music/452429-final-performance.json",
       "vimeo_id": "1119979879",

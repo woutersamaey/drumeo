@@ -15,7 +15,10 @@
     "id": 456456,
     "sanity_id": "f7ba1c0a-e840-4ce1-a7a5-9dd0c3c615f2",
     "type": "learning-path-intro",
-    "title": "Welcome To Develop & Coordinate Your Groove",
+    "title": {
+      "en": "Welcome To Develop & Coordinate Your Groove",
+      "nl": "Welkom bij Ontwikkel en coördineer je groove"
+    },
     "slug": "d6w_welcome",
     "brand": "drumeo",
     "status": "published",
@@ -45,9 +48,15 @@
     "learning_path": {
       "id": 456457,
       "type": "learning-path-v2",
-      "title": "Develop & Coordinate Your Groove",
+      "title": {
+        "en": "Develop & Coordinate Your Groove",
+        "nl": "Ontwikkel en coördineer je groove"
+      },
       "slug": "d6_develop-and-coordinate-your-groove",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/intro/456457"

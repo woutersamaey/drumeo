@@ -4,10 +4,16 @@
     "id": 452358,
     "sanity_id": "d2-sp3-l4",
     "type": "skill-pack-lesson",
-    "title": "Cymbal Sounds Around The Kit",
+    "title": {
+      "en": "Cymbal Sounds Around The Kit",
+      "nl": "Bekkenklanken over het drumstel"
+    },
     "slug": "d2-sp3-l4_cymbal-sounds-around-the-kit",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 342,
     "popularity": 13719,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452387,
       "type": "learning-path-v2",
-      "title": "Add Variety To Your Drumming",
+      "title": {
+        "en": "Add Variety To Your Drumming",
+        "nl": "Breng variatie in je drummen"
+      },
       "slug": "d2_add-variety-to-your-drumming",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452387/452358"
     },
@@ -39,33 +51,15 @@
       "id": 452354,
       "sanity_id": "d2-sp3",
       "type": "skill-pack",
-      "title": "Cymbal Sound Variations",
+      "title": {
+        "en": "Cymbal Sound Variations",
+        "nl": "Bekkenklank-variaties"
+      },
       "slug": "d2-sp3_cymbal-sound-variations",
       "child_count": 4
     }
   },
   "video": {
     "vimeo_id": "1096949207"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

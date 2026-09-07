@@ -15,12 +15,18 @@
     "id": 452427,
     "sanity_id": "d3-st1-l3",
     "type": "song-tutorial-lesson",
-    "title": "Learn The Bridge",
+    "title": {
+      "en": "Learn The Bridge",
+      "nl": "Leer de bridge"
+    },
     "slug": "d3-st1-l3_learn-the-bridge",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 315,
     "length": "5:15",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 452434,
       "type": "learning-path-v2",
-      "title": "Essentials For Popular Music",
+      "title": {
+        "en": "Essentials For Popular Music",
+        "nl": "Essentials voor populaire muziek"
+      },
       "slug": "d3_essentials-for-popular-music",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452434/452427"
@@ -56,7 +68,10 @@
       "id": 452424,
       "sanity_id": "d3-st1",
       "type": "song-tutorial",
-      "title": "Learn \"Between The Lines\"",
+      "title": {
+        "en": "Learn \"Between The Lines\"",
+        "nl": "Leer \"Between The Lines\""
+      },
       "slug": "d3-st1_learn-between-the-lines",
       "child_count": 5
     }
@@ -150,26 +165,5 @@
         }
       ]
     }
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

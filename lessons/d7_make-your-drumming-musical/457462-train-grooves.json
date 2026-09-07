@@ -15,12 +15,18 @@
     "id": 457462,
     "sanity_id": "d7-sp1-l1",
     "type": "skill-pack-lesson",
-    "title": "Train Grooves",
+    "title": {
+      "en": "Train Grooves",
+      "nl": "Treingrooves"
+    },
     "slug": "d7-sp1-l1_train-grooves",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 335,
     "length": "5:35",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 457503,
       "type": "learning-path-v2",
-      "title": "Make Your Drumming Musical",
+      "title": {
+        "en": "Make Your Drumming Musical",
+        "nl": "Maak je drummen muzikaal"
+      },
       "slug": "d7_make-your-drumming-musical",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/457503/457462"
@@ -56,7 +68,10 @@
       "id": 457467,
       "sanity_id": "d7-sp1",
       "type": "skill-pack",
-      "title": "Accented Snare Grooves",
+      "title": {
+        "en": "Accented Snare Grooves",
+        "nl": "Geaccentueerde snaregrooves"
+      },
       "slug": "d7-sp1_accented-snare-grooves",
       "child_count": 5
     }

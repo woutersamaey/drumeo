@@ -15,12 +15,18 @@
     "id": 459437,
     "sanity_id": "d9-sp5-l1",
     "type": "skill-pack-lesson",
-    "title": "Find Your Balance",
+    "title": {
+      "en": "Find Your Balance",
+      "nl": "Vind je balans"
+    },
     "slug": "d9-sp5-l1_find-your-balance",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 316,
     "length": "5:16",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459437"
@@ -56,7 +68,10 @@
       "id": 459442,
       "sanity_id": "d9-sp5",
       "type": "skill-pack",
-      "title": "Keeping Time with The Hi-Hat Foot",
+      "title": {
+        "en": "Keeping Time with The Hi-Hat Foot",
+        "nl": "Tijd houden met de hi-hatvoet"
+      },
       "slug": "d9-sp5_keeping-time-with-the-hi-hat-foot",
       "child_count": 5
     }

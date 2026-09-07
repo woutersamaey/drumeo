@@ -15,12 +15,18 @@
     "id": 456093,
     "sanity_id": "3ecc59e1-8a7b-403c-b764-a8a0b127a7ad",
     "type": "skill-pack-lesson",
-    "title": "Bring In A Backbeat",
+    "title": {
+      "en": "Bring In A Backbeat",
+      "nl": "Een backbeat erin"
+    },
     "slug": "d5-sp3-l3_bring-in-a-backbeat",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 338,
     "length": "5:38",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456093"
@@ -56,7 +68,10 @@
       "id": 456090,
       "sanity_id": "f62db95c-5016-497e-bbb2-6dcbd18e3ff1",
       "type": "skill-pack",
-      "title": "Intro To Paradiddles",
+      "title": {
+        "en": "Intro To Paradiddles",
+        "nl": "Intro tot paradiddles"
+      },
       "slug": "d5-sp3_intro-to-paradiddles",
       "child_count": null
     }

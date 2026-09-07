@@ -14,6 +14,7 @@
     overlay: null,
     countdown: null,
     playGen: 0,
+    weekDay: null,
   };
 
   const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter" };
@@ -28,6 +29,26 @@
 
   function langMeta(index = currentAudioIndex()) {
     return LANGS[index === 1 ? 1 : 0];
+  }
+
+  function isNl() {
+    return currentAudioIndex() === 1;
+  }
+
+  function disp(obj, key = "title") {
+    if (!obj) return "";
+    if (isNl()) {
+      const nl = obj[key + "Nl"];
+      if (nl) return nl;
+    }
+    return obj[key] || "";
+  }
+
+  function locAttr(en, nl) {
+    const e = String(en || "");
+    const n = String(nl || e);
+    const shown = isNl() ? n : e;
+    return `data-en="${esc(e)}" data-nl="${esc(n)}">${esc(shown)}`;
   }
 
   function langToggle() {
@@ -60,6 +81,8 @@
     const p = pathOf();
     if (p === "/" || p === "/profiles") return { name: "profiles", params: {} };
     if (p === "/home") return { name: "home", params: {} };
+    if (p === "/history") return { name: "history", params: {} };
+    if (p === "/stats") return { name: "stats", params: {} };
     if (p === "/practice") return { name: "practice", params: {} };
     let m = p.match(/^\/path\/([a-zA-Z0-9_-]+)$/);
     if (m) return { name: "path", params: { slug: m[1] } };
@@ -120,13 +143,10 @@
     if (b.intro) push(b.intro);
     for (const p of b.paths || []) {
       const extra = { pathSlug: p.slug, pathTitle: p.title };
-      if (p.skillPacks?.length) {
-        for (const pack of p.skillPacks) {
-          for (const l of pack.lessons || []) push(l, extra);
-        }
-      } else {
-        for (const l of p.lessons || []) push(l, extra);
-      }
+      const list = p.lessons?.length
+        ? p.lessons
+        : (p.skillPacks || []).flatMap((pack) => pack.lessons || []);
+      for (const l of list) push(l, extra);
     }
     return out;
   }
@@ -162,12 +182,23 @@
       return i >= 0 ? i + 1 : null;
     };
     const nearby = [];
-    if (seqIdx > 0) nearby.push({ role: "vorige", lesson: seq[seqIdx - 1], chapterNumber: chapterNo(seq[seqIdx - 1]) });
-    nearby.push({ role: "nu", lesson: seqIdx >= 0 ? seq[seqIdx] : lesson, chapterNumber: number });
-    if (seqIdx >= 0 && seqIdx < seq.length - 1) nearby.push({ role: "volgende", lesson: seq[seqIdx + 1], chapterNumber: chapterNo(seq[seqIdx + 1]) });
+    if (seqIdx < 0) {
+      nearby.push({ role: "nu", lesson, chapterNumber: number });
+    } else {
+      const roles = { "-2": "eerder", "-1": "vorige", "0": "nu", "1": "volgende", "2": "daarna" };
+      for (let off = -2; off <= 2; off++) {
+        const i = seqIdx + off;
+        if (i < 0 || i >= seq.length) continue;
+        nearby.push({ role: roles[String(off)], lesson: seq[i], chapterNumber: chapterNo(seq[i]) });
+      }
+    }
     return {
       title,
+      titleNl: (path?.skillPacks?.length && lesson.skillPackTitle
+        ? path.skillPacks.find((p) => p.title === lesson.skillPackTitle)?.titleNl
+        : null) || path?.titleNl || title,
       pathTitle,
+      pathTitleNl: path?.titleNl || pathTitle,
       pathSlug,
       packAnchor: anchor,
       number,
@@ -180,16 +211,111 @@
   function lessonById(id) {
     const b = state.bootstrap;
     if (!b) return null;
-    if (b.intro && b.intro.id === id) return b.intro;
+    if (b.intro && sameId(b.intro.id, id)) return b.intro;
     for (const p of b.paths || []) {
-      for (const l of p.lessons || []) if (l.id === id) return { ...l, pathSlug: p.slug, pathTitle: p.title };
+      for (const l of p.lessons || []) {
+        if (sameId(l.id, id)) {
+          return { ...l, pathSlug: p.slug, pathTitle: p.title, pathTitleNl: p.titleNl || l.pathTitleNl };
+        }
+      }
     }
-    for (const l of b.order || []) if (l.id === id) return l;
-    return state.lessonCache[id] || null;
+    for (const l of b.order || []) if (sameId(l.id, id)) return l;
+    return state.lessonCache[id] || state.lessonCache[String(id)] || null;
   }
 
   function progressOf(id) {
     return (state.bootstrap?.progress || {})[String(id)] || null;
+  }
+
+  function noteOf(id) {
+    const raw = state.bootstrap?.notes?.[String(id)];
+    return typeof raw === "string" && raw.trim() ? raw : "";
+  }
+
+  function pencilIcon() {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`;
+  }
+
+  function skipPrevIcon() {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h2.2v12H6V6zm3.3 6 9.7 6.2V5.8L9.3 12z"/></svg>`;
+  }
+
+  function skipNextIcon() {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 5.8v12.4L14.7 12 5 5.8zM16.8 6h2.2v12h-2.2V6z"/></svg>`;
+  }
+
+  function setNoteEditorOpen(open) {
+    const editor = $("#note-editor");
+    const view = $("#note-view");
+    const pen = $("[data-action=note-edit]");
+    const input = $("#note-input");
+    if (!editor) return;
+    const body = noteOf(state.route.params.id);
+    editor.classList.toggle("hidden", !open);
+    if (view) view.classList.toggle("hidden", open || !body);
+    if (pen) {
+      pen.classList.toggle("is-on", open || !!body);
+      pen.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    const err = $("#note-error");
+    if (err) {
+      err.classList.add("hidden");
+      err.textContent = "";
+    }
+    if (open && input) {
+      input.value = body;
+      input.focus();
+      const len = input.value.length;
+      try { input.setSelectionRange(len, len); } catch {}
+    }
+  }
+
+  async function persistNote(body) {
+    const lesson = state.player.lesson || lessonById(state.route.params.id);
+    if (!lesson) return;
+    const err = $("#note-error");
+    try {
+      const res = await api("/app/note", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, body }) });
+      const saved = typeof res.body === "string" ? res.body : String(body || "").trim();
+      if (!state.bootstrap.notes) state.bootstrap.notes = {};
+      if (saved) state.bootstrap.notes[String(lesson.id)] = saved;
+      else delete state.bootstrap.notes[String(lesson.id)];
+      const text = $("#note-text");
+      if (text) text.textContent = saved;
+      const clearBtn = $("[data-action=note-clear]");
+      if (clearBtn) clearBtn.classList.toggle("hidden", !saved);
+      const input = $("#note-input");
+      if (input) input.value = saved;
+      const pen = $("[data-action=note-edit]");
+      if (pen) {
+        const label = saved ? "Notitie bewerken" : "Notitie toevoegen";
+        pen.setAttribute("aria-label", label);
+        pen.setAttribute("title", label);
+      }
+      setNoteEditorOpen(false);
+    } catch (e) {
+      if (err) {
+        err.textContent = e.message || "Kon notitie niet bewaren";
+        err.classList.remove("hidden");
+      }
+    }
+  }
+
+  const SCORE_EMOJI = { 4: "🤩", 3: "😊", 2: "😕", 1: "😢" };
+
+  function latestScoreOf(id) {
+    const raw = state.bootstrap?.latestScore?.[String(id)];
+    const n = Number(raw);
+    return n >= 1 && n <= 4 ? n : null;
+  }
+
+  function thumbBadges(lessonId, { watched = false, compact = false, withEmoji = true } = {}) {
+    const emoji = withEmoji ? SCORE_EMOJI[latestScoreOf(lessonId) || 0] : "";
+    if (!emoji && !watched) return "";
+    return `<div class="thumb-badges${compact ? " is-compact" : ""}">
+      ${emoji ? `<span class="thumb-badge thumb-badge-emoji">${emoji}</span>` : ""}
+      ${watched ? `<span class="thumb-badge thumb-badge-check">✓</span>` : ""}
+    </div>`;
   }
 
   function available(vimeoId) {
@@ -274,6 +400,14 @@
     };
   }
 
+  function navLink(href, label, { mobile = false } = {}) {
+    const on = pathOf() === href;
+    if (mobile) {
+      return `<a href="${href}" data-link class="py-3 tap ${on ? "font-bold text-white" : "text-muted"}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
+    }
+    return `<a href="${href}" data-link class="px-3 py-2 rounded-lg tap ${on ? "bg-card font-semibold" : "hover:bg-card"}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
+  }
+
   function layout(main, { nav = true } = {}) {
     const profile = state.bootstrap?.profile;
     const top = nav ? `
@@ -284,8 +418,10 @@
             <span class="font-semibold tracking-tight hidden sm:block">The Method</span>
           </a>
           <nav class="hidden md:flex items-center gap-1 ml-4 text-sm">
-            <a href="/home" data-link class="px-3 py-2 rounded-lg hover:bg-card tap">Home</a>
-            <a href="/practice" data-link class="px-3 py-2 rounded-lg hover:bg-card tap">Opnieuw oefenen</a>
+            ${navLink("/home", "Home")}
+            ${navLink("/history", "Afspeelgeschiedenis")}
+            ${navLink("/stats", "Statistieken")}
+            ${navLink("/practice", "Opnieuw oefenen")}
           </nav>
           <div class="ml-auto flex items-center gap-2">
             ${profile ? langToggle() : ""}
@@ -297,10 +433,12 @@
       </header>` : "";
     const bottom = nav ? `
       <nav class="md:hidden fixed bottom-0 inset-x-0 bg-panel/95 backdrop-blur border-t border-line z-30 pb-[env(safe-area-inset-bottom)]">
-        <div class="grid grid-cols-3 text-center text-xs">
-          <a href="/home" data-link class="py-3 tap">Home</a>
-          <a href="/practice" data-link class="py-3 tap">Oefenen</a>
-          <button data-action="switch-profile" class="py-3 tap">Profiel</button>
+        <div class="nav-mobile">
+          ${navLink("/home", "Home", { mobile: true })}
+          ${navLink("/history", "Geschiedenis", { mobile: true })}
+          ${navLink("/stats", "Stats", { mobile: true })}
+          ${navLink("/practice", "Oefenen", { mobile: true })}
+          <button data-action="switch-profile" class="py-3 tap text-muted">Profiel</button>
         </div>
       </nav>` : "";
     return `${top}<main class="${nav ? "pb-24 md:pb-10" : ""}">${main}</main>${bottom}`;
@@ -310,7 +448,38 @@
     return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
-  function card(lesson, { wide = false } = {}) {
+  function hscroll(inner) {
+    return `<div class="hscroll">
+      <div class="hscroll-track flex gap-4 overflow-x-auto no-scrollbar pb-2">${inner}</div>
+      <div class="hscroll-fade" aria-hidden="true"></div>
+      <button type="button" class="hscroll-next" aria-label="Meer lessen">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>`;
+  }
+
+  function wireHScroll() {
+    $$(".hscroll").forEach((wrap) => {
+      const track = wrap.querySelector(".hscroll-track");
+      const next = wrap.querySelector(".hscroll-next");
+      if (!track) return;
+      const update = () => {
+        const max = track.scrollWidth - track.clientWidth;
+        wrap.classList.toggle("can-right", max > 12 && track.scrollLeft < max - 12);
+      };
+      track.addEventListener("scroll", update, { passive: true });
+      next?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const step = Math.min(track.clientWidth * 0.8, 336);
+        track.scrollBy({ left: step, behavior: "smooth" });
+      });
+      requestAnimationFrame(update);
+      if (typeof ResizeObserver !== "undefined") new ResizeObserver(update).observe(track);
+    });
+  }
+
+  function card(lesson, { wide = false, number = null } = {}) {
     const p = progressOf(lesson.id);
     const watched = p?.watched;
     const have = available(lesson.vimeoId);
@@ -318,34 +487,108 @@
     return `
       <a href="/watch/${lesson.id}" data-link class="card-hover block ${w} rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} transition-transform">
         <div class="relative aspect-video thumb overflow-hidden${watched ? " thumb-watched" : ""}">
-          ${thumbPic(lesson.vimeoId, { sizes: wide ? "(min-width: 640px) 320px, 85vw" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw", alt: lesson.title })}
-          ${watched ? `<span class="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-good text-ink grid place-items-center font-bold">✓</span>` : ""}
+          ${thumbPic(lesson.vimeoId, { sizes: wide ? "(min-width: 640px) 320px, 85vw" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw", alt: disp(lesson) })}
+          ${thumbBadges(lesson.id, { watched })}
+          ${number != null ? `<span class="lesson-num">${number}</span>` : ""}
           ${!have ? `<span class="absolute top-2 left-2 text-[11px] bg-black/70 px-2 py-1 rounded-full">Nog geen video</span>` : ""}
           <span class="absolute bottom-2 right-2 text-[11px] bg-black/70 px-2 py-0.5 rounded">${esc(lesson.length || fmt(lesson.seconds))}</span>
           <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${pct(lesson.id)}%"></span></div>
         </div>
         <div class="p-3">
-          <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${esc(lesson.title)}</div>
-          <div class="text-muted text-sm mt-1 line-clamp-1">${esc(lesson.skillPackTitle || lesson.pathTitle || "")}</div>
+          <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${esc(disp(lesson))}</div>
+          <div class="text-muted text-sm mt-1 line-clamp-1">${esc(disp(lesson, "skillPackTitle") || disp(lesson, "pathTitle"))}</div>
         </div>
       </a>`;
+  }
+
+  function fmtPractice(sec) {
+    const s = Math.max(0, Math.round(Number(sec) || 0));
+    if (s === 0) return "0 min";
+    if (s < 60) return `${s} sec`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m} min`;
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm ? `${h} u ${rm} min` : `${h} u`;
+  }
+
+  function takePlayedDelta(video) {
+    const pos = Number(video?.currentTime) || 0;
+    if (state.player && (state.player.lastPos == null || Number.isNaN(state.player.lastPos))) {
+      state.player.lastPos = pos;
+      return 0;
+    }
+    const prev = Number(state.player?.lastPos) || 0;
+    let delta = pos - prev;
+    if (delta < 0) delta = 0;
+    if (delta > 20) delta = 20;
+    if (state.player) state.player.lastPos = pos;
+    return Math.round(delta * 1000) / 1000;
+  }
+
+  function relativePlayed(unix) {
+    if (!unix) return "";
+    const sec = Math.max(0, Math.floor(Date.now() / 1000 - unix));
+    if (sec < 60) return "zojuist";
+    if (sec < 3600) return `${Math.floor(sec / 60)} min. geleden`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)} u. geleden`;
+    const days = Math.floor(sec / 86400);
+    if (days === 1) return "gisteren";
+    if (days < 7) return `${days} dagen geleden`;
+    return new Date(unix * 1000).toLocaleDateString("nl-BE", { day: "numeric", month: "short" });
+  }
+
+  function historyItems() {
+    const prog = Object.values(state.bootstrap?.progress || {});
+    const out = [];
+    for (const p of prog) {
+      const lesson = lessonById(p.lessonId);
+      if (!lesson) continue;
+      const dur = p.duration || lesson.seconds || 0;
+      const pos = p.position || 0;
+      const ratio = dur > 0 ? pos / dur : 0;
+      if (!p.watched && ratio < 0.33) continue;
+      out.push({ lesson, progress: p, ratio: p.watched ? 1 : ratio });
+    }
+    out.sort((a, b) => (b.progress.updated || 0) - (a.progress.updated || 0));
+    return out;
+  }
+
+  function lastPlayedLabel(unix) {
+    if (!unix) return "Nog niet geoefend";
+    const t = new Date(unix * 1000);
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startThen = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    const days = Math.round((startToday - startThen) / 86400000);
+    if (days <= 0) return "Laatst geoefend vandaag";
+    if (days === 1) return "Laatst geoefend gisteren";
+    if (days < 7) return `Laatst geoefend ${days} dagen geleden`;
+    return `Laatst geoefend ${t.toLocaleDateString("nl-BE", { day: "numeric", month: "short" })}`;
   }
 
   function renderProfiles() {
     const profiles = state.bootstrap?.profiles || [];
     const root = $("#app");
     root.innerHTML = layout(`
-      <div class="min-h-[80dvh] grid place-items-center px-4">
+      <div class="min-h-[80dvh] grid place-items-center px-4 py-10">
         <div class="w-full max-w-4xl text-center">
           <p class="text-muted uppercase tracking-[0.2em] text-sm">Drumeo</p>
           <h1 class="text-4xl sm:text-6xl font-black mt-2 mb-10">Wie gaat er drummen?</h1>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            ${profiles.map((p) => `
-              <button data-action="pick-profile" data-slug="${p.slug}" class="tap rounded-3xl bg-card border border-line p-8 hover:border-accent transition">
+            ${profiles.map((p) => {
+              const total = Number(p.lessonCount) || 0;
+              const done = Number(p.watchedCount) || 0;
+              const pctDone = total ? Math.round((done / total) * 100) : 0;
+              return `
+              <button data-action="pick-profile" data-slug="${p.slug}" class="tap rounded-3xl bg-card border border-line p-8 hover:border-accent transition text-center">
                 <span class="mx-auto w-28 h-28 rounded-full ${COLORS[p.slug] || "bg-accent"} grid place-items-center text-5xl font-black shadow-lg">${esc(p.name[0])}</span>
                 <div class="mt-5 text-2xl font-bold">${esc(p.name)}</div>
-                <div class="mt-2 text-muted text-sm">${Number(p.lastAudioIndex) === 0 ? "English" : "Nederlands"}</div>
-              </button>`).join("")}
+                <div class="mt-2 text-muted text-sm">${lastPlayedLabel(p.lastPlayed)}</div>
+                <div class="mt-3 text-sm">${done} / ${total} lessen</div>
+                <div class="progress-bar mt-2"><span style="width:${pctDone}%"></span></div>
+              </button>`;
+            }).join("")}
           </div>
         </div>
       </div>`, { nav: false });
@@ -360,15 +603,15 @@
       <section class="relative overflow-hidden rounded-3xl bg-card border border-line mb-10">
         <div class="grid md:grid-cols-2">
           <div class="relative aspect-video md:aspect-auto min-h-[220px] thumb overflow-hidden">
-            ${thumbPic(resumeLesson.vimeoId, { sizes: "(min-width: 768px) 50vw, 100vw", alt: resumeLesson.title, eager: true })}
+            ${thumbPic(resumeLesson.vimeoId, { sizes: "(min-width: 768px) 50vw, 100vw", alt: disp(resumeLesson), eager: true })}
             <div class="absolute inset-0 bg-gradient-to-r from-card via-card/40 to-transparent hidden md:block"></div>
           </div>
           <div class="p-6 sm:p-8 flex flex-col justify-center">
             <p class="text-accent text-sm font-semibold uppercase tracking-wide">${resume.reason === "continue" ? "Verder kijken" : "Volgende les"}</p>
-            <h2 class="text-3xl font-black mt-2">${esc(resumeLesson.title)}</h2>
-            <p class="text-muted mt-2">${esc(resumeLesson.pathTitle || "")}${resume.reason === "continue" ? " · hervat op " + fmt(resume.position) : ""} · ${esc(langMeta().label)}</p>
+            <h2 class="text-3xl font-black mt-2">${esc(disp(resumeLesson))}</h2>
+            <p class="text-muted mt-2">${esc(disp(resumeLesson, "pathTitle"))}${resume.reason === "continue" ? " · hervat op " + fmt(resume.position) : ""} · ${esc(langMeta().label)}</p>
             <a href="/watch/${resumeLesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-6 py-3 tap w-fit">
-              ${resume.reason === "continue" ? "Doorgaan" : "Start"}
+              ${resume.reason === "continue" ? "Doorgaan" : "Start volgende les"}
             </a>
           </div>
         </div>
@@ -380,39 +623,109 @@
           <h3 class="text-2xl font-bold">Opnieuw oefenen</h3>
           <a href="/practice" data-link class="text-muted text-sm">Alles</a>
         </div>
-        <div class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-          ${practice.slice(0, 12).map((l) => card(l, { wide: true })).join("")}
-        </div>
+        ${hscroll(practice.slice(0, 12).map((l) => card(l, { wide: true })).join(""))}
       </section>` : "";
 
-    const shows = (b.paths || []).map((p) => {
-      const watched = (p.lessons || []).filter((l) => progressOf(l.id)?.watched).length;
-      const poster = p.posterVimeoId || p.lessons?.[0]?.vimeoId;
-      return `
-        <a href="/path/${p.slug}" data-link class="card-hover block rounded-3xl overflow-hidden bg-card border border-line">
-          <div class="grid sm:grid-cols-[1.4fr_1fr]">
-            <div class="relative aspect-video thumb overflow-hidden">
-              ${thumbPic(poster, { sizes: "(min-width: 640px) 58vw, 100vw", alt: p.title })}
-              <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-              <h3 class="absolute bottom-4 left-4 right-4 text-2xl font-black">${esc(p.title)}</h3>
-            </div>
-            <div class="p-5 flex flex-col justify-center gap-2 text-sm text-muted">
-              <div>${esc(p.difficulty || "")}</div>
-              <div>${p.videoCount} lessen · ${watched} klaar</div>
-              <div class="progress-bar mt-2"><span style="width:${p.videoCount ? Math.round((watched / p.videoCount) * 100) : 0}%"></span></div>
-              <p class="line-clamp-3">${esc(p.description || "")}</p>
-            </div>
+    const week = b.week || { days: [], streak: 0, playedToday: false };
+    const inWeek = (date) => (week.days || []).some((d) => d.date === date);
+    const selectedDate = (state.weekDay && inWeek(state.weekDay))
+      ? state.weekDay
+      : (week.days.find((d) => d.isToday)?.date || week.days[week.days.length - 1]?.date || null);
+    const selectedDay = week.days.find((d) => d.date === selectedDate) || null;
+    const nudge = !week.playedToday && week.streak > 0
+      ? `Je reeks van ${week.streak} dagen wacht op vandaag.`
+      : week.playedToday && week.streak > 1
+        ? `${week.streak} dagen op rij. Keep going!`
+        : week.playedToday
+          ? "Les van vandaag zit erin. Morgen weer!"
+          : "Nog geen les vandaag. Eén video telt al!";
+    const weekRow = week.days.length ? `
+      <section class="mb-10 rounded-3xl bg-card border border-line p-5 sm:p-6">
+        <div class="flex items-end justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-2xl font-bold">Jouw week</h3>
+            <p class="text-muted text-sm mt-1">${esc(nudge)}</p>
           </div>
-        </a>`;
-    }).join("");
+          <p class="text-muted text-xs hidden sm:block">Elke dag een les houdt je groove scherp</p>
+        </div>
+        <div class="week-row">
+          ${week.days.map((d) => {
+            const on = selectedDate === d.date;
+            const emojis = [...new Set((d.scores || []).map((s) => SCORE_EMOJI[s]).filter(Boolean))];
+            const cls = `week-day${d.played ? " is-played" : ""}${d.isToday ? " is-today" : ""}${on ? " is-on" : ""}`;
+            return `<button type="button" data-action="week-day" data-date="${esc(d.date)}" class="${cls}">
+              <span class="week-dot"></span>
+              <span class="week-emojis">${emojis.length ? emojis.map((e) => `<span>${e}</span>`).join("") : "&nbsp;"}</span>
+              <span class="week-label${d.label.length > 8 ? " is-long" : ""}">${esc(d.label)}</span>
+            </button>`;
+          }).join("")}
+        </div>
+        ${selectedDay ? `
+          <div class="mt-5 pt-5 border-t border-line">
+            <p class="font-semibold">${esc(selectedDay.label.charAt(0).toUpperCase() + selectedDay.label.slice(1))} · ${selectedDay.played ? "dit speelde je" : "nog niks gespeeld"}</p>
+            ${selectedDay.lessonIds?.length
+              ? `<div class="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  ${selectedDay.lessonIds.map((id) => {
+                    const l = lessonById(id);
+                    return l ? card(l) : "";
+                  }).join("")}
+                </div>`
+              : `<p class="text-muted text-sm mt-2">${selectedDay.isToday ? "Zet ’m op — één les is al een overwinning." : "Deze dag nog geen les."}</p>`}
+          </div>` : ""}
+      </section>` : "";
+
+    const shows = `
+      <section class="mb-10">
+        <h3 class="text-2xl font-bold mb-4">The Method</h3>
+        <div class="path-grid">
+          ${(b.paths || []).map((p) => {
+            const watched = (p.lessons || []).filter((l) => progressOf(l.id)?.watched).length;
+            const poster = p.posterVimeoId || p.lessons?.[0]?.vimeoId;
+            const pctDone = p.videoCount ? Math.round((watched / p.videoCount) * 100) : 0;
+            return `
+              <a href="/path/${p.slug}" data-link class="card-hover block rounded-2xl overflow-hidden bg-card border border-line">
+                <div class="relative aspect-video thumb overflow-hidden">
+                  ${thumbPic(poster, { sizes: "(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw", alt: disp(p) })}
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                  <h3 class="absolute bottom-2 left-4 right-4 text-lg font-black">${esc(disp(p))}</h3>
+                </div>
+                <div class="px-3 py-3">
+                  <div class="flex justify-between text-xs text-muted mb-2">
+                    <span>${esc(disp(p, "difficulty"))}</span>
+                    <span>${watched}/${p.videoCount}</span>
+                  </div>
+                  <div class="progress-bar"><span style="width:${pctDone}%"></span></div>
+                </div>
+              </a>`;
+          }).join("")}
+        </div>
+      </section>`;
 
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
         ${hero}
+        ${weekRow}
         ${practiceRow}
-        <h3 class="text-2xl font-bold mb-4">The Method</h3>
-        <div class="grid gap-6">${shows}</div>
+        ${shows}
       </div>`);
+  }
+
+  function pathView() {
+    return state.bootstrap?.pathView === "skill" ? "skill" : "order";
+  }
+
+  function pathViewToggle() {
+    const view = pathView();
+    const opts = [
+      { id: "order", label: "Lesvolgorde" },
+      { id: "skill", label: "Per skill" },
+    ];
+    return `<div class="seg" role="group" aria-label="Lesweergave">
+      ${opts.map((o) => {
+        const on = o.id === view;
+        return `<button type="button" data-action="path-view" data-view="${o.id}" class="seg-btn${on ? " is-on" : ""}" aria-pressed="${on ? "true" : "false"}">${esc(o.label)}</button>`;
+      }).join("")}
+    </div>`;
   }
 
   function renderPath() {
@@ -422,20 +735,232 @@
       $("#app").innerHTML = layout(`<div class="p-8">Pad niet gevonden.</div>`);
       return;
     }
-    const packs = path.skillPacks?.length ? path.skillPacks : [{ title: path.title, lessons: path.lessons }];
+    const view = pathView();
+    const lessons = path.lessons?.length
+      ? path.lessons
+      : (path.skillPacks || []).flatMap((p) => p.lessons || []);
+    const packs = path.skillPacks?.length
+      ? path.skillPacks
+      : [{ title: path.title, titleNl: path.titleNl, lessons }];
+    let body;
+    if (view === "skill") {
+      body = packs.map((pack) => `
+        <section id="${esc(packAnchor(pack))}" class="mt-10" style="scroll-margin-top:6rem">
+          <h2 class="text-xl font-bold mb-4">${esc(disp(pack) || "Lessen")}</h2>
+          ${hscroll((pack.lessons || []).map((l) => card(l, { wide: true })).join(""))}
+        </section>`).join("");
+    } else {
+      const seen = new Set();
+      body = `<section class="mt-8">
+        <div class="path-grid">
+          ${lessons.map((l, i) => {
+            const aid = packAnchor({ id: l.skillPackId, title: l.skillPackTitle });
+            let idAttr = "";
+            if (aid && !seen.has(aid)) {
+              seen.add(aid);
+              idAttr = ` id="${esc(aid)}" style="scroll-margin-top:6rem"`;
+            }
+            return `<div${idAttr}>${card(l, { number: i + 1 })}</div>`;
+          }).join("")}
+        </div>
+      </section>`;
+    }
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
         <a href="/home" data-link class="text-muted text-sm">← Home</a>
-        <h1 class="text-4xl font-black mt-2">${esc(path.title)}</h1>
-        <p class="text-muted mt-2">${esc(path.difficulty)} · ${path.videoCount} lessen</p>
-        <p class="mt-3 max-w-2xl">${esc(path.description || "")}</p>
-        ${packs.map((pack) => `
-          <section id="${esc(packAnchor(pack))}" class="mt-10" style="scroll-margin-top:6rem">
-            <h2 class="text-xl font-bold mb-4">${esc(pack.title || "Lessen")}</h2>
-            <div class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-              ${(pack.lessons || []).map((l) => card(l, { wide: true })).join("")}
+        <div class="path-head">
+          <div class="min-w-0">
+            <h1 class="text-4xl font-black">${esc(disp(path))}</h1>
+            <p class="text-muted mt-2">${esc(disp(path, "difficulty"))} · ${path.videoCount} lessen</p>
+          </div>
+          ${pathViewToggle()}
+        </div>
+        <p class="mt-3 max-w-2xl">${esc(disp(path, "description"))}</p>
+        ${body}
+      </div>`);
+  }
+
+  function renderHistory() {
+    const items = historyItems();
+    $("#app").innerHTML = layout(`
+      <div class="max-w-3xl mx-auto px-4 pt-6">
+        <h1 class="text-4xl font-black">Afspeelgeschiedenis</h1>
+        <p class="text-muted mt-2 mb-8">Alles wat je minstens een derde hebt bekeken, meest recent eerst.</p>
+        ${items.length === 0
+          ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog geen geschiedenis. Speel een les tot minstens een derde om hem hier te zien.</div>`
+          : `<div class="flex flex-col gap-3">
+              ${items.map(({ lesson, progress, ratio }) => {
+                const watched = progress.watched;
+                const series = disp(lesson, "pathTitle") || "The Method";
+                const skill = disp(lesson, "skillPackTitle");
+                return `
+                <a href="/watch/${lesson.id}" data-link class="flex gap-3 rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} tap">
+                  <div class="relative history-thumb shrink-0 aspect-video thumb overflow-hidden${watched ? " thumb-watched" : ""}">
+                    ${thumbPic(lesson.vimeoId, { sizes: "176px", alt: disp(lesson) })}
+                    ${thumbBadges(lesson.id, { watched, compact: true })}
+                    <span class="absolute bottom-1 right-1 text-[11px] bg-black/70 px-2 py-0.5 rounded">${esc(lesson.length || fmt(lesson.seconds))}</span>
+                    <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${Math.round(ratio * 100)}%"></span></div>
+                  </div>
+                  <div class="min-w-0 py-3 pr-3 flex-1">
+                    <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${esc(disp(lesson))}</div>
+                    <div class="mt-1 text-sm leading-snug">
+                      <div><span class="text-muted">Reeks</span> · ${esc(series)}</div>
+                      ${skill ? `<div><span class="text-muted">Skill</span> · ${esc(skill)}</div>` : ""}
+                    </div>
+                    ${noteOf(lesson.id) ? `<div class="history-note">${esc(noteOf(lesson.id))}</div>` : ""}
+                    <div class="text-muted text-xs mt-2">${Math.round(ratio * 100)}% · ${esc(relativePlayed(progress.updated))}</div>
+                  </div>
+                </a>`;
+              }).join("")}
+            </div>`}
+      </div>`);
+  }
+
+  function emojiCounts(map) {
+    const m = map || {};
+    return [4, 3, 2, 1].map((s) => ({ score: s, emoji: SCORE_EMOJI[s], n: Number(m[s] || m[String(s)] || 0) }));
+  }
+
+  function growthInsight(em) {
+    if (!em || !em.total) {
+      return "Speel een les en kies een emoji. Dan zie je hier of het oefenen beter voelt.";
+    }
+    if (em.improved > em.declined) {
+      return `Je groeit: ${em.improved} ${em.improved === 1 ? "les voelt" : "lessen voelen"} beter dan de eerste keer.`;
+    }
+    if (em.declined > em.improved) {
+      return "Even tegenslag is oké. Opnieuw oefenen tilt je emoji omhoog.";
+    }
+    const latest = emojiCounts(em.latest);
+    const top = [...latest].sort((a, b) => b.n - a.n)[0];
+    if (top && top.n && top.score === 4) return "Alles voelt als 🤩. Jij bent on fire!";
+    if (top && top.n) return `Meeste lessen voelen nu als ${top.emoji}.`;
+    return "Blijf oefenen — je emoji vertelt hoe het gaat.";
+  }
+
+  function battleCopy(profiles, meId) {
+    const ranked = [...(profiles || [])].sort((a, b) => (b.practiceSec || 0) - (a.practiceSec || 0));
+    const lead = ranked[0];
+    const me = ranked.find((p) => p.id === meId) || ranked.find((p) => p.isMe);
+    if (!lead || !me) return "Oefen een les en je staat in de drum battle.";
+    if ((lead.practiceSec || 0) <= 0) return "Nog niemand heeft geoefend. Wie zet de eerste minuten?";
+    if (me.id === lead.id) {
+      const second = ranked[1];
+      if (second && second.practiceSec > 0) {
+        return `Jij leidt. ${esc(second.name)} zit op ${fmtPractice(second.practiceSec)} — blijf voorop.`;
+      }
+      return "Jij leidt de drum battle. Wie durft je in te halen?";
+    }
+    const gap = Math.max(0, (lead.practiceSec || 0) - (me.practiceSec || 0));
+    return `Nog ${fmtPractice(gap)} tot ${esc(lead.name)}. Dat is één les extra.`;
+  }
+
+  async function renderStats() {
+    $("#app").innerHTML = layout(`<div class="grid place-items-center min-h-[50vh] text-muted">Laden…</div>`);
+    let stats;
+    try { stats = await api("/app/stats"); }
+    catch (e) {
+      $("#app").innerHTML = layout(`<div class="p-8">Kon statistieken niet laden. ${esc(e.message)}</div>`);
+      return;
+    }
+    const me = stats.me || {};
+    const em = me.emojis || {};
+    const profiles = stats.profiles || [];
+    const meId = me.profile?.id;
+    const latest = emojiCounts(em.latest);
+    const topN = Math.max(0, ...latest.map((x) => x.n));
+    const week = me.week || [];
+    const weekMax = Math.max(1, ...week.map((d) => d.practiceSec || 0));
+    const battleMax = Math.max(1, ...profiles.map((p) => p.practiceSec || 0));
+    const ranked = [...profiles].sort((a, b) => (b.practiceSec || 0) - (a.practiceSec || 0));
+    const medals = {};
+    ranked.forEach((p, i) => { medals[p.id] = ["🥇", "🥈", "🥉"][i] || ""; });
+    const growthLessons = (em.lessons || []).filter((l) => l.first !== l.latest || l.count > 1);
+
+    $("#app").innerHTML = layout(`
+      <div class="max-w-7xl mx-auto px-4 pt-6">
+        <h1 class="text-4xl font-black">Statistieken</h1>
+        <p class="text-muted mt-2 mb-8">Jouw groei, oefentijd en een drum battle met de rest.</p>
+
+        <section class="mb-10">
+          <h2 class="text-2xl font-bold mb-4">Jouw oefentijd</h2>
+          <div class="stat-cards">
+            <div class="stat-card"><div class="k">Totaal</div><div class="v">${esc(fmtPractice(me.practiceSec))}</div></div>
+            <div class="stat-card"><div class="k">Vandaag</div><div class="v">${esc(fmtPractice(me.practiceTodaySec))}</div></div>
+            <div class="stat-card"><div class="k">Deze week</div><div class="v">${esc(fmtPractice(me.practiceWeekSec))}</div></div>
+            <div class="stat-card"><div class="k">Lessen klaar</div><div class="v">${Number(me.lessonsWatched) || 0}<span class="text-muted text-sm font-semibold"> / ${Number(me.lessonsStarted) || 0} gestart</span></div></div>
+          </div>
+          <div class="rounded-2xl bg-card border border-line p-4 sm:p-5 mt-4">
+            <div class="flex items-end justify-between gap-3 mb-3">
+              <p class="font-semibold">Deze week</p>
+              <p class="text-muted text-xs">${me.streak ? `${me.streak} dag${me.streak === 1 ? "" : "en"} op rij` : "Nog geen reeks"}</p>
             </div>
-          </section>`).join("")}
+            <div class="week-bars">
+              ${week.map((d) => {
+                const sec = d.practiceSec || 0;
+                const h = Math.max(sec > 0 ? 8 : 3, Math.round((sec / weekMax) * 100));
+                return `<div class="week-bar${d.isToday ? " is-today" : ""}${d.isFuture ? " is-future" : ""}">
+                  <div class="week-bar-fill" style="height:${d.isFuture ? 3 : h}%"></div>
+                  <span class="lab${d.label.length > 8 ? " is-long" : ""}">${esc(d.label)}</span>
+                </div>`;
+              }).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="mb-10">
+          <h2 class="text-2xl font-bold mb-1">Persoonlijke groei</h2>
+          <p class="text-muted text-sm mb-4">${esc(growthInsight(em))}</p>
+          <div class="emoji-mix">
+            ${latest.map((x) => `
+              <div class="emoji-tile${topN && x.n === topN ? " is-top" : ""}">
+                <div class="face">${x.emoji}</div>
+                <div class="n">${x.n}</div>
+                <div class="text-muted text-xs mt-1">nu</div>
+              </div>`).join("")}
+          </div>
+          ${growthLessons.length ? `
+            <div class="rounded-2xl bg-card border border-line px-4 mt-4">
+              ${growthLessons.map((l) => {
+                const lesson = lessonById(l.lessonId);
+                const title = lesson ? disp(lesson) : `Les ${l.lessonId}`;
+                const same = l.first === l.latest;
+                return `<div class="growth-row">
+                  <div class="min-w-0">
+                    <div class="font-semibold leading-snug line-clamp-2">${esc(title)}</div>
+                    <div class="text-muted text-xs mt-1">${l.count} keer beoordeeld</div>
+                  </div>
+                  <div class="shrink-0 text-xl">${SCORE_EMOJI[l.first] || ""}${same ? "" : " → " + (SCORE_EMOJI[l.latest] || "")}</div>
+                </div>`;
+              }).join("")}
+            </div>` : (em.total ? `<p class="text-muted text-sm mt-4">Nog geen verandering in emoji. Oefen een les opnieuw om groei te zien.</p>` : "")}
+        </section>
+
+        <section class="mb-10">
+          <h2 class="text-2xl font-bold mb-1">Drum battle</h2>
+          <p class="text-muted text-sm mb-5">${battleCopy(profiles, meId)}</p>
+          <div class="rounded-2xl bg-card border border-line p-4 sm:p-6">
+            <p class="text-xs uppercase tracking-wide text-muted mb-4">Oefentijd + emoji’s per drummer</p>
+            <div class="battle-chart">
+              ${profiles.map((p) => {
+                const h = Math.max(p.practiceSec > 0 ? 6 : 0, Math.round((p.practiceSec / battleMax) * 100));
+                const faces = emojiCounts(p.emojis?.all).filter((x) => x.n > 0);
+                const emojiLine = faces.length
+                  ? faces.map((x) => `${x.emoji}×${x.n}`).join(" ")
+                  : "nog geen emoji";
+                const rated = Number(p.emojis?.lessonsRated) || 0;
+                return `<div class="battle-col${p.isMe ? " is-me" : ""}">
+                  <div class="battle-val">${esc(fmtPractice(p.practiceSec))}</div>
+                  <div class="battle-track" title="${esc(p.name)}: ${esc(fmtPractice(p.practiceSec))}">
+                    <div class="battle-fill is-${esc(p.slug)}" style="height:${h}%"></div>
+                  </div>
+                  <div class="battle-name">${medals[p.id] || ""} ${esc(p.name)}</div>
+                  <div class="battle-emojis">${emojiLine}<div class="mt-1">${rated} ${rated === 1 ? "les" : "lessen"} beoordeeld</div></div>
+                </div>`;
+              }).join("")}
+            </div>
+          </div>
+        </section>
       </div>`);
   }
 
@@ -487,17 +1012,17 @@
             </div>
             <div class="flex items-center justify-between gap-3 mt-3">
               ${prevLesson
-                ? `<a href="/watch/${prevLesson.id}" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line">← Vorige</a>`
-                : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted">← Vorige</span>`}
+                ? `<a href="/watch/${prevLesson.id}" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line inline-flex items-center gap-2">${skipPrevIcon()} Vorige</a>`
+                : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">${skipPrevIcon()} Vorige</span>`}
               ${nextLesson
-                ? `<a href="/watch/${nextLesson.id}" data-link class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm">Volgende →</a>`
-                : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted">Volgende →</span>`}
+                ? `<a href="/watch/${nextLesson.id}" data-link class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm inline-flex items-center gap-2">Volgende ${skipNextIcon()}</a>`
+                : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">Volgende ${skipNextIcon()}</span>`}
             </div>
           </section>
           <aside class="rounded-2xl bg-card border border-line overflow-hidden">
             <div class="p-4 border-b border-line">
-              <div class="text-muted text-xs uppercase tracking-wide">${esc(chapter.pathTitle)}</div>
-              <div class="font-bold mt-0.5">${esc(chapter.title)}</div>
+              <div class="text-muted text-xs uppercase tracking-wide" ${locAttr(chapter.pathTitle, chapter.pathTitleNl)}</div>
+              <div class="font-bold mt-0.5" ${locAttr(chapter.title, chapter.titleNl)}</div>
               <div class="text-sm mt-2">Nu les ${chapter.number} van ${chapter.total}</div>
               <div class="progress-bar mt-2" style="height:6px" role="progressbar" aria-valuenow="${chapter.number}" aria-valuemin="1" aria-valuemax="${chapter.total}" aria-label="Les ${chapter.number} van ${chapter.total}"><span style="width:${chapter.pct}%"></span></div>
             </div>
@@ -505,17 +1030,17 @@
               const l = item.lesson;
               const on = item.role === "nu";
               const w = progressOf(l.id)?.watched;
-              const roleLabel = item.role === "vorige" ? "Vorige" : item.role === "nu" ? "Nu aan het kijken" : "Volgende";
+              const roleLabel = item.role === "eerder" ? "2 geleden" : item.role === "vorige" ? "Vorige" : item.role === "nu" ? "Nu aan het kijken" : item.role === "volgende" ? "Volgende" : "Over 2";
               const num = item.chapterNumber ? `${item.chapterNumber}. ` : "";
               const body = `
                 <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
-                  ${thumbPic(l.vimeoId, { sizes: "96px", alt: l.title })}
-                  ${w ? `<span class="absolute top-1 right-1 z-20 w-5 h-5 text-[11px] rounded-full bg-good text-ink grid place-items-center">✓</span>` : ""}
+                  ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
+                  ${thumbBadges(l.id, { watched: w, compact: true })}
                   ${on ? `<span class="absolute inset-0 rounded-lg ring-2 ring-accent"></span>` : ""}
                 </div>
                 <div class="min-w-0">
                   <div class="text-[11px] uppercase tracking-wide ${on ? "text-accent" : "text-muted"}">${roleLabel}</div>
-                  <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}">${num}${esc(l.title)}</div>
+                  <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}">${num}<span ${locAttr(l.title, l.titleNl)}</span></div>
                   <div class="text-muted text-xs mt-1">${esc(l.length || "")}</div>
                 </div>`;
               const cls = `flex gap-3 p-3 border-b border-line ${on ? "bg-ink" : "tap"}`;
@@ -525,9 +1050,24 @@
             }).join("")}
             ${chapter.pathSlug ? `<a href="/path/${chapter.pathSlug}${chapter.packAnchor ? "#" + chapter.packAnchor : ""}" data-link class="block p-4 text-sm text-accent tap">Alle lessen in dit hoofdstuk →</a>` : ""}
           </aside>
-          <section class="rounded-2xl bg-card border border-line p-5">
-            <h1 class="text-2xl sm:text-3xl font-black">${esc(lesson.title)}</h1>
-            <p class="text-muted mt-1">${esc([lesson.difficulty, lesson.skillPackTitle, lesson.instructor].filter(Boolean).join(" · "))}</p>
+          <section class="pt-1">
+            <div class="flex items-start gap-2">
+              <h1 class="text-2xl sm:text-3xl font-black min-w-0 flex-1" ${locAttr(lesson.title, lesson.titleNl)}</h1>
+              <button type="button" data-action="note-edit" class="note-pen tap${noteOf(lesson.id) ? " is-on" : ""}" aria-expanded="false" aria-label="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}" title="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}">${pencilIcon()}</button>
+            </div>
+            <p class="text-muted mt-1">${esc([disp(lesson, "difficulty"), disp(lesson, "skillPackTitle"), lesson.instructor].filter(Boolean).join(" · "))}</p>
+            <div id="note-view" class="${noteOf(lesson.id) ? "" : "hidden"}">
+              <p id="note-text" class="note-body mt-3">${esc(noteOf(lesson.id))}</p>
+            </div>
+            <div id="note-editor" class="hidden mt-3">
+              <textarea id="note-input" class="note-input" maxlength="2000" rows="4" placeholder="Jouw opmerking bij deze les…">${esc(noteOf(lesson.id))}</textarea>
+              <div class="note-actions">
+                <button type="button" data-action="note-save" class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm">Bewaren</button>
+                <button type="button" data-action="note-cancel" class="tap rounded-full bg-card px-4 py-2 text-sm border border-line">Annuleren</button>
+                <button type="button" data-action="note-clear" class="tap rounded-full px-4 py-2 text-sm text-muted${noteOf(lesson.id) ? "" : " hidden"}">Wissen</button>
+              </div>
+              <p id="note-error" class="hidden text-sm mt-2" style="color:#fb7185"></p>
+            </div>
             ${lesson.description ? `<p class="mt-3">${esc(lesson.description)}</p>` : ""}
             ${(lesson.resources || []).length ? `<div class="mt-4"><p class="text-sm text-muted mb-2">Path resources</p>
               <div class="flex flex-col gap-2">
@@ -628,7 +1168,7 @@
       slot.appendChild(script);
       const video = slot.querySelector("video");
       if (!video) throw new Error("no video tag");
-      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, safe: usedSafe };
+      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, safe: usedSafe, lastPos: null };
       if (prep) prep.classList.add("hidden");
       bindVideo(video, lesson, resumeAt, usedSafe);
       prefetchNext(lesson, audioIndex, caps);
@@ -638,14 +1178,17 @@
   }
 
   function bindVideo(video, lesson, resumeAt, alreadySafe) {
+    let armed = false;
     const save = (force) => {
+      if (!armed) return;
       const now = Date.now();
       if (!force && now - state.lastSave < 4000) return;
       state.lastSave = now;
       const duration = video.duration && isFinite(video.duration) ? video.duration : lesson.seconds;
+      const playedDelta = takePlayedDelta(video);
       api("/app/progress", {
         method: "POST",
-        body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, position: video.currentTime || 0, duration }),
+        body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, position: video.currentTime || 0, duration, playedDelta }),
       }).then(async (r) => {
         if (r.watched && state.bootstrap.progress) {
           state.bootstrap.progress[String(lesson.id)] = { ...(progressOf(lesson.id) || {}), watched: true, position: video.currentTime, duration };
@@ -657,6 +1200,8 @@
       if (resumeAt > 1 && resumeAt < (video.duration || lesson.seconds) - 5) {
         try { video.currentTime = resumeAt; } catch {}
       }
+      if (state.player) state.player.lastPos = video.currentTime || resumeAt || 0;
+      armed = true;
     });
     video.addEventListener("timeupdate", () => save(false));
     video.addEventListener("pause", () => save(true));
@@ -716,7 +1261,7 @@
     const nid = nextIdOf(lesson);
     const next = nid ? lessonById(nid) : null;
     const title = $("#next-title");
-    if (title) title.textContent = next ? next.title : "Einde van The Method — goed gedaan!";
+    if (title) title.textContent = next ? disp(next) : "Einde van The Method — goed gedaan!";
     modal.classList.remove("hidden");
     let n = 8;
     const node = $("#count");
@@ -746,6 +1291,14 @@
 
   function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+  function paintLocalized() {
+    $$("[data-nl]").forEach((el) => {
+      if (el.children.length) return;
+      const v = isNl() ? el.getAttribute("data-nl") : el.getAttribute("data-en");
+      if (v != null) el.textContent = v;
+    });
+  }
+
   function paintLangToggles() {
     const cur = currentAudioIndex();
     const meta = langMeta(cur);
@@ -760,6 +1313,7 @@
       const mark = btn.querySelector("span:last-child");
       if (mark) mark.textContent = on ? "✓" : (Number(btn.dataset.index) === 1 ? "NL" : "EN");
     });
+    paintLocalized();
   }
 
   function bind() {
@@ -773,11 +1327,31 @@
     $$("[data-action]").forEach((el) => {
       el.addEventListener("click", onAction);
     });
+    const noteInput = $("#note-input");
+    if (noteInput) {
+      noteInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          persistNote(noteInput.value);
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setNoteEditorOpen(false);
+        }
+      });
+    }
   }
 
   async function onAction(e) {
     const el = e.currentTarget;
     const action = el.getAttribute("data-action");
+    if (action === "week-day") {
+      const date = el.dataset.date;
+      if (!date) return;
+      state.weekDay = date;
+      render();
+      return;
+    }
     if (action === "pick-profile") {
       await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: el.dataset.slug }) });
       await refresh();
@@ -787,6 +1361,18 @@
     if (action === "switch-profile") {
       teardownPlayer();
       go("/profiles");
+      return;
+    }
+    if (action === "path-view") {
+      const view = el.dataset.view === "skill" ? "skill" : "order";
+      if (pathView() === view) return;
+      if (state.bootstrap) state.bootstrap.pathView = view;
+      api("/app/path-view", { method: "POST", body: JSON.stringify({ view }) })
+        .then((res) => {
+          if (state.bootstrap && res?.pathView) state.bootstrap.pathView = res.pathView;
+        })
+        .catch(() => {});
+      render();
       return;
     }
     if (action === "lang-menu") {
@@ -820,9 +1406,30 @@
       }
       return;
     }
+    if (action === "note-edit") {
+      const editor = $("#note-editor");
+      setNoteEditorOpen(!!editor && editor.classList.contains("hidden"));
+      return;
+    }
+    if (action === "note-save") {
+      persistNote($("#note-input")?.value || "");
+      return;
+    }
+    if (action === "note-cancel") {
+      setNoteEditorOpen(false);
+      return;
+    }
+    if (action === "note-clear") {
+      persistNote("");
+      return;
+    }
     if (action === "rate") {
       const lesson = state.player.lesson || lessonById(state.route.params.id);
-      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score: Number(el.dataset.score) }) });
+      const score = Number(el.dataset.score);
+      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score }) });
+      if (state.bootstrap) {
+        state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(lesson.id)]: score };
+      }
       el.classList.add("ring-2", "ring-accent");
       return;
     }
@@ -867,10 +1474,13 @@
     if (route.name === "profiles") renderProfiles();
     else if (route.name === "home") renderHome();
     else if (route.name === "path") renderPath();
+    else if (route.name === "history") renderHistory();
+    else if (route.name === "stats") await renderStats();
     else if (route.name === "practice") renderPractice();
     else if (route.name === "watch") await renderWatch();
     else renderHome();
     bind();
+    wireHScroll();
     const hash = location.hash.replace(/^#/, "");
     if (hash) {
       requestAnimationFrame(() => {
@@ -898,6 +1508,7 @@
           vimeoId: state.player.lesson.vimeoId,
           position: v.currentTime || 0,
           duration: v.duration || state.player.lesson.seconds,
+          playedDelta: takePlayedDelta(v),
         }),
       }).catch(() => {});
     }

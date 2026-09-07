@@ -4,10 +4,16 @@
     "id": 452368,
     "sanity_id": "d2-sp5-l3",
     "type": "skill-pack-lesson",
-    "title": "Bass Drum Creativity",
+    "title": {
+      "en": "Bass Drum Creativity",
+      "nl": "Creativiteit op de basdrum"
+    },
     "slug": "d2-sp5-l3_bass-drum-creativity",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 287,
     "popularity": 13070,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452387,
       "type": "learning-path-v2",
-      "title": "Add Variety To Your Drumming",
+      "title": {
+        "en": "Add Variety To Your Drumming",
+        "nl": "Breng variatie in je drummen"
+      },
       "slug": "d2_add-variety-to-your-drumming",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452387/452368"
     },
@@ -39,33 +51,15 @@
       "id": 452365,
       "sanity_id": "d2-sp5",
       "type": "skill-pack",
-      "title": "8th-Note Bass Drum Patterns",
+      "title": {
+        "en": "8th-Note Bass Drum Patterns",
+        "nl": "8ste-noot basdrumpatronen"
+      },
       "slug": "d2-sp5_8th-note-bass-drum-patterns",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1098829217"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

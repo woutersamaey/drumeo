@@ -3,21 +3,29 @@
   "learning_path": {
     "id": 456457,
     "type": "learning-path-v2",
-    "title": "Develop & Coordinate Your Groove",
+    "title": {
+      "en": "Develop & Coordinate Your Groove",
+      "nl": "Ontwikkel en coördineer je groove"
+    },
     "slug": "d6_develop-and-coordinate-your-groove",
     "status": "published",
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "description": null,
     "published_on": "2026-06-01T07:01:00.000Z",
     "child_count": 35,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [],
   "videos": [
     {
       "role": "path-intro",
       "id": 456456,
-      "title": "Welcome To Develop & Coordinate Your Groove",
+      "title": {
+        "en": "Welcome To Develop & Coordinate Your Groove",
+        "nl": "Welkom bij Ontwikkel en coördineer je groove"
+      },
       "file": "lessons/d6_develop-and-coordinate-your-groove/456456-welcome.json",
       "vimeo_id": "1190550421",
       "seconds": 22
@@ -25,7 +33,10 @@
     {
       "role": "lesson",
       "id": 456458,
-      "title": "What Is Double Time?",
+      "title": {
+        "en": "What Is Double Time?",
+        "nl": "Wat is double time?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456458-what-is-double-time.json",
       "vimeo_id": "1167825320",
@@ -34,7 +45,10 @@
     {
       "role": "lesson",
       "id": 456486,
-      "title": "The Full & Tap Strokes",
+      "title": {
+        "en": "The Full & Tap Strokes",
+        "nl": "Full- en tapstrokes"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456486-the-full-and-tap-strokes.json",
       "vimeo_id": "1167390814",
@@ -43,7 +57,10 @@
     {
       "role": "lesson",
       "id": 456507,
-      "title": "Syncopated Grooves",
+      "title": {
+        "en": "Syncopated Grooves",
+        "nl": "Gesyncopeerde grooves"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456507-syncopated-grooves.json",
       "vimeo_id": "1167849703",
@@ -52,7 +69,10 @@
     {
       "role": "lesson",
       "id": 456460,
-      "title": "Normal To Double And Back",
+      "title": {
+        "en": "Normal To Double And Back",
+        "nl": "Normaal naar double en terug"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456460-normal-to-double-and-back.json",
       "vimeo_id": "1167824879",
@@ -61,7 +81,10 @@
     {
       "role": "lesson",
       "id": 456487,
-      "title": "The Down & Up Strokes",
+      "title": {
+        "en": "The Down & Up Strokes",
+        "nl": "Down- en upstrokes"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456487-the-down-and-up-strokes.json",
       "vimeo_id": "1167390953",
@@ -70,7 +93,10 @@
     {
       "role": "lesson",
       "id": 456508,
-      "title": "Moving The Kick",
+      "title": {
+        "en": "Moving The Kick",
+        "nl": "De kick verplaatsen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456508-moving-the-kick.json",
       "vimeo_id": "1168166492",
@@ -79,7 +105,10 @@
     {
       "role": "lesson",
       "id": 456461,
-      "title": "Changing Up The Kick",
+      "title": {
+        "en": "Changing Up The Kick",
+        "nl": "De kick veranderen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456461-changing-up-the-kick.json",
       "vimeo_id": "1167824955",
@@ -88,7 +117,10 @@
     {
       "role": "lesson",
       "id": 456504,
-      "title": "Speeding It Up",
+      "title": {
+        "en": "Speeding It Up",
+        "nl": "Versnellen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456504-speeding-it-up.json",
       "vimeo_id": "1167391264",
@@ -97,7 +129,10 @@
     {
       "role": "lesson",
       "id": 456509,
-      "title": "Adding More Kick",
+      "title": {
+        "en": "Adding More Kick",
+        "nl": "Meer kick"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456509-adding-more-kick.json",
       "vimeo_id": "1168166618",
@@ -106,7 +141,10 @@
     {
       "role": "lesson",
       "id": 456462,
-      "title": "Double And Back",
+      "title": {
+        "en": "Double And Back",
+        "nl": "Double en terug"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456462-double-and-back.json",
       "vimeo_id": "1167825082",
@@ -115,7 +153,10 @@
     {
       "role": "lesson",
       "id": 456505,
-      "title": "Different Patterns",
+      "title": {
+        "en": "Different Patterns",
+        "nl": "Andere patronen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456505-different-patterns.json",
       "vimeo_id": "1167391422",
@@ -124,7 +165,10 @@
     {
       "role": "lesson",
       "id": 456510,
-      "title": "An Iconic Groove",
+      "title": {
+        "en": "An Iconic Groove",
+        "nl": "Een iconische groove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456510-an-iconic-groove.json",
       "vimeo_id": "1168166699",
@@ -133,7 +177,10 @@
     {
       "role": "lesson",
       "id": 456463,
-      "title": "Transitioning Around The Kit",
+      "title": {
+        "en": "Transitioning Around The Kit",
+        "nl": "Overgangen over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456463-transitioning-around-the-kit.json",
       "vimeo_id": "1167825203",
@@ -142,7 +189,10 @@
     {
       "role": "lesson",
       "id": 456506,
-      "title": "Putting It All Together",
+      "title": {
+        "en": "Putting It All Together",
+        "nl": "Alles samenbrengen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456506-putting-it-all-together.json",
       "vimeo_id": "1167391671",
@@ -151,7 +201,10 @@
     {
       "role": "lesson",
       "id": 456511,
-      "title": "Review The Pattern",
+      "title": {
+        "en": "Review The Pattern",
+        "nl": "Het patroon herhalen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456511-review-the-pattern.json",
       "vimeo_id": "1168166368",
@@ -160,7 +213,10 @@
     {
       "role": "lesson",
       "id": 456513,
-      "title": "Two-Handed 16th Grooves",
+      "title": {
+        "en": "Two-Handed 16th Grooves",
+        "nl": "Tweehandige 16de-grooves"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456513-two-handed-16th-grooves.json",
       "vimeo_id": "1168168353",
@@ -169,7 +225,10 @@
     {
       "role": "lesson",
       "id": 456519,
-      "title": "Building Coordination",
+      "title": {
+        "en": "Building Coordination",
+        "nl": "Coördinatie opbouwen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456519-building-coordination.json",
       "vimeo_id": "1170357120",
@@ -178,7 +237,10 @@
     {
       "role": "lesson",
       "id": 456528,
-      "title": "What Are Double Strokes?",
+      "title": {
+        "en": "What Are Double Strokes?",
+        "nl": "Wat zijn double strokes?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456528-what-are-double-strokes.json",
       "vimeo_id": "1168207028",
@@ -187,7 +249,10 @@
     {
       "role": "lesson",
       "id": 456514,
-      "title": "Adding A Crash",
+      "title": {
+        "en": "Adding A Crash",
+        "nl": "Een crash toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456514-adding-a-crash.json",
       "vimeo_id": "1168168456",
@@ -196,7 +261,10 @@
     {
       "role": "lesson",
       "id": 456523,
-      "title": "Adding More Ghost Notes",
+      "title": {
+        "en": "Adding More Ghost Notes",
+        "nl": "Meer ghost notes"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456523-adding-more-ghost-notes.json",
       "vimeo_id": "1170357214",
@@ -205,7 +273,10 @@
     {
       "role": "lesson",
       "id": 456529,
-      "title": "Solidify The Pattern",
+      "title": {
+        "en": "Solidify The Pattern",
+        "nl": "Het patroon vastzetten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456529-solidify-the-pattern.json",
       "vimeo_id": "1168207117",
@@ -214,7 +285,10 @@
     {
       "role": "lesson",
       "id": 456515,
-      "title": "Adding The Ride",
+      "title": {
+        "en": "Adding The Ride",
+        "nl": "De ride toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456515-adding-the-ride.json",
       "vimeo_id": "1168168581",
@@ -223,7 +297,10 @@
     {
       "role": "lesson",
       "id": 456524,
-      "title": "Vary The Pattern",
+      "title": {
+        "en": "Vary The Pattern",
+        "nl": "Varieer het patroon"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456524-vary-the-pattern.json",
       "vimeo_id": "1170357318",
@@ -232,7 +309,10 @@
     {
       "role": "lesson",
       "id": 456530,
-      "title": "Getting More Comfortable",
+      "title": {
+        "en": "Getting More Comfortable",
+        "nl": "Nog comfortabeler"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456530-getting-more-comfortable.json",
       "vimeo_id": "1168207177",
@@ -241,7 +321,10 @@
     {
       "role": "lesson",
       "id": 456516,
-      "title": "Picking Up The Tempo",
+      "title": {
+        "en": "Picking Up The Tempo",
+        "nl": "Het tempo optrekken"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456516-picking-up-the-tempo.json",
       "vimeo_id": "1168168688",
@@ -250,7 +333,10 @@
     {
       "role": "lesson",
       "id": 456525,
-      "title": "Filling Up The Bar",
+      "title": {
+        "en": "Filling Up The Bar",
+        "nl": "De maat vullen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456525-filling-up-the-bar.json",
       "vimeo_id": "1170357440",
@@ -259,7 +345,10 @@
     {
       "role": "lesson",
       "id": 456531,
-      "title": "Getting Faster",
+      "title": {
+        "en": "Getting Faster",
+        "nl": "Sneller worden"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456531-getting-faster.json",
       "vimeo_id": "1168207235",
@@ -268,7 +357,10 @@
     {
       "role": "lesson",
       "id": 456517,
-      "title": "Getting Even Faster",
+      "title": {
+        "en": "Getting Even Faster",
+        "nl": "Nog sneller"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456517-getting-even-faster.json",
       "vimeo_id": "1168168807",
@@ -277,7 +369,10 @@
     {
       "role": "lesson",
       "id": 456526,
-      "title": "Move It Around The Kit",
+      "title": {
+        "en": "Move It Around The Kit",
+        "nl": "Verplaats het over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456526-move-it-around-the-kit.json",
       "vimeo_id": "1170361610",
@@ -286,7 +381,10 @@
     {
       "role": "lesson",
       "id": 456532,
-      "title": "Speeding Up Your Doubles",
+      "title": {
+        "en": "Speeding Up Your Doubles",
+        "nl": "Je doubles versnellen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456532-speeding-up-your-doubles.json",
       "vimeo_id": "1168215929",
@@ -295,7 +393,10 @@
     {
       "role": "lesson",
       "id": 456534,
-      "title": "Learn The Verse",
+      "title": {
+        "en": "Learn The Verse",
+        "nl": "Leer het couplet"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456534-learn-the-verse.json",
       "vimeo_id": "1184967400",
@@ -304,7 +405,10 @@
     {
       "role": "lesson",
       "id": 456535,
-      "title": "Learn The Chorus",
+      "title": {
+        "en": "Learn The Chorus",
+        "nl": "Leer het refrein"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456535-learn-the-chorus.json",
       "vimeo_id": "1184967449",
@@ -313,7 +417,10 @@
     {
       "role": "lesson",
       "id": 456536,
-      "title": "Learn The Bridge",
+      "title": {
+        "en": "Learn The Bridge",
+        "nl": "Leer de bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456536-learn-the-bridge.json",
       "vimeo_id": "1184967488",
@@ -322,7 +429,10 @@
     {
       "role": "lesson",
       "id": 456538,
-      "title": "Guided Play Through",
+      "title": {
+        "en": "Guided Play Through",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456538-guided-play-through.json",
       "vimeo_id": "1184967542",
@@ -331,7 +441,10 @@
     {
       "role": "lesson",
       "id": 456539,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d6_develop-and-coordinate-your-groove/456539-final-performance.json",
       "vimeo_id": "1184967610",

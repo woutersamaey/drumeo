@@ -3,42 +3,32 @@
   "learning_path": {
     "id": 452340,
     "type": "learning-path-v2",
-    "title": "Learn To Play The Drums",
+    "title": {
+      "en": "Learn To Play The Drums",
+      "nl": "Leer drums spelen"
+    },
     "slug": "d1_learn-to-play-the-drums",
     "status": "published",
-    "difficulty_string": "Introductory",
-    "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+    "difficulty_string": {
+      "en": "Introductory",
+      "nl": "Instap"
+    },
+    "description": {
+      "en": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "nl": "Leer basisbeats en fills — speel zo snel mogelijk eenvoudige nummers!"
+    },
     "published_on": "2026-02-06 00:01:00",
     "child_count": 35,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key",
-      "resource_url": null
-    }
-  ],
   "videos": [
     {
       "role": "path-intro",
       "id": 456068,
-      "title": "Welcome To Learn To Play The Drums",
+      "title": {
+        "en": "Welcome To Learn To Play The Drums",
+        "nl": "Welkom bij Leer drums spelen"
+      },
       "file": "lessons/d1_learn-to-play-the-drums/456068-welcome-to-learn-to-play-the-drums.json",
       "vimeo_id": "1132195987",
       "seconds": 25
@@ -46,7 +36,10 @@
     {
       "role": "lesson",
       "id": 452295,
-      "title": "The Hi-Hat And Snare Drum",
+      "title": {
+        "en": "The Hi-Hat And Snare Drum",
+        "nl": "De hi-hat en snare"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452295-the-hi-hat-and-snare-drum.json",
       "vimeo_id": "1101964379",
@@ -55,7 +48,10 @@
     {
       "role": "lesson",
       "id": 452307,
-      "title": "The Ride And Floor Tom",
+      "title": {
+        "en": "The Ride And Floor Tom",
+        "nl": "De ride en floor tom"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452307-the-ride-and-floor-tom.json",
       "vimeo_id": "1095148234",
@@ -64,7 +60,10 @@
     {
       "role": "lesson",
       "id": 452301,
-      "title": "What Are Single Strokes?",
+      "title": {
+        "en": "What Are Single Strokes?",
+        "nl": "Wat zijn single strokes?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452301-what-are-single-strokes.json",
       "vimeo_id": "1105227741",
@@ -73,7 +72,10 @@
     {
       "role": "lesson",
       "id": 452296,
-      "title": "Add The Kick",
+      "title": {
+        "en": "Add The Kick",
+        "nl": "De kick erbij"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452296-add-the-kick.json",
       "vimeo_id": "1101966669",
@@ -82,7 +84,10 @@
     {
       "role": "lesson",
       "id": 452308,
-      "title": "The Low-End Foundation",
+      "title": {
+        "en": "The Low-End Foundation",
+        "nl": "Het low-end fundament"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452308-the-low-end-foundation.json",
       "vimeo_id": "1095148448",
@@ -91,7 +96,10 @@
     {
       "role": "lesson",
       "id": 452302,
-      "title": "Singles Around The Drums",
+      "title": {
+        "en": "Singles Around The Drums",
+        "nl": "Singles over de drums"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452302-singles-around-the-drums.json",
       "vimeo_id": "1105227944",
@@ -100,7 +108,10 @@
     {
       "role": "lesson",
       "id": 452297,
-      "title": "Combine The Three",
+      "title": {
+        "en": "Combine The Three",
+        "nl": "De drie combineren"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452297-combine-the-three.json",
       "vimeo_id": "1101966957",
@@ -109,7 +120,10 @@
     {
       "role": "lesson",
       "id": 452309,
-      "title": "Coordination Around The Kit",
+      "title": {
+        "en": "Coordination Around The Kit",
+        "nl": "Coördinatie over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452309-coordination-around-the-kit.json",
       "vimeo_id": "1095148948",
@@ -118,7 +132,10 @@
     {
       "role": "lesson",
       "id": 452303,
-      "title": "Groupings Of Four",
+      "title": {
+        "en": "Groupings Of Four",
+        "nl": "Groepen van vier"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452303-groupings-of-four.json",
       "vimeo_id": "1105228192",
@@ -127,7 +144,10 @@
     {
       "role": "lesson",
       "id": 452298,
-      "title": "Skip The Steps",
+      "title": {
+        "en": "Skip The Steps",
+        "nl": "Sla de stappen over"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452298-skip-the-steps.json",
       "vimeo_id": "1101967295",
@@ -136,7 +156,10 @@
     {
       "role": "lesson",
       "id": 452310,
-      "title": "Moving The Left Hand",
+      "title": {
+        "en": "Moving The Left Hand",
+        "nl": "De linkerhand verplaatsen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452310-moving-the-left-hand.json",
       "vimeo_id": "1095149626",
@@ -145,7 +168,10 @@
     {
       "role": "lesson",
       "id": 452304,
-      "title": "Single Stroke Combinations",
+      "title": {
+        "en": "Single Stroke Combinations",
+        "nl": "Single-strokecombinaties"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452304-single-stroke-combinations.json",
       "vimeo_id": "1105228453",
@@ -154,7 +180,10 @@
     {
       "role": "lesson",
       "id": 452299,
-      "title": "Solidify The Groove",
+      "title": {
+        "en": "Solidify The Groove",
+        "nl": "De groove vastzetten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452299-solidify-the-groove.json",
       "vimeo_id": "1101967908",
@@ -163,7 +192,10 @@
     {
       "role": "lesson",
       "id": 452311,
-      "title": "Expand Your Groove Options",
+      "title": {
+        "en": "Expand Your Groove Options",
+        "nl": "Meer groove-opties"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452311-expand-your-groove-options.json",
       "vimeo_id": "1095150304",
@@ -172,7 +204,10 @@
     {
       "role": "lesson",
       "id": 452305,
-      "title": "Combination Practice",
+      "title": {
+        "en": "Combination Practice",
+        "nl": "Combinatie oefenen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452305-combination-practice.json",
       "vimeo_id": "1105228672",
@@ -181,7 +216,10 @@
     {
       "role": "lesson",
       "id": 452313,
-      "title": "What Is The Money Beat?",
+      "title": {
+        "en": "What Is The Money Beat?",
+        "nl": "Wat is de Money Beat?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452313-what-is-the-money-beat.json",
       "vimeo_id": "1101962455",
@@ -190,7 +228,10 @@
     {
       "role": "lesson",
       "id": 452319,
-      "title": "8ths On The Ride Cymbal",
+      "title": {
+        "en": "8ths On The Ride Cymbal",
+        "nl": "8sten op de ride"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452319-8ths-on-the-ride-cymbal.json",
       "vimeo_id": "1105481582",
@@ -199,7 +240,10 @@
     {
       "role": "lesson",
       "id": 452325,
-      "title": "Coordinating Our Hands",
+      "title": {
+        "en": "Coordinating Our Hands",
+        "nl": "Onze handen coördineren"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452325-coordinating-our-hands.json",
       "vimeo_id": "1095148108",
@@ -208,7 +252,10 @@
     {
       "role": "lesson",
       "id": 452314,
-      "title": "A Foundational Groove",
+      "title": {
+        "en": "A Foundational Groove",
+        "nl": "Een fundament-groove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452314-a-foundational-groove.json",
       "vimeo_id": "1101963624",
@@ -217,7 +264,10 @@
     {
       "role": "lesson",
       "id": 452320,
-      "title": "Orchestrate Your Beats",
+      "title": {
+        "en": "Orchestrate Your Beats",
+        "nl": "Orkestreer je beats"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452320-orchestrate-your-beats.json",
       "vimeo_id": "1101967629",
@@ -226,7 +276,10 @@
     {
       "role": "lesson",
       "id": 452315,
-      "title": "The Groove That Pays",
+      "title": {
+        "en": "The Groove That Pays",
+        "nl": "De groove die loont"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452315-the-groove-that-pays.json",
       "vimeo_id": "1101965024",
@@ -235,7 +288,10 @@
     {
       "role": "lesson",
       "id": 452326,
-      "title": "Get Comfortable With Crashing",
+      "title": {
+        "en": "Get Comfortable With Crashing",
+        "nl": "Comfortabel crashen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452326-get-comfortable-with-crashing.json",
       "vimeo_id": "1095148177",
@@ -244,7 +300,10 @@
     {
       "role": "lesson",
       "id": 452321,
-      "title": "Grooving On The Ride",
+      "title": {
+        "en": "Grooving On The Ride",
+        "nl": "Grooven op de ride"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452321-grooving-on-the-ride.json",
       "vimeo_id": "1101969288",
@@ -253,7 +312,10 @@
     {
       "role": "lesson",
       "id": 452327,
-      "title": "Crashing From The Floor Tom",
+      "title": {
+        "en": "Crashing From The Floor Tom",
+        "nl": "Crashen vanaf de floor tom"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452327-crashing-from-the-floor-tom.json",
       "vimeo_id": "1095148258",
@@ -262,7 +324,10 @@
     {
       "role": "lesson",
       "id": 452316,
-      "title": "Own The Money Beat",
+      "title": {
+        "en": "Own The Money Beat",
+        "nl": "Eigenaar van de Money Beat"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452316-own-the-money-beat.json",
       "vimeo_id": "1101967373",
@@ -271,7 +336,10 @@
     {
       "role": "lesson",
       "id": 452322,
-      "title": "Expand Your Drum-Set Sounds",
+      "title": {
+        "en": "Expand Your Drum-Set Sounds",
+        "nl": "Meer klanken op het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452322-expand-your-drum-set-sounds.json",
       "vimeo_id": "1101971637",
@@ -280,7 +348,10 @@
     {
       "role": "lesson",
       "id": 452328,
-      "title": "Crashing On Transitions",
+      "title": {
+        "en": "Crashing On Transitions",
+        "nl": "Crashen op overgangen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452328-crashing-on-transitions.json",
       "vimeo_id": "1095148662",
@@ -289,7 +360,10 @@
     {
       "role": "lesson",
       "id": 452317,
-      "title": "Unlock The Most Iconic Groove",
+      "title": {
+        "en": "Unlock The Most Iconic Groove",
+        "nl": "De meest iconische groove ontgrendelen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452317-unlock-the-most-iconic-groove.json",
       "vimeo_id": "1101968478",
@@ -298,7 +372,10 @@
     {
       "role": "lesson",
       "id": 452323,
-      "title": "Break Free From The Hi-Hat",
+      "title": {
+        "en": "Break Free From The Hi-Hat",
+        "nl": "Los van de hi-hat"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452323-break-free-from-the-hi-hat.json",
       "vimeo_id": "1101971986",
@@ -307,7 +384,10 @@
     {
       "role": "lesson",
       "id": 452329,
-      "title": "Lock In With Crashes",
+      "title": {
+        "en": "Lock In With Crashes",
+        "nl": "Vastzetten met crashes"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452329-lock-in-with-crashes.json",
       "vimeo_id": "1095151670",
@@ -316,7 +396,10 @@
     {
       "role": "lesson",
       "id": 452331,
-      "title": "The First Verse And Chorus",
+      "title": {
+        "en": "The First Verse And Chorus",
+        "nl": "Het eerste couplet en refrein"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452331-the-first-verse-and-chorus.json",
       "vimeo_id": "1092591850",
@@ -325,7 +408,10 @@
     {
       "role": "lesson",
       "id": 452332,
-      "title": "The Second Verse And Chorus",
+      "title": {
+        "en": "The Second Verse And Chorus",
+        "nl": "Het tweede couplet en refrein"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452332-the-second-verse-and-chorus.json",
       "vimeo_id": "1092591937",
@@ -334,7 +420,10 @@
     {
       "role": "lesson",
       "id": 452333,
-      "title": "The Bridge",
+      "title": {
+        "en": "The Bridge",
+        "nl": "De bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452333-the-bridge.json",
       "vimeo_id": "1092592098",
@@ -343,7 +432,10 @@
     {
       "role": "lesson",
       "id": 452334,
-      "title": "Guided Playthrough",
+      "title": {
+        "en": "Guided Playthrough",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452334-guided-playthrough.json",
       "vimeo_id": "1092592269",
@@ -352,7 +444,10 @@
     {
       "role": "lesson",
       "id": 452335,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d1_learn-to-play-the-drums/452335-final-performance.json",
       "vimeo_id": "1092592441",

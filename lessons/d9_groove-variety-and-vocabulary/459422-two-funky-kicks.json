@@ -15,12 +15,18 @@
     "id": 459422,
     "sanity_id": "d9-sp2-l4",
     "type": "skill-pack-lesson",
-    "title": "Two Funky Kicks",
+    "title": {
+      "en": "Two Funky Kicks",
+      "nl": "Twee funky kicks"
+    },
     "slug": "d9-sp2-l4_two-funky-kicks",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 320,
     "length": "5:20",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459422"
@@ -56,7 +68,10 @@
       "id": 459424,
       "sanity_id": "d9-sp2",
       "type": "skill-pack",
-      "title": "Changing Time Feels",
+      "title": {
+        "en": "Changing Time Feels",
+        "nl": "Time feel wisselen"
+      },
       "slug": "d9-sp2_changing-time-feels",
       "child_count": 5
     }

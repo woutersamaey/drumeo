@@ -3,21 +3,29 @@
   "learning_path": {
     "id": 455942,
     "type": "learning-path-v2",
-    "title": "Expand Your Groove And Feel",
+    "title": {
+      "en": "Expand Your Groove And Feel",
+      "nl": "Verbreed je groove en feel"
+    },
     "slug": "d5_expand-your-groove-and-feel",
     "status": "published",
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "description": null,
     "published_on": "2026-05-04T07:01:00.000Z",
     "child_count": 35,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [],
   "videos": [
     {
       "role": "path-intro",
       "id": 456073,
-      "title": "Welcome To Expand Your Groove And Feel",
+      "title": {
+        "en": "Welcome To Expand Your Groove And Feel",
+        "nl": "Welkom bij Verbreed je groove en feel"
+      },
       "file": "lessons/d5_expand-your-groove-and-feel/456073-welcome.json",
       "vimeo_id": "1183055160",
       "seconds": 32
@@ -25,7 +33,10 @@
     {
       "role": "lesson",
       "id": 456075,
-      "title": "What Is 6/8?",
+      "title": {
+        "en": "What Is 6/8?",
+        "nl": "Wat is 6/8?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456075-what-is-6-8.json",
       "vimeo_id": "1151101860",
@@ -34,7 +45,10 @@
     {
       "role": "lesson",
       "id": 456085,
-      "title": "Crashing On Beat 4",
+      "title": {
+        "en": "Crashing On Beat 4",
+        "nl": "Crashen op beat 4"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456085-crashing-on-beat-4.json",
       "vimeo_id": "1154453463",
@@ -43,7 +57,10 @@
     {
       "role": "lesson",
       "id": 456091,
-      "title": "The Iconic Rudiment",
+      "title": {
+        "en": "The Iconic Rudiment",
+        "nl": "Het iconische rudiment"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456091-the-iconic-rudiment.json",
       "vimeo_id": "1164423846",
@@ -52,7 +69,10 @@
     {
       "role": "lesson",
       "id": 456076,
-      "title": "The 6/8 Groove",
+      "title": {
+        "en": "The 6/8 Groove",
+        "nl": "De 6/8-groove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456076-the-6-8-groove.json",
       "vimeo_id": "1151101878",
@@ -61,7 +81,10 @@
     {
       "role": "lesson",
       "id": 456086,
-      "title": "Crashing On Beat 2",
+      "title": {
+        "en": "Crashing On Beat 2",
+        "nl": "Crashen op beat 2"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456086-crashing-on-beat-2.json",
       "vimeo_id": "1154453563",
@@ -70,7 +93,10 @@
     {
       "role": "lesson",
       "id": 456092,
-      "title": "Separate Your Hands",
+      "title": {
+        "en": "Separate Your Hands",
+        "nl": "Scheid je handen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456092-separate-your-hands.json",
       "vimeo_id": "1164423960",
@@ -79,7 +105,10 @@
     {
       "role": "lesson",
       "id": 456077,
-      "title": "Adding A Crash",
+      "title": {
+        "en": "Adding A Crash",
+        "nl": "Een crash toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456077-adding-a-crash.json",
       "vimeo_id": "1151101892",
@@ -88,7 +117,10 @@
     {
       "role": "lesson",
       "id": 456087,
-      "title": "Crashing On The \"And\"",
+      "title": {
+        "en": "Crashing On The \"And\"",
+        "nl": "Crashen op de 'en'"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456087-crashing-on-the-and.json",
       "vimeo_id": "1154453641",
@@ -97,7 +129,10 @@
     {
       "role": "lesson",
       "id": 456093,
-      "title": "Bring In A Backbeat",
+      "title": {
+        "en": "Bring In A Backbeat",
+        "nl": "Een backbeat erin"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456093-bring-in-a-backbeat.json",
       "vimeo_id": "1164424150",
@@ -106,7 +141,10 @@
     {
       "role": "lesson",
       "id": 456078,
-      "title": "What Is 12/8?",
+      "title": {
+        "en": "What Is 12/8?",
+        "nl": "Wat is 12/8?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456078-what-is-12-8.json",
       "vimeo_id": "1151101922",
@@ -115,7 +153,10 @@
     {
       "role": "lesson",
       "id": 456088,
-      "title": "Add A Buildup",
+      "title": {
+        "en": "Add A Buildup",
+        "nl": "Voeg een opbouw toe"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456088-add-a-buildup.json",
       "vimeo_id": "1154453715",
@@ -124,7 +165,10 @@
     {
       "role": "lesson",
       "id": 456094,
-      "title": "Bring In A Fill",
+      "title": {
+        "en": "Bring In A Fill",
+        "nl": "Een fill erin"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456094-bring-in-a-fill.json",
       "vimeo_id": "1164424409",
@@ -133,7 +177,10 @@
     {
       "role": "lesson",
       "id": 456079,
-      "title": "Increase Your Speed",
+      "title": {
+        "en": "Increase Your Speed",
+        "nl": "Verhoog je snelheid"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456079-increase-your-speed.json",
       "vimeo_id": "1151103318",
@@ -142,7 +189,10 @@
     {
       "role": "lesson",
       "id": 456089,
-      "title": "Crashes All Over The Place",
+      "title": {
+        "en": "Crashes All Over The Place",
+        "nl": "Crashes overal"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456089-crashes-all-over-the-place.json",
       "vimeo_id": "1154453792",
@@ -151,7 +201,10 @@
     {
       "role": "lesson",
       "id": 456095,
-      "title": "Paradiddle Fills Around The Kit",
+      "title": {
+        "en": "Paradiddle Fills Around The Kit",
+        "nl": "Paradiddle-fills over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456095-paradiddle-fills-around-the-kit.json",
       "vimeo_id": "1164424272",
@@ -160,7 +213,10 @@
     {
       "role": "lesson",
       "id": 456097,
-      "title": "An Eighth Note Fill",
+      "title": {
+        "en": "An Eighth Note Fill",
+        "nl": "Een 8ste-nootfill"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456097-an-eighth-note-fill.json",
       "vimeo_id": "1151071824",
@@ -169,7 +225,10 @@
     {
       "role": "lesson",
       "id": 456103,
-      "title": "What Are Rimshots?",
+      "title": {
+        "en": "What Are Rimshots?",
+        "nl": "Wat zijn rimshots?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456103-what-are-rimshots.json",
       "vimeo_id": "1158990139",
@@ -178,7 +237,10 @@
     {
       "role": "lesson",
       "id": 456109,
-      "title": "Ease Into It",
+      "title": {
+        "en": "Ease Into It",
+        "nl": "Rustig opbouwen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456109-ease-into-it.json",
       "vimeo_id": "1158831247",
@@ -187,7 +249,10 @@
     {
       "role": "lesson",
       "id": 456098,
-      "title": "Double It Up",
+      "title": {
+        "en": "Double It Up",
+        "nl": "Verdubbelen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456098-double-it-up.json",
       "vimeo_id": "1151071865",
@@ -196,7 +261,10 @@
     {
       "role": "lesson",
       "id": 456104,
-      "title": "Rimshots In Grooves",
+      "title": {
+        "en": "Rimshots In Grooves",
+        "nl": "Rimshots in grooves"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456104-rimshots-in-grooves.json",
       "vimeo_id": "1158990245",
@@ -205,7 +273,10 @@
     {
       "role": "lesson",
       "id": 456110,
-      "title": "Learn A New Fill",
+      "title": {
+        "en": "Learn A New Fill",
+        "nl": "Leer een nieuwe fill"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456110-learn-a-new-fill.json",
       "vimeo_id": "1158831300",
@@ -214,7 +285,10 @@
     {
       "role": "lesson",
       "id": 456099,
-      "title": "A Sixteenth Note Fill",
+      "title": {
+        "en": "A Sixteenth Note Fill",
+        "nl": "Een 16de-nootfill"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456099-a-sixteenth-note-fill.json",
       "vimeo_id": "1151071893",
@@ -223,7 +297,10 @@
     {
       "role": "lesson",
       "id": 456105,
-      "title": "Rimshots Along With The Toms",
+      "title": {
+        "en": "Rimshots Along With The Toms",
+        "nl": "Rimshots samen met de toms"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456105-rimshots-along-with-the-toms.json",
       "vimeo_id": "1158990319",
@@ -232,7 +309,10 @@
     {
       "role": "lesson",
       "id": 456111,
-      "title": "Bring In The Toms",
+      "title": {
+        "en": "Bring In The Toms",
+        "nl": "De toms erin"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456111-bring-in-the-toms.json",
       "vimeo_id": "1158831355",
@@ -241,7 +321,10 @@
     {
       "role": "lesson",
       "id": 456100,
-      "title": "Filling For 2 Beats",
+      "title": {
+        "en": "Filling For 2 Beats",
+        "nl": "Fills van 2 beats"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456100-filling-for-2-beats.json",
       "vimeo_id": "1151071912",
@@ -250,7 +333,10 @@
     {
       "role": "lesson",
       "id": 456106,
-      "title": "Getting Comfortable With Rimshots",
+      "title": {
+        "en": "Getting Comfortable With Rimshots",
+        "nl": "Comfortabel met rimshots"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456106-getting-comfortable-with-rimshots.json",
       "vimeo_id": "1158990407",
@@ -259,7 +345,10 @@
     {
       "role": "lesson",
       "id": 456112,
-      "title": "Another New Fill",
+      "title": {
+        "en": "Another New Fill",
+        "nl": "Nog een nieuwe fill"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456112-another-new-fill.json",
       "vimeo_id": "1158831460",
@@ -268,7 +357,10 @@
     {
       "role": "lesson",
       "id": 456101,
-      "title": "Fill For The Song",
+      "title": {
+        "en": "Fill For The Song",
+        "nl": "Fill voor het nummer"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456101-fill-for-the-song.json",
       "vimeo_id": "1151071939",
@@ -277,7 +369,10 @@
     {
       "role": "lesson",
       "id": 456107,
-      "title": "Vary The Groove",
+      "title": {
+        "en": "Vary The Groove",
+        "nl": "Varieer de groove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456107-vary-the-groove.json",
       "vimeo_id": "1158990082",
@@ -286,7 +381,10 @@
     {
       "role": "lesson",
       "id": 456113,
-      "title": "A Toolbox Of Fills",
+      "title": {
+        "en": "A Toolbox Of Fills",
+        "nl": "Een gereedschapskist vol fills"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456113-a-toolbox-of-fills.json",
       "vimeo_id": "1158831524",
@@ -295,7 +393,10 @@
     {
       "role": "lesson",
       "id": 456119,
-      "title": "Learn The Grooves",
+      "title": {
+        "en": "Learn The Grooves",
+        "nl": "Leer de grooves"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456119-learn-the-grooves.json",
       "vimeo_id": "1158886961",
@@ -304,7 +405,10 @@
     {
       "role": "lesson",
       "id": 456120,
-      "title": "Learn The Fills",
+      "title": {
+        "en": "Learn The Fills",
+        "nl": "Leer de fills"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456120-learn-the-fills.json",
       "vimeo_id": "1158887130",
@@ -313,7 +417,10 @@
     {
       "role": "lesson",
       "id": 456121,
-      "title": "Learn The Bridge",
+      "title": {
+        "en": "Learn The Bridge",
+        "nl": "Leer de bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456121-learn-the-bridge.json",
       "vimeo_id": "1158887309",
@@ -322,7 +429,10 @@
     {
       "role": "lesson",
       "id": 456122,
-      "title": "Guided Playthrough",
+      "title": {
+        "en": "Guided Playthrough",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456122-guided-playthrough.json",
       "vimeo_id": "1158887482",
@@ -331,7 +441,10 @@
     {
       "role": "lesson",
       "id": 456123,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d5_expand-your-groove-and-feel/456123-final-performance.json",
       "vimeo_id": "1158887771",

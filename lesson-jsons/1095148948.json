@@ -4,10 +4,16 @@
     "id": 452309,
     "sanity_id": "d1-sp3-l3",
     "type": "skill-pack-lesson",
-    "title": "Coordination Around The Kit",
+    "title": {
+      "en": "Coordination Around The Kit",
+      "nl": "Coördinatie over het drumstel"
+    },
     "slug": "d1-sp3-l3_coordination-around-the-kit",
     "difficulty": 1,
-    "difficulty_string": "Introductory",
+    "difficulty_string": {
+      "en": "Introductory",
+      "nl": "Instap"
+    },
     "language": "en-US",
     "length_in_seconds": 283,
     "popularity": 21819,
@@ -29,43 +35,34 @@
     "learning_path": {
       "id": 452340,
       "type": "learning-path-v2",
-      "title": "Learn To Play The Drums",
+      "title": {
+        "en": "Learn To Play The Drums",
+        "nl": "Leer drums spelen"
+      },
       "slug": "d1_learn-to-play-the-drums",
-      "difficulty_string": "Introductory",
-      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "difficulty_string": {
+        "en": "Introductory",
+        "nl": "Instap"
+      },
+      "description": {
+        "en": "Learn basic beats and fills — play easy songs as quickly as possible!",
+        "nl": "Leer basisbeats en fills — speel zo snel mogelijk eenvoudige nummers!"
+      },
       "url": "https://app.musora.com/drumeo/method/lesson/452340/452309"
     },
     "skill_pack": {
       "id": 452306,
       "sanity_id": "d1-sp3",
       "type": "skill-pack",
-      "title": "The Quarter-Note Groove Around The Kit",
+      "title": {
+        "en": "The Quarter-Note Groove Around The Kit",
+        "nl": "De kwartnoot-groove over het drumstel"
+      },
       "slug": "d1-sp3_the-quarter-note-groove-around-the-kit",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1095148948"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

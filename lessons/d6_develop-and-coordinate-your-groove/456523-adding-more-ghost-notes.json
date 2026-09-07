@@ -15,12 +15,18 @@
     "id": 456523,
     "sanity_id": "ab5a45ec-5e7d-4be1-b02c-53e6ad6ffeac",
     "type": "skill-pack-lesson",
-    "title": "Adding More Ghost Notes",
+    "title": {
+      "en": "Adding More Ghost Notes",
+      "nl": "Meer ghost notes"
+    },
     "slug": "d6-sp5-l2_adding-more-ghost-notes",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 325,
     "length": "5:25",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 456457,
       "type": "learning-path-v2",
-      "title": "Develop & Coordinate Your Groove",
+      "title": {
+        "en": "Develop & Coordinate Your Groove",
+        "nl": "Ontwikkel en coördineer je groove"
+      },
       "slug": "d6_develop-and-coordinate-your-groove",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/456457/456523"
@@ -56,7 +68,10 @@
       "id": 456527,
       "sanity_id": "3dfc0c33-b505-4c95-b43a-fc1f6cf86a18",
       "type": "skill-pack",
-      "title": "Developing Ghost Notes",
+      "title": {
+        "en": "Developing Ghost Notes",
+        "nl": "Ghost notes ontwikkelen"
+      },
       "slug": "d6-sp5_developing-ghost-notes",
       "child_count": null
     }

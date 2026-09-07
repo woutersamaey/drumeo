@@ -4,10 +4,16 @@
     "id": 456086,
     "sanity_id": "294ad9e0-16f9-46d6-aea0-0de691db24fa",
     "type": "skill-pack-lesson",
-    "title": "Crashing On Beat 2",
+    "title": {
+      "en": "Crashing On Beat 2",
+      "nl": "Crashen op beat 2"
+    },
     "slug": "d5-sp2-l2_crashing-on-beat-2",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 233,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456086"
     },
@@ -39,7 +51,10 @@
       "id": 456084,
       "sanity_id": "dc631fbe-7506-430d-a205-4958863aec9e",
       "type": "skill-pack",
-      "title": "Crash Cymbal Accents",
+      "title": {
+        "en": "Crash Cymbal Accents",
+        "nl": "Crashbekken-accenten"
+      },
       "slug": "d5-sp2_crash-cymbal-accents",
       "child_count": null
     }

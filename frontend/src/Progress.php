@@ -10,6 +10,7 @@ final class Progress
 {
     public const WATCHED_TAIL_SEC = 15;
     public const DISMISS_TAIL_SEC = 5;
+    private const TZ = 'Europe/Brussels';
 
     public function __construct(
         private readonly Database $db,
@@ -29,8 +30,11 @@ final class Progress
     /** @return list<array<string,mixed>> */
     public function profiles(): array
     {
+        $total = count($this->catalog->orderedLessons());
         $rows = $this->db->pdo()->query(
-            'SELECT p.id, p.slug, p.name, COALESCE(s.last_audio_index, 1) AS last_audio_index
+            'SELECT p.id, p.slug, p.name, COALESCE(s.last_audio_index, 1) AS last_audio_index,
+                    (SELECT COUNT(*) FROM watch_progress w WHERE w.profile_id = p.id AND w.watched = 1) AS watched_count,
+                    (SELECT UNIX_TIMESTAMP(MAX(w.updated_at)) FROM watch_progress w WHERE w.profile_id = p.id) AS last_played
              FROM profiles p
              LEFT JOIN profile_state s ON s.profile_id = p.id
              ORDER BY p.id'
@@ -38,10 +42,42 @@ final class Progress
         foreach ($rows as &$row) {
             $row['id'] = (int) $row['id'];
             $row['lastAudioIndex'] = ((int) $row['last_audio_index'] === 1) ? 1 : 0;
-            unset($row['last_audio_index']);
+            $row['watchedCount'] = (int) ($row['watched_count'] ?? 0);
+            $row['lessonCount'] = $total;
+            $row['lastPlayed'] = $row['last_played'] !== null ? (int) $row['last_played'] : null;
+            unset($row['last_audio_index'], $row['watched_count'], $row['last_played']);
         }
         unset($row);
         return $rows;
+    }
+
+    public function ensureSchema(): void
+    {
+        $pdo = $this->db->pdo();
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS play_events (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                profile_id TINYINT UNSIGNED NOT NULL,
+                lesson_id INT NOT NULL,
+                played_on DATE NOT NULL,
+                played_sec DOUBLE NOT NULL DEFAULT 0,
+                UNIQUE KEY uniq_play_day (profile_id, lesson_id, played_on),
+                KEY idx_profile_day (profile_id, played_on)
+             ) ENGINE=InnoDB'
+        );
+        $this->ensureColumn('watch_progress', 'played_sec', 'played_sec DOUBLE NOT NULL DEFAULT 0');
+        $this->ensureColumn('play_events', 'played_sec', 'played_sec DOUBLE NOT NULL DEFAULT 0');
+        $this->ensureColumn('profile_state', 'path_view', "path_view VARCHAR(16) NOT NULL DEFAULT 'order'");
+        $pdo->exec(
+            'CREATE TABLE IF NOT EXISTS lesson_notes (
+                profile_id TINYINT UNSIGNED NOT NULL,
+                lesson_id INT NOT NULL,
+                body TEXT NOT NULL,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (profile_id, lesson_id)
+             ) ENGINE=InnoDB'
+        );
+        $this->backfillPlayedSec();
     }
 
     /** @return array<string,mixed> */
@@ -75,38 +111,75 @@ final class Progress
             $latest[$lid] = (int) $row['score'];
         }
 
-        $stateStmt = $pdo->prepare('SELECT last_lesson_id, last_audio_index, compat_mode FROM profile_state WHERE profile_id = ?');
+        $stateStmt = $pdo->prepare('SELECT last_lesson_id, last_audio_index, compat_mode, path_view FROM profile_state WHERE profile_id = ?');
         $stateStmt->execute([$profileId]);
         $state = $stateStmt->fetch();
+
+        $notesStmt = $pdo->prepare('SELECT lesson_id, body FROM lesson_notes WHERE profile_id = ?');
+        $notesStmt->execute([$profileId]);
+        $notes = [];
+        foreach ($notesStmt->fetchAll() ?: [] as $row) {
+            $body = trim((string) $row['body']);
+            if ($body === '') {
+                continue;
+            }
+            $notes[(string) $row['lesson_id']] = $body;
+        }
 
         return [
             'progress' => $byLesson,
             'ratings' => $ratingMap,
             'latestScore' => $latest,
+            'notes' => $notes,
             'lastLessonId' => ($state && $state['last_lesson_id'] !== null) ? (int) $state['last_lesson_id'] : null,
             'lastAudioIndex' => $state ? ((int) $state['last_audio_index'] === 1 ? 1 : 0) : 1,
             'compatMode' => (bool) ($state['compat_mode'] ?? 0),
+            'pathView' => (is_array($state) && ($state['path_view'] ?? '') === 'skill') ? 'skill' : 'order',
         ];
     }
 
-    public function saveProgress(int $profileId, int $lessonId, string $vimeoId, float $position, float $duration): array
+    public function saveNote(int $profileId, int $lessonId, string $body): string
     {
+        $this->ensureSchema();
+        $body = trim($body);
+        if (preg_match('/^.{0,2000}/us', $body, $m)) {
+            $body = $m[0];
+        }
+        $pdo = $this->db->pdo();
+        if ($body === '') {
+            $pdo->prepare('DELETE FROM lesson_notes WHERE profile_id = ? AND lesson_id = ?')
+                ->execute([$profileId, $lessonId]);
+            return '';
+        }
+        $pdo->prepare(
+            'INSERT INTO lesson_notes (profile_id, lesson_id, body) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE body = VALUES(body)'
+        )->execute([$profileId, $lessonId, $body]);
+        return $body;
+    }
+
+    public function saveProgress(int $profileId, int $lessonId, string $vimeoId, float $position, float $duration, float $playedDelta = 0.0): array
+    {
+        $this->ensureSchema();
         $watched = $duration > 0 && $position >= max(0, $duration - self::WATCHED_TAIL_SEC);
+        $delta = max(0.0, min(30.0, $playedDelta));
         $pdo = $this->db->pdo();
         $stmt = $pdo->prepare(
-            'INSERT INTO watch_progress (profile_id, lesson_id, vimeo_id, position_sec, duration_sec, watched)
-             VALUES (?, ?, ?, ?, ?, ?)
+            'INSERT INTO watch_progress (profile_id, lesson_id, vimeo_id, position_sec, duration_sec, watched, played_sec)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 vimeo_id = VALUES(vimeo_id),
                 position_sec = IF(watch_progress.watched = 1 AND VALUES(watched) = 0, watch_progress.position_sec, VALUES(position_sec)),
                 duration_sec = VALUES(duration_sec),
-                watched = IF(VALUES(watched) = 1, 1, watch_progress.watched)'
+                watched = IF(VALUES(watched) = 1, 1, watch_progress.watched),
+                played_sec = watch_progress.played_sec + VALUES(played_sec)'
         );
-        $stmt->execute([$profileId, $lessonId, $vimeoId, $position, $duration, $watched ? 1 : 0]);
+        $stmt->execute([$profileId, $lessonId, $vimeoId, $position, $duration, $watched ? 1 : 0, $delta]);
         $pdo->prepare(
             'INSERT INTO profile_state (profile_id, last_lesson_id) VALUES (?, ?)
              ON DUPLICATE KEY UPDATE last_lesson_id = VALUES(last_lesson_id)'
         )->execute([$profileId, $lessonId]);
+        $this->recordPlay($profileId, $lessonId, $delta);
         return ['watched' => $watched, 'position' => $position];
     }
 
@@ -149,6 +222,16 @@ final class Progress
             'INSERT INTO profile_state (profile_id, compat_mode) VALUES (?, ?)
              ON DUPLICATE KEY UPDATE compat_mode = VALUES(compat_mode)'
         )->execute([$profileId, $on ? 1 : 0]);
+    }
+
+    public function setPathView(int $profileId, string $view): string
+    {
+        $view = $view === 'skill' ? 'skill' : 'order';
+        $this->db->pdo()->prepare(
+            'INSERT INTO profile_state (profile_id, path_view) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE path_view = VALUES(path_view)'
+        )->execute([$profileId, $view]);
+        return $view;
     }
 
     /** @param array<string,mixed> $snap */
@@ -222,6 +305,376 @@ final class Progress
             ];
         }
         return $out;
+    }
+
+    public function recordPlay(int $profileId, int $lessonId, float $playedSec = 0.0): void
+    {
+        $this->ensureSchema();
+        $day = (new \DateTimeImmutable('now', new \DateTimeZone(self::TZ)))->format('Y-m-d');
+        $this->db->pdo()->prepare(
+            'INSERT INTO play_events (profile_id, lesson_id, played_on, played_sec)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE played_sec = play_events.played_sec + VALUES(played_sec)'
+        )->execute([$profileId, $lessonId, $day, max(0.0, $playedSec)]);
+    }
+
+    /** @return array<string,mixed> */
+    public function stats(int $profileId): array
+    {
+        $this->ensureSchema();
+        $tz = new \DateTimeZone(self::TZ);
+        $today = new \DateTimeImmutable('today', $tz);
+        $daysMeta = $this->rollingDays($today);
+        $from = $daysMeta[0]['date'];
+        $to = $daysMeta[6]['date'];
+        $todayKey = $today->format('Y-m-d');
+
+        $profiles = $this->profiles();
+        $compare = [];
+        $meRow = null;
+        foreach ($profiles as $p) {
+            $pid = (int) $p['id'];
+            $row = [
+                'id' => $pid,
+                'slug' => $p['slug'],
+                'name' => $p['name'],
+                'isMe' => $pid === $profileId,
+                'practiceSec' => $this->practiceTotal($pid),
+                'practiceWeekSec' => $this->practiceBetween($pid, $from, $to),
+                'lessonsWatched' => (int) $p['watchedCount'],
+                'lessonsStarted' => $this->lessonsStarted($pid),
+                'emojis' => $this->emojiStats($pid),
+            ];
+            $compare[] = $row;
+            if ($pid === $profileId) {
+                $meRow = $row;
+            }
+        }
+
+        $week = [];
+        foreach ($daysMeta as $meta) {
+            $week[$meta['date']] = $meta + [
+                'practiceSec' => 0.0,
+                'scores' => [],
+            ];
+        }
+
+        $pdo = $this->db->pdo();
+        $plays = $pdo->prepare(
+            'SELECT played_on, SUM(played_sec) AS sec FROM play_events
+             WHERE profile_id = ? AND played_on BETWEEN ? AND ? GROUP BY played_on'
+        );
+        $plays->execute([$profileId, $from, $to]);
+        foreach ($plays->fetchAll() ?: [] as $row) {
+            $key = (string) $row['played_on'];
+            if (isset($week[$key])) {
+                $week[$key]['practiceSec'] = (float) $row['sec'];
+            }
+        }
+        $ratings = $pdo->prepare('SELECT score, UNIX_TIMESTAMP(created_at) AS created FROM ratings WHERE profile_id = ?');
+        $ratings->execute([$profileId]);
+        foreach ($ratings->fetchAll() ?: [] as $row) {
+            $key = (new \DateTimeImmutable('@' . (int) $row['created']))->setTimezone($tz)->format('Y-m-d');
+            if (!isset($week[$key])) {
+                continue;
+            }
+            $score = (int) $row['score'];
+            if ($score >= 1 && $score <= 4) {
+                $week[$key]['scores'][] = $score;
+            }
+        }
+
+        $daysStmt = $pdo->prepare('SELECT COUNT(DISTINCT played_on) FROM play_events WHERE profile_id = ?');
+        $daysStmt->execute([$profileId]);
+        $daysPracticed = (int) $daysStmt->fetchColumn();
+
+        $snap = $this->snapshot($profileId);
+        $weekInfo = $this->week($profileId, $snap);
+
+        return [
+            'me' => [
+                'profile' => $meRow ? [
+                    'id' => $meRow['id'],
+                    'slug' => $meRow['slug'],
+                    'name' => $meRow['name'],
+                ] : null,
+                'practiceSec' => $meRow['practiceSec'] ?? 0.0,
+                'practiceTodaySec' => $week[$todayKey]['practiceSec'] ?? 0.0,
+                'practiceWeekSec' => $meRow['practiceWeekSec'] ?? 0.0,
+                'daysPracticed' => $daysPracticed,
+                'lessonsStarted' => $meRow['lessonsStarted'] ?? 0,
+                'lessonsWatched' => $meRow['lessonsWatched'] ?? 0,
+                'streak' => (int) ($weekInfo['streak'] ?? 0),
+                'emojis' => $meRow['emojis'] ?? $this->emojiStats($profileId),
+                'week' => array_values($week),
+            ],
+            'profiles' => $compare,
+        ];
+    }
+
+    /** @param array<string,mixed> $snap @return array<string,mixed> */
+    public function week(int $profileId, array $snap): array
+    {
+        $this->ensureSchema();
+        $this->backfillPlays($profileId, $snap);
+        $tz = new \DateTimeZone(self::TZ);
+        $today = new \DateTimeImmutable('today', $tz);
+        $daysMeta = $this->rollingDays($today);
+        $from = $daysMeta[0]['date'];
+        $to = $daysMeta[6]['date'];
+
+        $byDay = [];
+        foreach ($daysMeta as $meta) {
+            $byDay[$meta['date']] = $meta + [
+                'played' => false,
+                'scores' => [],
+                'lessonIds' => [],
+            ];
+        }
+
+        $pdo = $this->db->pdo();
+        $plays = $pdo->prepare('SELECT lesson_id, played_on FROM play_events WHERE profile_id = ? AND played_on BETWEEN ? AND ?');
+        $plays->execute([$profileId, $from, $to]);
+        foreach ($plays->fetchAll() ?: [] as $row) {
+            $key = (string) $row['played_on'];
+            if (!isset($byDay[$key])) {
+                continue;
+            }
+            $byDay[$key]['played'] = true;
+            $id = (int) $row['lesson_id'];
+            if (!in_array($id, $byDay[$key]['lessonIds'], true)) {
+                $byDay[$key]['lessonIds'][] = $id;
+            }
+        }
+
+        $ratings = $pdo->prepare('SELECT lesson_id, score, UNIX_TIMESTAMP(created_at) AS created FROM ratings WHERE profile_id = ?');
+        $ratings->execute([$profileId]);
+        foreach ($ratings->fetchAll() ?: [] as $row) {
+            $key = (new \DateTimeImmutable('@' . (int) $row['created']))->setTimezone($tz)->format('Y-m-d');
+            if (!isset($byDay[$key])) {
+                continue;
+            }
+            $score = (int) $row['score'];
+            if ($score >= 1 && $score <= 4) {
+                $byDay[$key]['scores'][] = $score;
+            }
+            $id = (int) $row['lesson_id'];
+            if (!in_array($id, $byDay[$key]['lessonIds'], true)) {
+                $byDay[$key]['lessonIds'][] = $id;
+            }
+            $byDay[$key]['played'] = true;
+        }
+
+        $days = array_values($byDay);
+        $streak = 0;
+        for ($i = count($days) - 1; $i >= 0; $i--) {
+            if (!empty($days[$i]['played'])) {
+                $streak++;
+            } else {
+                break;
+            }
+        }
+
+        return [
+            'days' => $days,
+            'streak' => $streak,
+            'playedToday' => !empty($days[count($days) - 1]['played']),
+        ];
+    }
+
+    /**
+     * Last 7 days, oldest first (left) and today last (right).
+     *
+     * @return list<array{date:string,label:string,isToday:bool,isFuture:bool}>
+     */
+    private function rollingDays(\DateTimeImmutable $today): array
+    {
+        $weekday = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+        $days = [];
+        for ($ago = 6; $ago >= 0; $ago--) {
+            $d = $today->modify('-' . $ago . ' days');
+            $label = match ($ago) {
+                0 => 'vandaag',
+                1 => 'gisteren',
+                2 => 'eergisteren',
+                default => $weekday[(int) $d->format('w')],
+            };
+            $days[] = [
+                'date' => $d->format('Y-m-d'),
+                'label' => $label,
+                'isToday' => $ago === 0,
+                'isFuture' => false,
+            ];
+        }
+        return $days;
+    }
+
+    /** @param array<string,mixed> $snap */
+    private function backfillPlays(int $profileId, array $snap): void
+    {
+        $stmt = $this->db->pdo()->prepare('SELECT COUNT(*) FROM play_events WHERE profile_id = ?');
+        $stmt->execute([$profileId]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            return;
+        }
+        $tz = new \DateTimeZone(self::TZ);
+        $ins = $this->db->pdo()->prepare(
+            'INSERT IGNORE INTO play_events (profile_id, lesson_id, played_on) VALUES (?, ?, ?)'
+        );
+        foreach ($snap['progress'] as $row) {
+            $ts = (int) ($row['updated'] ?? 0);
+            if ($ts <= 0) {
+                continue;
+            }
+            $day = (new \DateTimeImmutable('@' . $ts))->setTimezone($tz)->format('Y-m-d');
+            $ins->execute([$profileId, (int) $row['lessonId'], $day]);
+        }
+        foreach ($snap['ratings'] as $lid => $list) {
+            foreach ($list as $r) {
+                $ts = (int) ($r['at'] ?? 0);
+                if ($ts <= 0) {
+                    continue;
+                }
+                $day = (new \DateTimeImmutable('@' . $ts))->setTimezone($tz)->format('Y-m-d');
+                $ins->execute([$profileId, (int) $lid, $day]);
+            }
+        }
+    }
+
+    private function ensureColumn(string $table, string $column, string $ddl): void
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT COUNT(*) FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+        );
+        $stmt->execute([$table, $column]);
+        if ((int) $stmt->fetchColumn() === 0) {
+            $this->db->pdo()->exec('ALTER TABLE `' . str_replace('`', '', $table) . '` ADD COLUMN ' . $ddl);
+        }
+    }
+
+    private function backfillPlayedSec(): void
+    {
+        $pdo = $this->db->pdo();
+        $pdo->exec(
+            'UPDATE watch_progress
+             SET played_sec = IF(watched = 1, GREATEST(duration_sec, position_sec), GREATEST(position_sec, 0))
+             WHERE played_sec = 0 AND (position_sec > 0 OR watched = 1 OR duration_sec > 0)'
+        );
+        $ids = $pdo->query('SELECT id FROM profiles')->fetchAll(PDO::FETCH_COLUMN) ?: [];
+        foreach ($ids as $id) {
+            $pid = (int) $id;
+            $count = $pdo->prepare('SELECT COUNT(*) FROM play_events WHERE profile_id = ?');
+            $count->execute([$pid]);
+            if ((int) $count->fetchColumn() === 0) {
+                $this->backfillPlays($pid, $this->snapshot($pid));
+            }
+        }
+        $rows = $pdo->query(
+            'SELECT profile_id, COALESCE(SUM(played_sec), 0) AS sec, COUNT(*) AS n
+             FROM play_events GROUP BY profile_id'
+        )->fetchAll() ?: [];
+        $copy = $pdo->prepare(
+            'UPDATE play_events e
+             INNER JOIN (
+                SELECT profile_id, lesson_id, MAX(played_on) AS d
+                FROM play_events WHERE profile_id = ?
+                GROUP BY profile_id, lesson_id
+             ) t ON t.profile_id = e.profile_id AND t.lesson_id = e.lesson_id AND t.d = e.played_on
+             INNER JOIN watch_progress w ON w.profile_id = e.profile_id AND w.lesson_id = e.lesson_id
+             SET e.played_sec = w.played_sec
+             WHERE e.profile_id = ? AND e.played_sec = 0 AND w.played_sec > 0'
+        );
+        foreach ($rows as $row) {
+            if ((float) $row['sec'] > 0 || (int) $row['n'] === 0) {
+                continue;
+            }
+            $pid = (int) $row['profile_id'];
+            $copy->execute([$pid, $pid]);
+        }
+    }
+
+    private function practiceTotal(int $profileId): float
+    {
+        $stmt = $this->db->pdo()->prepare('SELECT COALESCE(SUM(played_sec), 0) FROM watch_progress WHERE profile_id = ?');
+        $stmt->execute([$profileId]);
+        return (float) $stmt->fetchColumn();
+    }
+
+    private function practiceBetween(int $profileId, string $from, string $to): float
+    {
+        $stmt = $this->db->pdo()->prepare(
+            'SELECT COALESCE(SUM(played_sec), 0) FROM play_events WHERE profile_id = ? AND played_on BETWEEN ? AND ?'
+        );
+        $stmt->execute([$profileId, $from, $to]);
+        return (float) $stmt->fetchColumn();
+    }
+
+    private function lessonsStarted(int $profileId): int
+    {
+        $stmt = $this->db->pdo()->prepare('SELECT COUNT(*) FROM watch_progress WHERE profile_id = ? AND (played_sec > 0 OR position_sec > 0 OR watched = 1)');
+        $stmt->execute([$profileId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @return array<string,mixed> */
+    private function emojiStats(int $profileId): array
+    {
+        $all = [1 => 0, 2 => 0, 3 => 0, 4 => 0];
+        $latest = [1 => 0, 2 => 0, 3 => 0, 4 => 0];
+        $first = [];
+        $last = [];
+        $counts = [];
+        $stmt = $this->db->pdo()->prepare('SELECT lesson_id, score FROM ratings WHERE profile_id = ? ORDER BY id ASC');
+        $stmt->execute([$profileId]);
+        foreach ($stmt->fetchAll() ?: [] as $row) {
+            $score = (int) $row['score'];
+            if ($score < 1 || $score > 4) {
+                continue;
+            }
+            $all[$score]++;
+            $lid = (string) $row['lesson_id'];
+            if (!isset($first[$lid])) {
+                $first[$lid] = $score;
+            }
+            $last[$lid] = $score;
+            $counts[$lid] = ($counts[$lid] ?? 0) + 1;
+        }
+        foreach ($last as $score) {
+            $latest[$score]++;
+        }
+        $improved = 0;
+        $declined = 0;
+        $sumLast = 0;
+        $sumFirst = 0;
+        $lessons = [];
+        foreach ($last as $lid => $score) {
+            $sumLast += $score;
+            $sumFirst += $first[$lid];
+            if ($score > $first[$lid]) {
+                $improved++;
+            } elseif ($score < $first[$lid]) {
+                $declined++;
+            }
+            $lessons[] = [
+                'lessonId' => (int) $lid,
+                'first' => $first[$lid],
+                'latest' => $score,
+                'count' => $counts[$lid] ?? 1,
+            ];
+        }
+        $n = count($last);
+        return [
+            'all' => $all,
+            'latest' => $latest,
+            'total' => array_sum($all),
+            'lessonsRated' => $n,
+            'avgLatest' => $n ? round($sumLast / $n, 2) : 0,
+            'avgFirst' => $n ? round($sumFirst / $n, 2) : 0,
+            'improved' => $improved,
+            'declined' => $declined,
+            'lessons' => $lessons,
+        ];
     }
 
     /** @param array<string,mixed> $snap */

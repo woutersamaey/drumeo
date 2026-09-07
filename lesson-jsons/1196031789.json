@@ -4,10 +4,16 @@
     "id": 457498,
     "sanity_id": "d7-st1-l2",
     "type": "song-tutorial-lesson",
-    "title": "Learn The Chorus",
+    "title": {
+      "en": "Learn The Chorus",
+      "nl": "Leer het refrein"
+    },
     "slug": "d7-st1-l2_learn-the-chorus",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 305,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 457503,
       "type": "learning-path-v2",
-      "title": "Make Your Drumming Musical",
+      "title": {
+        "en": "Make Your Drumming Musical",
+        "nl": "Maak je drummen muzikaal"
+      },
       "slug": "d7_make-your-drumming-musical",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/457503/457498"
     },
@@ -39,7 +51,10 @@
       "id": 457502,
       "sanity_id": "d7-st1",
       "type": "song-tutorial",
-      "title": "Learn \"Something To Have\"",
+      "title": {
+        "en": "Learn \"Something To Have\"",
+        "nl": "Leer \"Something To Have\""
+      },
       "slug": "d7-st1_learn-something-to-have",
       "child_count": 5
     }

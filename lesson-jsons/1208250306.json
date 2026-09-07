@@ -4,10 +4,16 @@
     "id": 459426,
     "sanity_id": "d9-sp3-l2",
     "type": "skill-pack-lesson",
-    "title": "Listen With Intention",
+    "title": {
+      "en": "Listen With Intention",
+      "nl": "Luister met intentie"
+    },
     "slug": "d9-sp3-l2_listen-with-intention",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 311,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459426"
     },
@@ -39,7 +51,10 @@
       "id": 459430,
       "sanity_id": "d9-sp3",
       "type": "skill-pack",
-      "title": "Developing Timing",
+      "title": {
+        "en": "Developing Timing",
+        "nl": "Timing ontwikkelen"
+      },
       "slug": "d9-sp3_developing-timing",
       "child_count": 5
     }

@@ -98,6 +98,7 @@ services:
       - ./lessons:/app/lessons:ro
       - ${DRUMEO_MEDIA:-/Volumes/private/Drumeo}:/media/nas:ro
       - ./drumeo-method-notation-key.pdf:/app/notation.pdf:ro
+      - ./frontend/public/assets:/app/public/assets:ro
       - image-cache:/media/img-cache
     depends_on:
       mysql:

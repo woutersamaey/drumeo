@@ -3,21 +3,29 @@
   "learning_path": {
     "id": 457503,
     "type": "learning-path-v2",
-    "title": "Make Your Drumming Musical",
+    "title": {
+      "en": "Make Your Drumming Musical",
+      "nl": "Maak je drummen muzikaal"
+    },
     "slug": "d7_make-your-drumming-musical",
     "status": "published",
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "description": null,
     "published_on": "2026-07-06T07:01:00Z",
     "child_count": 34,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [],
   "videos": [
     {
       "role": "path-intro",
       "id": 457461,
-      "title": "Welcome To Make Your Drumming Musical",
+      "title": {
+        "en": "Welcome To Make Your Drumming Musical",
+        "nl": "Welkom bij Maak je drummen muzikaal"
+      },
       "file": "lessons/d7_make-your-drumming-musical/457461-welcome.json",
       "vimeo_id": "1196007547",
       "seconds": 22
@@ -25,7 +33,10 @@
     {
       "role": "lesson",
       "id": 457462,
-      "title": "Train Grooves",
+      "title": {
+        "en": "Train Grooves",
+        "nl": "Treingrooves"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457462-train-grooves.json",
       "vimeo_id": "1196031047",
@@ -34,7 +45,10 @@
     {
       "role": "lesson",
       "id": 457468,
-      "title": "Quarter Note Accents",
+      "title": {
+        "en": "Quarter Note Accents",
+        "nl": "Kwartnootaccenten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457468-quarter-note-accents.json",
       "vimeo_id": "1196008720",
@@ -43,7 +57,10 @@
     {
       "role": "lesson",
       "id": 457474,
-      "title": "Using The Hi-Hat Pedal",
+      "title": {
+        "en": "Using The Hi-Hat Pedal",
+        "nl": "De hi-hatpedaal gebruiken"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457474-using-the-hihat-pedal.json",
       "vimeo_id": "1196030376",
@@ -52,7 +69,10 @@
     {
       "role": "lesson",
       "id": 457463,
-      "title": "Offbeat Accents",
+      "title": {
+        "en": "Offbeat Accents",
+        "nl": "Offbeat-accenten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457463-offbeat-accents.json",
       "vimeo_id": "1196031043",
@@ -61,7 +81,10 @@
     {
       "role": "lesson",
       "id": 457469,
-      "title": "Accents On The Toms",
+      "title": {
+        "en": "Accents On The Toms",
+        "nl": "Accenten op de toms"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457469-accents-on-the-toms.json",
       "vimeo_id": "1196008725",
@@ -70,7 +93,10 @@
     {
       "role": "lesson",
       "id": 457475,
-      "title": "Getting Comfortable",
+      "title": {
+        "en": "Getting Comfortable",
+        "nl": "Comfortabel worden"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457475-getting-comfortable.json",
       "vimeo_id": "1196030386",
@@ -79,7 +105,10 @@
     {
       "role": "lesson",
       "id": 457464,
-      "title": "16th Note Train Grooves",
+      "title": {
+        "en": "16th Note Train Grooves",
+        "nl": "16de-noot treingrooves"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457464-16th-note-train-grooves.json",
       "vimeo_id": "1196031044",
@@ -88,7 +117,10 @@
     {
       "role": "lesson",
       "id": 457470,
-      "title": "Splitting It Up",
+      "title": {
+        "en": "Splitting It Up",
+        "nl": "Opsplitsen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457470-splitting-it-up.json",
       "vimeo_id": "1196008721",
@@ -97,7 +129,10 @@
     {
       "role": "lesson",
       "id": 457476,
-      "title": "Removing Some Steps",
+      "title": {
+        "en": "Removing Some Steps",
+        "nl": "Stappen weglaten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457476-removing-some-steps.json",
       "vimeo_id": "1196030378",
@@ -106,7 +141,10 @@
     {
       "role": "lesson",
       "id": 457465,
-      "title": "Adding The Kick",
+      "title": {
+        "en": "Adding The Kick",
+        "nl": "De kick toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457465-adding-the-kick.json",
       "vimeo_id": "1196031042",
@@ -115,7 +153,10 @@
     {
       "role": "lesson",
       "id": 457471,
-      "title": "Going Clockwise",
+      "title": {
+        "en": "Going Clockwise",
+        "nl": "Met de klok mee"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457471-going-clockwise.json",
       "vimeo_id": "1196008726",
@@ -124,7 +165,10 @@
     {
       "role": "lesson",
       "id": 457477,
-      "title": "Adding 8th Notes",
+      "title": {
+        "en": "Adding 8th Notes",
+        "nl": "8ste noten toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457477-adding-8th-notes.json",
       "vimeo_id": "1196030387",
@@ -133,7 +177,10 @@
     {
       "role": "lesson",
       "id": 457466,
-      "title": "Putting It All Together",
+      "title": {
+        "en": "Putting It All Together",
+        "nl": "Alles samenbrengen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457466-putting-it-all-together.json",
       "vimeo_id": "1196033280",
@@ -142,7 +189,10 @@
     {
       "role": "lesson",
       "id": 457472,
-      "title": "An Accent Challenge",
+      "title": {
+        "en": "An Accent Challenge",
+        "nl": "Een accentuitdaging"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457472-an-accent-challenge.json",
       "vimeo_id": "1196009576",
@@ -151,7 +201,10 @@
     {
       "role": "lesson",
       "id": 457478,
-      "title": "4-Way Coordination",
+      "title": {
+        "en": "4-Way Coordination",
+        "nl": "4-wegcoördinatie"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457478-4way-coordination.json",
       "vimeo_id": "1196032155",
@@ -160,7 +213,10 @@
     {
       "role": "lesson",
       "id": 457480,
-      "title": "Starting With 8th Notes",
+      "title": {
+        "en": "Starting With 8th Notes",
+        "nl": "Beginnen met 8ste noten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457480-starting-with-8th-notes.json",
       "vimeo_id": "1196029512",
@@ -169,7 +225,10 @@
     {
       "role": "lesson",
       "id": 457486,
-      "title": "Double On Beat 1",
+      "title": {
+        "en": "Double On Beat 1",
+        "nl": "Double op beat 1"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457486-double-on-beat-1.json",
       "vimeo_id": "1196031467",
@@ -178,7 +237,10 @@
     {
       "role": "lesson",
       "id": 457492,
-      "title": "Dynamic Choices",
+      "title": {
+        "en": "Dynamic Choices",
+        "nl": "Dynamische keuzes"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457492-dynamic-choices.json",
       "vimeo_id": "1196029960",
@@ -187,7 +249,10 @@
     {
       "role": "lesson",
       "id": 457481,
-      "title": "Add More Accents",
+      "title": {
+        "en": "Add More Accents",
+        "nl": "Meer accenten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457481-add-more-accents.json",
       "vimeo_id": "1196029565",
@@ -196,7 +261,10 @@
     {
       "role": "lesson",
       "id": 457487,
-      "title": "Getting More Reps In",
+      "title": {
+        "en": "Getting More Reps In",
+        "nl": "Meer herhalingen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457487-getting-more-reps-in.json",
       "vimeo_id": "1196031470",
@@ -205,7 +273,10 @@
     {
       "role": "lesson",
       "id": 457493,
-      "title": "Mixing It Up",
+      "title": {
+        "en": "Mixing It Up",
+        "nl": "Afwisselen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457493-mixing-it-up.json",
       "vimeo_id": "1196029978",
@@ -214,7 +285,10 @@
     {
       "role": "lesson",
       "id": 457482,
-      "title": "Change It To 16ths",
+      "title": {
+        "en": "Change It To 16ths",
+        "nl": "Verander het naar 16den"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457482-change-it-to-16ths.json",
       "vimeo_id": "1196029511",
@@ -223,7 +297,10 @@
     {
       "role": "lesson",
       "id": 457488,
-      "title": "Double Into Beat 3",
+      "title": {
+        "en": "Double Into Beat 3",
+        "nl": "Double naar beat 3"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457488-double-into-beat-3.json",
       "vimeo_id": "1196031466",
@@ -232,7 +309,10 @@
     {
       "role": "lesson",
       "id": 457494,
-      "title": "Changing Sections",
+      "title": {
+        "en": "Changing Sections",
+        "nl": "Secties wisselen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457494-changing-sections.json",
       "vimeo_id": "1196029959",
@@ -241,7 +321,10 @@
     {
       "role": "lesson",
       "id": 457483,
-      "title": "Even More Accents",
+      "title": {
+        "en": "Even More Accents",
+        "nl": "Nog meer accenten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457483-even-more-accents.json",
       "vimeo_id": "1196029566",
@@ -250,7 +333,10 @@
     {
       "role": "lesson",
       "id": 457489,
-      "title": "Getting The Coordination",
+      "title": {
+        "en": "Getting The Coordination",
+        "nl": "De coördinatie te pakken krijgen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457489-getting-the-coordination.json",
       "vimeo_id": "1196031471",
@@ -259,7 +345,10 @@
     {
       "role": "lesson",
       "id": 457495,
-      "title": "Being Subtle",
+      "title": {
+        "en": "Being Subtle",
+        "nl": "Subtiel blijven"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457495-being-subtle.json",
       "vimeo_id": "1196029958",
@@ -268,7 +357,10 @@
     {
       "role": "lesson",
       "id": 457484,
-      "title": "Applying The Accents",
+      "title": {
+        "en": "Applying The Accents",
+        "nl": "De accenten toepassen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457484-applying-the-accents.json",
       "vimeo_id": "1196030196",
@@ -277,7 +369,10 @@
     {
       "role": "lesson",
       "id": 457490,
-      "title": "Further Practice",
+      "title": {
+        "en": "Further Practice",
+        "nl": "Verder oefenen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457490-further-practice.json",
       "vimeo_id": "1196033513",
@@ -286,7 +381,10 @@
     {
       "role": "lesson",
       "id": 457497,
-      "title": "Learn The Verse",
+      "title": {
+        "en": "Learn The Verse",
+        "nl": "Leer het couplet"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457497-learn-the-verse.json",
       "vimeo_id": "1196031787",
@@ -295,7 +393,10 @@
     {
       "role": "lesson",
       "id": 457498,
-      "title": "Learn The Chorus",
+      "title": {
+        "en": "Learn The Chorus",
+        "nl": "Leer het refrein"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457498-learn-the-chorus.json",
       "vimeo_id": "1196031789",
@@ -304,7 +405,10 @@
     {
       "role": "lesson",
       "id": 457499,
-      "title": "Learn The Bridge",
+      "title": {
+        "en": "Learn The Bridge",
+        "nl": "Leer de bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457499-learn-the-bridge.json",
       "vimeo_id": "1196031788",
@@ -313,7 +417,10 @@
     {
       "role": "lesson",
       "id": 457500,
-      "title": "Guided Playthrough",
+      "title": {
+        "en": "Guided Playthrough",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457500-guided-playthrough.json",
       "vimeo_id": "1196031790",
@@ -322,7 +429,10 @@
     {
       "role": "lesson",
       "id": 457501,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d7_make-your-drumming-musical/457501-final-performance.json",
       "vimeo_id": "1196033679",

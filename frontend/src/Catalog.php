@@ -21,13 +21,13 @@ final class Catalog
         if (self::$memo !== null) {
             return self::$memo;
         }
-        $cached = $this->cache->get('catalog:v2');
+        $cached = $this->cache->get('catalog:v5');
         if (is_array($cached) && isset($cached['lessons'])) {
             self::$memo = $cached;
             return $cached;
         }
         $built = $this->build();
-        $this->cache->set('catalog:v2', $built, 600);
+        $this->cache->set('catalog:v5', $built, 600);
         self::$memo = $built;
         return $built;
     }
@@ -125,18 +125,25 @@ final class Catalog
                 $pathJson = $this->readJson($lessonsDir . '/../' . $rel);
             }
             $lp = is_array($pathJson['learning_path'] ?? null) ? $pathJson['learning_path'] : $pathInfo;
+            $pathTitle = $this->loc($lp['title'] ?? $pathInfo['title'] ?? '', $lp['title_nl'] ?? $pathInfo['title_nl'] ?? null);
+            $pathDiff = $this->loc($lp['difficulty_string'] ?? $pathInfo['difficulty_string'] ?? '', $lp['difficulty_string_nl'] ?? $pathInfo['difficulty_string_nl'] ?? null);
+            $pathDesc = $this->loc($lp['description'] ?? '', $lp['description_nl'] ?? null);
             $path = [
                 'id' => (int) ($lp['id'] ?? $pathInfo['id'] ?? 0),
                 'slug' => (string) ($lp['slug'] ?? $pathInfo['slug'] ?? ''),
-                'title' => (string) ($lp['title'] ?? $pathInfo['title'] ?? ''),
-                'difficulty' => (string) ($lp['difficulty_string'] ?? $pathInfo['difficulty_string'] ?? ''),
-                'description' => (string) ($lp['description'] ?? ''),
+                'title' => $pathTitle['en'],
+                'titleNl' => $pathTitle['nl'] ?? '',
+                'difficulty' => $pathDiff['en'],
+                'difficultyNl' => $pathDiff['nl'] ?? '',
+                'description' => $pathDesc['en'],
+                'descriptionNl' => $pathDesc['nl'] ?? '',
                 'resources' => $pathJson['resources'] ?? [],
                 'videoCount' => 0,
                 'skillPacks' => [],
                 'lessons' => [],
             ];
             $packs = [];
+            $pathLessons = [];
             foreach ($pathJson['videos'] ?? [] as $video) {
                 if (!is_array($video)) {
                     continue;
@@ -148,28 +155,29 @@ final class Catalog
                 }
                 $lesson['pathSlug'] = $path['slug'];
                 $lesson['pathTitle'] = $path['title'];
+                $lesson['pathTitleNl'] = $path['titleNl'] ?: null;
                 $lesson['pathId'] = $path['id'];
+                $thin = $this->thin($lesson);
                 $packKey = $lesson['skillPackId'] !== null ? (string) $lesson['skillPackId'] : ($lesson['role'] === 'path-intro' ? 'intro' : 'other');
                 if (!isset($packs[$packKey])) {
                     $packs[$packKey] = [
                         'id' => $lesson['skillPackId'],
                         'title' => $lesson['skillPackTitle'] ?? ($lesson['role'] === 'path-intro' ? 'Welcome' : 'More'),
+                        'titleNl' => $lesson['skillPackTitleNl'] ?? ($lesson['role'] === 'path-intro' ? 'Welkom' : 'Meer'),
                         'lessons' => [],
                     ];
                 }
-                $packs[$packKey]['lessons'][] = $this->thin($lesson);
+                $packs[$packKey]['lessons'][] = $thin;
                 $lessons[(string) $lesson['id']] = $lesson;
+                $pathLessons[] = $thin;
             }
             $path['skillPacks'] = array_values($packs);
-            $path['lessons'] = [];
-            foreach ($path['skillPacks'] as $pack) {
-                foreach ($pack['lessons'] as $thin) {
-                    $path['lessons'][] = $thin;
-                    $id = (string) $thin['id'];
-                    if (!isset($orderIds[$id])) {
-                        $orderIds[$id] = true;
-                        $order[] = $thin;
-                    }
+            $path['lessons'] = $pathLessons;
+            foreach ($pathLessons as $thin) {
+                $id = (string) $thin['id'];
+                if (!isset($orderIds[$id])) {
+                    $orderIds[$id] = true;
+                    $order[] = $thin;
                 }
             }
             $path['videoCount'] = count($path['lessons']);
@@ -231,7 +239,8 @@ final class Catalog
         $seconds = (int) ($lesson['length_in_seconds'] ?? $hint['seconds'] ?? 0);
         $role = (string) ($raw['role'] ?? $hint['role'] ?? 'lesson');
         $type = (string) ($lesson['type'] ?? $hint['type'] ?? $role);
-        $packTitle = $pack['title'] ?? null;
+        $packLoc = $this->loc($pack['title'] ?? null, $pack['title_nl'] ?? null);
+        $packTitle = $packLoc['en'] !== '' ? $packLoc['en'] : null;
         if ($packTitle === null) {
             $packTitle = match ($role) {
                 'path-intro', 'method-intro' => 'Welcome',
@@ -244,22 +253,29 @@ final class Catalog
                 $tracks[] = ['index' => $i, 'label' => $label];
             }
         }
+        $title = $this->loc($lesson['title'] ?? $hint['title'] ?? 'Lesson', $lesson['title_nl'] ?? $hint['title_nl'] ?? null);
+        $diff = $this->loc($lesson['difficulty_string'] ?? '', $lesson['difficulty_string_nl'] ?? null);
+        $desc = $this->loc($lesson['description'] ?? null, $lesson['description_nl'] ?? null);
         return [
             'id' => $id,
-            'title' => (string) ($lesson['title'] ?? $hint['title'] ?? 'Lesson'),
+            'title' => $title['en'] !== '' ? $title['en'] : 'Lesson',
+            'titleNl' => $title['nl'] ?? '',
             'slug' => (string) ($lesson['slug'] ?? ''),
             'role' => $role,
             'type' => $type,
             'vimeoId' => $vimeo,
             'seconds' => $seconds,
             'length' => (string) ($lesson['length'] ?? $this->fmt($seconds)),
-            'difficulty' => (string) ($lesson['difficulty_string'] ?? ''),
-            'description' => $lesson['description'] ?? null,
+            'difficulty' => $diff['en'],
+            'difficultyNl' => $diff['nl'] ?? '',
+            'description' => $desc['en'] !== '' ? $desc['en'] : null,
+            'descriptionNl' => $desc['nl'],
             'instructor' => $lesson['instructor']['name'] ?? null,
             'instructorThumb' => $lesson['instructor']['thumbnail_url'] ?? null,
             'cmsThumb' => $lesson['thumbnail_url'] ?? ($video['urls']['poster'] ?? null),
             'skillPackId' => isset($pack['id']) ? (int) $pack['id'] : null,
             'skillPackTitle' => $packTitle,
+            'skillPackTitleNl' => $packLoc['nl'] ?? ($packTitle === 'Welcome' ? 'Welkom' : null),
             'resources' => $raw['path_resources'] ?? [],
             'audioLabels' => $tracks,
         ];
@@ -271,16 +287,40 @@ final class Catalog
         return [
             'id' => $lesson['id'],
             'title' => $lesson['title'],
+            'titleNl' => $lesson['titleNl'] ?? null,
             'vimeoId' => $lesson['vimeoId'],
             'seconds' => $lesson['seconds'],
             'length' => $lesson['length'],
             'role' => $lesson['role'],
             'type' => $lesson['type'],
             'skillPackTitle' => $lesson['skillPackTitle'] ?? null,
+            'skillPackTitleNl' => $lesson['skillPackTitleNl'] ?? null,
             'instructor' => $lesson['instructor'] ?? null,
             'pathSlug' => $lesson['pathSlug'] ?? null,
             'pathTitle' => $lesson['pathTitle'] ?? null,
+            'pathTitleNl' => $lesson['pathTitleNl'] ?? null,
+            'difficulty' => $lesson['difficulty'] ?? null,
+            'difficultyNl' => $lesson['difficultyNl'] ?? null,
         ];
+    }
+
+    /**
+     * Read a bilingual JSON value: string, or {en, nl}.
+     *
+     * @return array{en:string,nl:?string}
+     */
+    private function loc(mixed $value, mixed $legacyNl = null): array
+    {
+        if (is_array($value) && (array_key_exists('en', $value) || array_key_exists('nl', $value))) {
+            $en = $value['en'] ?? '';
+            $en = $en === null ? '' : (string) $en;
+            $nl = $value['nl'] ?? null;
+            $nl = ($nl === null || $nl === '') ? null : (string) $nl;
+            return ['en' => $en, 'nl' => $nl];
+        }
+        $en = is_string($value) ? $value : '';
+        $nl = is_string($legacyNl) && $legacyNl !== '' ? $legacyNl : null;
+        return ['en' => $en, 'nl' => $nl];
     }
 
     private function fmt(int $seconds): string

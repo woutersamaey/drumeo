@@ -15,12 +15,18 @@
     "id": 456122,
     "sanity_id": "04ff48bf-82ee-4d12-b063-b4fa796d0e05",
     "type": "song-tutorial-lesson",
-    "title": "Guided Playthrough",
+    "title": {
+      "en": "Guided Playthrough",
+      "nl": "Begeleide playthrough"
+    },
     "slug": "d5-st1-l4_guided-playthrough",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 288,
     "length": "4:48",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456122"
@@ -56,7 +68,10 @@
       "id": 456114,
       "sanity_id": "badfc2a7-6ac7-4575-aff5-c2f0323f03b6",
       "type": "song-tutorial",
-      "title": "Learn \"Waves Of Grey\"",
+      "title": {
+        "en": "Learn \"Waves Of Grey\"",
+        "nl": "Leer \"Waves Of Grey\""
+      },
       "slug": "d5-st1_learn-waves-of-grey",
       "child_count": 5
     }

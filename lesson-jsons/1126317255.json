@@ -4,10 +4,16 @@
     "id": 452461,
     "sanity_id": "d4-sp5-l1",
     "type": "skill-pack-lesson",
-    "title": "8ths-To-16ths Transitions",
+    "title": {
+      "en": "8ths-To-16ths Transitions",
+      "nl": "Overgang van 8sten naar 16den"
+    },
     "slug": "d4-sp5-l1_8ths-to16ths-transitions",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 317,
     "popularity": 5247,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452478,
       "type": "learning-path-v2",
-      "title": "Play Faster With Confidence",
+      "title": {
+        "en": "Play Faster With Confidence",
+        "nl": "Speel sneller met vertrouwen"
+      },
       "slug": "d4_play-faster-with-confidence",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452461"
     },
@@ -39,33 +51,15 @@
       "id": 452460,
       "sanity_id": "d4-sp5",
       "type": "skill-pack",
-      "title": "16th-Note Grooves",
+      "title": {
+        "en": "16th-Note Grooves",
+        "nl": "16de-noot grooves"
+      },
       "slug": "d4-sp5_16th-note-grooves",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1126317255"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

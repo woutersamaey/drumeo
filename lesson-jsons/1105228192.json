@@ -4,10 +4,16 @@
     "id": 452303,
     "sanity_id": "d1-sp2-l3",
     "type": "skill-pack-lesson",
-    "title": "Groupings Of Four",
+    "title": {
+      "en": "Groupings Of Four",
+      "nl": "Groepen van vier"
+    },
     "slug": "d1-sp2-l3_groupings-of-four",
     "difficulty": 1,
-    "difficulty_string": "Introductory",
+    "difficulty_string": {
+      "en": "Introductory",
+      "nl": "Instap"
+    },
     "language": "en-US",
     "length_in_seconds": 278,
     "popularity": 21085,
@@ -29,43 +35,34 @@
     "learning_path": {
       "id": 452340,
       "type": "learning-path-v2",
-      "title": "Learn To Play The Drums",
+      "title": {
+        "en": "Learn To Play The Drums",
+        "nl": "Leer drums spelen"
+      },
       "slug": "d1_learn-to-play-the-drums",
-      "difficulty_string": "Introductory",
-      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "difficulty_string": {
+        "en": "Introductory",
+        "nl": "Instap"
+      },
+      "description": {
+        "en": "Learn basic beats and fills — play easy songs as quickly as possible!",
+        "nl": "Leer basisbeats en fills — speel zo snel mogelijk eenvoudige nummers!"
+      },
       "url": "https://app.musora.com/drumeo/method/lesson/452340/452303"
     },
     "skill_pack": {
       "id": 452300,
       "sanity_id": "d1-sp2",
       "type": "skill-pack",
-      "title": "Getting Started With Single Strokes",
+      "title": {
+        "en": "Getting Started With Single Strokes",
+        "nl": "Aan de slag met single strokes"
+      },
       "slug": "d1-sp2_getting-started-with-single-strokes",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1105228192"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

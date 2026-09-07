@@ -6,10 +6,10 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#070b14">
   <title>Drumeo · The Method</title>
-  <link rel="stylesheet" href="/assets/app.css?v=17">
+  <link rel="stylesheet" href="<?= htmlspecialchars($css, ENT_QUOTES, 'UTF-8') ?>">
 </head>
 <body class="bg-ink text-white antialiased">
   <div id="app" class="min-h-dvh"></div>
-  <script src="/assets/app.js?v=17" defer></script>
+  <script src="<?= htmlspecialchars($js, ENT_QUOTES, 'UTF-8') ?>" defer></script>
 </body>
 </html>

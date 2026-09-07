@@ -15,12 +15,18 @@
     "id": 459433,
     "sanity_id": "d9-sp4-l3",
     "type": "skill-pack-lesson",
-    "title": "Fill Combination",
+    "title": {
+      "en": "Fill Combination",
+      "nl": "Fillcombinatie"
+    },
     "slug": "d9-sp4-l3_fill-combination",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 273,
     "length": "4:33",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459433"
@@ -56,7 +68,10 @@
       "id": 459436,
       "sanity_id": "d9-sp4",
       "type": "skill-pack",
-      "title": "More Fills In 6/8 & 12/8",
+      "title": {
+        "en": "More Fills In 6/8 & 12/8",
+        "nl": "Meer fills in 6/8 en 12/8"
+      },
       "slug": "d9-sp4_more-fills-in-6-8-and-12-8",
       "child_count": 5
     }

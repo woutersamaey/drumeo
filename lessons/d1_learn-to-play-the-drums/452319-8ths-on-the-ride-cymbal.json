@@ -15,12 +15,18 @@
     "id": 452319,
     "sanity_id": "d1-sp5-l1",
     "type": "skill-pack-lesson",
-    "title": "8ths On The Ride Cymbal",
+    "title": {
+      "en": "8ths On The Ride Cymbal",
+      "nl": "8sten op de ride"
+    },
     "slug": "d1-sp5-l1_8ths-on-the-ride-cymbal",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 1,
-    "difficulty_string": "Introductory",
+    "difficulty_string": {
+      "en": "Introductory",
+      "nl": "Instap"
+    },
     "language": "en-US",
     "length_in_seconds": 319,
     "length": "5:19",
@@ -45,10 +51,19 @@
     "learning_path": {
       "id": 452340,
       "type": "learning-path-v2",
-      "title": "Learn To Play The Drums",
+      "title": {
+        "en": "Learn To Play The Drums",
+        "nl": "Leer drums spelen"
+      },
       "slug": "d1_learn-to-play-the-drums",
-      "difficulty_string": "Introductory",
-      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "difficulty_string": {
+        "en": "Introductory",
+        "nl": "Instap"
+      },
+      "description": {
+        "en": "Learn basic beats and fills — play easy songs as quickly as possible!",
+        "nl": "Leer basisbeats en fills — speel zo snel mogelijk eenvoudige nummers!"
+      },
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452340/452319"
     },
@@ -56,7 +71,10 @@
       "id": 452318,
       "sanity_id": "d1-sp5",
       "type": "skill-pack",
-      "title": "8th-Note Grooves Around The Kit",
+      "title": {
+        "en": "8th-Note Grooves Around The Kit",
+        "nl": "8ste-noot grooves over het drumstel"
+      },
       "slug": "d1-sp5_8th-note-grooves-around-the-kit",
       "child_count": 5
     }
@@ -150,26 +168,5 @@
         }
       ]
     }
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

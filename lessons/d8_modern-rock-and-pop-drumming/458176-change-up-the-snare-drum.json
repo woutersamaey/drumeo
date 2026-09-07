@@ -15,12 +15,18 @@
     "id": 458176,
     "sanity_id": "d8-sp5-l3",
     "type": "skill-pack-lesson",
-    "title": "Change Up The Snare Drum",
+    "title": {
+      "en": "Change Up The Snare Drum",
+      "nl": "De snare variëren"
+    },
     "slug": "d8-sp5-l3_change-up-the-snare-drum",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 359,
     "length": "5:59",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 458192,
       "type": "learning-path-v2",
-      "title": "Modern Rock & Pop Drumming",
+      "title": {
+        "en": "Modern Rock & Pop Drumming",
+        "nl": "Modern rock- en popdrummen"
+      },
       "slug": "d8_modern-rock-and-pop-drumming",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/458192/458176"
@@ -56,7 +68,10 @@
       "id": 458179,
       "sanity_id": "d8-sp5",
       "type": "skill-pack",
-      "title": "Four On The Floor Variations",
+      "title": {
+        "en": "Four On The Floor Variations",
+        "nl": "Four-on-the-floor-variaties"
+      },
       "slug": "d8-sp5_four-on-the-floor-variations",
       "child_count": 5
     }

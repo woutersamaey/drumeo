@@ -4,10 +4,16 @@
     "id": 456107,
     "sanity_id": "83c50b71-bb4a-48d4-89eb-fd58ed61b02a",
     "type": "skill-pack-lesson",
-    "title": "Vary The Groove",
+    "title": {
+      "en": "Vary The Groove",
+      "nl": "Varieer de groove"
+    },
     "slug": "d5-sp5-l5_vary-the-groove",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 239,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456107"
     },
@@ -39,7 +51,10 @@
       "id": 456102,
       "sanity_id": "965c3166-aeb8-41fe-b9d1-970730381dc2",
       "type": "skill-pack",
-      "title": "Playing Rimshots",
+      "title": {
+        "en": "Playing Rimshots",
+        "nl": "Rimshots spelen"
+      },
       "slug": "d5-sp5_playing-rimshots",
       "child_count": null
     }

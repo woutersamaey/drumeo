@@ -4,10 +4,16 @@
     "id": 456514,
     "sanity_id": "7bcd176a-4fba-4a2f-88da-90df66f18e9b",
     "type": "skill-pack-lesson",
-    "title": "Adding A Crash",
+    "title": {
+      "en": "Adding A Crash",
+      "nl": "Een crash toevoegen"
+    },
     "slug": "d6-sp4-l2_adding-a-crash",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 290,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 456457,
       "type": "learning-path-v2",
-      "title": "Develop & Coordinate Your Groove",
+      "title": {
+        "en": "Develop & Coordinate Your Groove",
+        "nl": "Ontwikkel en coördineer je groove"
+      },
       "slug": "d6_develop-and-coordinate-your-groove",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/456457/456514"
     },
@@ -39,7 +51,10 @@
       "id": 456518,
       "sanity_id": "f9706b51-ef38-45d1-850a-4995c78a5b43",
       "type": "skill-pack",
-      "title": "Cymbal Grooves With Both Hands",
+      "title": {
+        "en": "Cymbal Grooves With Both Hands",
+        "nl": "Bekkengrooves met beide handen"
+      },
       "slug": "d6-sp4_cymbal-grooves-with-both-hands",
       "child_count": null
     }

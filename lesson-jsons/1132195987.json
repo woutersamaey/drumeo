@@ -4,7 +4,10 @@
     "id": 456068,
     "sanity_id": "4c78fe85-e816-4690-9275-52b2428ca69f",
     "type": "learning-path-intro",
-    "title": "Welcome To Learn To Play The Drums",
+    "title": {
+      "en": "Welcome To Learn To Play The Drums",
+      "nl": "Welkom bij Leer drums spelen"
+    },
     "slug": "d1w_welcome-to-learn-to-play-the-drums",
     "difficulty": null,
     "difficulty_string": null,
@@ -29,35 +32,23 @@
     "learning_path": {
       "id": 452340,
       "type": "learning-path-v2",
-      "title": "Learn To Play The Drums",
+      "title": {
+        "en": "Learn To Play The Drums",
+        "nl": "Leer drums spelen"
+      },
       "slug": "d1_learn-to-play-the-drums",
-      "difficulty_string": "Introductory",
-      "description": "Learn basic beats and fills — play easy songs as quickly as possible!",
+      "difficulty_string": {
+        "en": "Introductory",
+        "nl": "Instap"
+      },
+      "description": {
+        "en": "Learn basic beats and fills — play easy songs as quickly as possible!",
+        "nl": "Leer basisbeats en fills — speel zo snel mogelijk eenvoudige nummers!"
+      },
       "url": "https://app.musora.com/drumeo/method/intro/452340"
     }
   },
   "video": {
     "vimeo_id": "1132195987"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

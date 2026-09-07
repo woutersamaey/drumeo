@@ -15,12 +15,18 @@
     "id": 456079,
     "sanity_id": "c7ed30be-1032-4a08-851b-e29c2c4ddb9e",
     "type": "skill-pack-lesson",
-    "title": "Increase Your Speed",
+    "title": {
+      "en": "Increase Your Speed",
+      "nl": "Verhoog je snelheid"
+    },
     "slug": "d5-sp1-l5_increase-your-speed",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 275,
     "length": "4:35",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456079"
@@ -56,7 +68,10 @@
       "id": 456074,
       "sanity_id": "8b14a4c3-e771-4bd0-9a05-ab8601406095",
       "type": "skill-pack",
-      "title": "6/8 And 12/8 Grooves",
+      "title": {
+        "en": "6/8 And 12/8 Grooves",
+        "nl": "Grooves in 6/8 en 12/8"
+      },
       "slug": "d5-sp1_6-8-and-12-8-grooves",
       "child_count": null
     }

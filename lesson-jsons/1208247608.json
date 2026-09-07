@@ -4,10 +4,16 @@
     "id": 459413,
     "sanity_id": "d9-sp1-l1",
     "type": "skill-pack-lesson",
-    "title": "Adding Sixteenths",
+    "title": {
+      "en": "Adding Sixteenths",
+      "nl": "16den toevoegen"
+    },
     "slug": "d9-sp1-l1_adding-sixteenths",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 303,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459413"
     },
@@ -39,7 +51,10 @@
       "id": 459418,
       "sanity_id": "d9-sp1",
       "type": "skill-pack",
-      "title": "More Grooves in 6/8 & 12/8",
+      "title": {
+        "en": "More Grooves in 6/8 & 12/8",
+        "nl": "Meer grooves in 6/8 en 12/8"
+      },
       "slug": "d9-sp1_more-grooves-in-6-8-and-12-8",
       "child_count": 5
     }

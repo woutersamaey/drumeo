@@ -23,6 +23,7 @@ final class Http
         $db = new Database($config);
         $catalog = new Catalog($config, $cache);
         $progress = new Progress($db, $catalog);
+        $progress->ensureSchema();
         $scaler = ImageScaler::fromCatalog($catalog, $config->imageCacheDir);
         return new self($config, $catalog, $progress, $cache, $db, $scaler);
     }
@@ -178,6 +179,7 @@ final class Http
                 (string) ($body['vimeoId'] ?? $lesson['vimeoId']),
                 (float) ($body['position'] ?? 0),
                 (float) ($body['duration'] ?? $lesson['seconds']),
+                (float) ($body['playedDelta'] ?? 0),
             );
             $this->json(200, $result);
             return;
@@ -232,6 +234,29 @@ final class Http
             return;
         }
 
+        if ($path === '/app/path-view' && $method === 'POST') {
+            $view = $this->progress->setPathView($pid, (string) ($this->body()['view'] ?? 'order'));
+            $this->json(200, ['ok' => true, 'pathView' => $view]);
+            return;
+        }
+
+        if ($path === '/app/stats' && $method === 'GET') {
+            $this->json(200, $this->progress->stats($pid));
+            return;
+        }
+
+        if ($path === '/app/note' && $method === 'POST') {
+            $body = $this->body();
+            $lessonId = (int) ($body['lessonId'] ?? 0);
+            if ($this->catalog->lesson($lessonId) === null) {
+                $this->json(400, ['error' => 'unknown lesson']);
+                return;
+            }
+            $saved = $this->progress->saveNote($pid, $lessonId, (string) ($body['body'] ?? ''));
+            $this->json(200, ['ok' => true, 'body' => $saved]);
+            return;
+        }
+
         $this->json(404, ['error' => 'unknown endpoint']);
     }
 
@@ -254,16 +279,21 @@ final class Http
             'lastAudioIndex' => 1,
             'language' => 'nl',
             'compatMode' => false,
+            'pathView' => 'order',
+            'notes' => new \stdClass(),
         ];
         if ($profile) {
             $snap = $this->progress->snapshot((int) $profile['id']);
             $payload['progress'] = $snap['progress'];
             $payload['latestScore'] = $snap['latestScore'];
+            $payload['notes'] = $snap['notes'] ?: new \stdClass();
             $payload['lastAudioIndex'] = $snap['lastAudioIndex'];
             $payload['language'] = $snap['lastAudioIndex'] === 1 ? 'nl' : 'en';
             $payload['compatMode'] = $snap['compatMode'];
+            $payload['pathView'] = $snap['pathView'] ?? 'order';
             $payload['resume'] = $this->progress->resume((int) $profile['id'], $snap);
             $payload['practice'] = $this->progress->practice($snap);
+            $payload['week'] = $this->progress->week((int) $profile['id'], $snap);
         }
         return $payload;
     }
@@ -345,7 +375,16 @@ final class Http
     {
         header('Content-Type: text/html; charset=utf-8');
         header('Cache-Control: no-store');
+        $css = $this->assetUrl('/assets/app.css');
+        $js = $this->assetUrl('/assets/app.js');
         require dirname(__DIR__) . '/views/shell.php';
+    }
+
+    private function assetUrl(string $rel): string
+    {
+        $file = dirname(__DIR__) . '/public' . $rel;
+        $hash = is_file($file) ? sha1_file($file) : false;
+        return $rel . '?v=' . (is_string($hash) ? $hash : '0');
     }
 
     /** @param array<string,mixed> $body */

@@ -15,12 +15,18 @@
     "id": 456511,
     "sanity_id": "1bfb26a6-e3bd-482f-89d5-0faa1585a9cf",
     "type": "skill-pack-lesson",
-    "title": "Review The Pattern",
+    "title": {
+      "en": "Review The Pattern",
+      "nl": "Het patroon herhalen"
+    },
     "slug": "d6-sp3-l5_review-the-pattern",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 310,
     "length": "5:10",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 456457,
       "type": "learning-path-v2",
-      "title": "Develop & Coordinate Your Groove",
+      "title": {
+        "en": "Develop & Coordinate Your Groove",
+        "nl": "Ontwikkel en coördineer je groove"
+      },
       "slug": "d6_develop-and-coordinate-your-groove",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/456457/456511"
@@ -56,7 +68,10 @@
       "id": 456512,
       "sanity_id": "d45447d1-32d5-4556-99e7-87149b5b53a4",
       "type": "skill-pack",
-      "title": "Snare And Kick Coordination",
+      "title": {
+        "en": "Snare And Kick Coordination",
+        "nl": "Snare- en kickcoördinatie"
+      },
       "slug": "d6-sp3_snare-and-kick-coordination",
       "child_count": null
     }

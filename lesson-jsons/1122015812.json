@@ -4,10 +4,16 @@
     "id": 452372,
     "sanity_id": "d3-sp5-l1",
     "type": "skill-pack-lesson",
-    "title": "Quarter And 8th Notes",
+    "title": {
+      "en": "Quarter And 8th Notes",
+      "nl": "Kwart- en 8ste noten"
+    },
     "slug": "d3-sp5-l1_quarter-and-8th-notes",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 319,
     "popularity": 14113,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 452387,
       "type": "learning-path-v2",
-      "title": "Add Variety To Your Drumming",
+      "title": {
+        "en": "Add Variety To Your Drumming",
+        "nl": "Breng variatie in je drummen"
+      },
       "slug": "d2_add-variety-to-your-drumming",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/452387/452372"
     },
@@ -39,33 +51,15 @@
       "id": 452371,
       "sanity_id": "d3-sp5",
       "type": "skill-pack",
-      "title": "Reading Sheet Music",
+      "title": {
+        "en": "Reading Sheet Music",
+        "nl": "Bladmuziek lezen"
+      },
       "slug": "d3-sp5_reading-sheet-music",
       "child_count": 5
     }
   },
   "video": {
     "vimeo_id": "1122015812"
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }

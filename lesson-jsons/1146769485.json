@@ -4,10 +4,16 @@
     "id": 453203,
     "sanity_id": "drumeo_method_intro",
     "type": "method-intro",
-    "title": "Welcome To The Drumeo Method",
+    "title": {
+      "en": "Welcome To The Drumeo Method",
+      "nl": "Welkom bij The Drumeo Method"
+    },
     "slug": "drumeo_method_intro",
     "difficulty": 1,
-    "difficulty_string": "Introductory",
+    "difficulty_string": {
+      "en": "Introductory",
+      "nl": "Instap"
+    },
     "language": null,
     "length_in_seconds": 58,
     "popularity": 22550,

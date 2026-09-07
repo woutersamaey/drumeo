@@ -3,42 +3,29 @@
   "learning_path": {
     "id": 452387,
     "type": "learning-path-v2",
-    "title": "Add Variety To Your Drumming",
+    "title": {
+      "en": "Add Variety To Your Drumming",
+      "nl": "Breng variatie in je drummen"
+    },
     "slug": "d2_add-variety-to-your-drumming",
     "status": "published",
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "description": null,
     "published_on": "2026-02-06 00:01:00",
     "child_count": 34,
     "url": "https://app.musora.com/drumeo/method"
   },
-  "resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key",
-      "resource_url": null
-    }
-  ],
   "videos": [
     {
       "role": "path-intro",
       "id": 452388,
-      "title": "Welcome To Add Variety To Your Drumming",
+      "title": {
+        "en": "Welcome To Add Variety To Your Drumming",
+        "nl": "Welkom bij Breng variatie in je drummen"
+      },
       "file": "lessons/d2_add-variety-to-your-drumming/452388-welcome.json",
       "vimeo_id": "1132195963",
       "seconds": 40
@@ -46,7 +33,10 @@
     {
       "role": "lesson",
       "id": 452343,
-      "title": "The 8th-Note Fill",
+      "title": {
+        "en": "The 8th-Note Fill",
+        "nl": "De 8ste-nootfill"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452343-the-8thnote-fill.json",
       "vimeo_id": "1092156957",
@@ -55,7 +45,10 @@
     {
       "role": "lesson",
       "id": 452349,
-      "title": "An Iconic Snare Groove",
+      "title": {
+        "en": "An Iconic Snare Groove",
+        "nl": "Een iconische snaregroove"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452349-an-iconic-snare-groove.json",
       "vimeo_id": "1098826668",
@@ -64,7 +57,10 @@
     {
       "role": "lesson",
       "id": 452355,
-      "title": "The Sloshy Hi-Hat",
+      "title": {
+        "en": "The Sloshy Hi-Hat",
+        "nl": "De sloshy hi-hat"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452355-the-sloshy-hi-hat.json",
       "vimeo_id": "1096948831",
@@ -73,7 +69,10 @@
     {
       "role": "lesson",
       "id": 452344,
-      "title": "Incorporate The Toms",
+      "title": {
+        "en": "Incorporate The Toms",
+        "nl": "De toms erin verwerken"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452344-incorporate-the-toms.json",
       "vimeo_id": "1092156783",
@@ -82,7 +81,10 @@
     {
       "role": "lesson",
       "id": 452350,
-      "title": "A New Variation",
+      "title": {
+        "en": "A New Variation",
+        "nl": "Een nieuwe variatie"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452350-a-new-variation.json",
       "vimeo_id": "1098826930",
@@ -91,7 +93,10 @@
     {
       "role": "lesson",
       "id": 452356,
-      "title": "Hi-Hat Transitions",
+      "title": {
+        "en": "Hi-Hat Transitions",
+        "nl": "Hi-hatovergangen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452356-hi-hat-transitions.json",
       "vimeo_id": "1096948940",
@@ -100,7 +105,10 @@
     {
       "role": "lesson",
       "id": 452345,
-      "title": "Fill Transitions",
+      "title": {
+        "en": "Fill Transitions",
+        "nl": "Fill-overgangen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452345-fill-transitions.json",
       "vimeo_id": "1092156657",
@@ -109,7 +117,10 @@
     {
       "role": "lesson",
       "id": 452351,
-      "title": "Playing Both Patterns",
+      "title": {
+        "en": "Playing Both Patterns",
+        "nl": "Beide patronen spelen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452351-playing-both-patterns.json",
       "vimeo_id": "1098827195",
@@ -118,7 +129,10 @@
     {
       "role": "lesson",
       "id": 452357,
-      "title": "The Ride Bell",
+      "title": {
+        "en": "The Ride Bell",
+        "nl": "De ride-bell"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452357-the-ride-bell.json",
       "vimeo_id": "1096949088",
@@ -127,7 +141,10 @@
     {
       "role": "lesson",
       "id": 452346,
-      "title": "Double Up On The Fill",
+      "title": {
+        "en": "Double Up On The Fill",
+        "nl": "De fill verdubbelen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452346-double-up-on-the-fill.json",
       "vimeo_id": "1092156507",
@@ -136,7 +153,10 @@
     {
       "role": "lesson",
       "id": 452352,
-      "title": "Variations As Fills",
+      "title": {
+        "en": "Variations As Fills",
+        "nl": "Variaties als fills"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452352-variations-as-fills.json",
       "vimeo_id": "1098827460",
@@ -145,7 +165,10 @@
     {
       "role": "lesson",
       "id": 452358,
-      "title": "Cymbal Sounds Around The Kit",
+      "title": {
+        "en": "Cymbal Sounds Around The Kit",
+        "nl": "Bekkenklanken over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452358-cymbal-sounds-around-the-kit.json",
       "vimeo_id": "1096949207",
@@ -154,7 +177,10 @@
     {
       "role": "lesson",
       "id": 452347,
-      "title": "The Full-Bar Fill",
+      "title": {
+        "en": "The Full-Bar Fill",
+        "nl": "De hele-maat-fill"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452347-the-full-bar-fill.json",
       "vimeo_id": "1092156332",
@@ -163,7 +189,10 @@
     {
       "role": "lesson",
       "id": 452353,
-      "title": "Combine The Two",
+      "title": {
+        "en": "Combine The Two",
+        "nl": "De twee combineren"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452353-combine-the-two.json",
       "vimeo_id": "1098827829",
@@ -172,7 +201,10 @@
     {
       "role": "lesson",
       "id": 452360,
-      "title": "What Are 16th Notes?",
+      "title": {
+        "en": "What Are 16th Notes?",
+        "nl": "Wat zijn 16de noten?"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452360-what-are-16th-notes.json",
       "vimeo_id": "1109152547",
@@ -181,7 +213,10 @@
     {
       "role": "lesson",
       "id": 452366,
-      "title": "An Extra Bass Drum Note",
+      "title": {
+        "en": "An Extra Bass Drum Note",
+        "nl": "Een extra basdrumnoot"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452366-an-extra-bass-drum-note.json",
       "vimeo_id": "1098827694",
@@ -190,7 +225,10 @@
     {
       "role": "lesson",
       "id": 452372,
-      "title": "Quarter And 8th Notes",
+      "title": {
+        "en": "Quarter And 8th Notes",
+        "nl": "Kwart- en 8ste noten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452372-quarter-and-8th-notes.json",
       "vimeo_id": "1122015812",
@@ -199,7 +237,10 @@
     {
       "role": "lesson",
       "id": 452361,
-      "title": "Bring In The Groove",
+      "title": {
+        "en": "Bring In The Groove",
+        "nl": "De groove erin"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452361-bring-in-the-groove.json",
       "vimeo_id": "1109152739",
@@ -208,7 +249,10 @@
     {
       "role": "lesson",
       "id": 452367,
-      "title": "Even More Kick Drum!",
+      "title": {
+        "en": "Even More Kick Drum!",
+        "nl": "Nog meer kick!"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452367-even-more-kick-drum.json",
       "vimeo_id": "1098828401",
@@ -217,7 +261,10 @@
     {
       "role": "lesson",
       "id": 452373,
-      "title": "8th-Note Variations",
+      "title": {
+        "en": "8th-Note Variations",
+        "nl": "8ste-nootvariaties"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452373-8th-note-variations.json",
       "vimeo_id": "1122015953",
@@ -226,7 +273,10 @@
     {
       "role": "lesson",
       "id": 452362,
-      "title": "Double Up Those 16ths",
+      "title": {
+        "en": "Double Up Those 16ths",
+        "nl": "Die 16den verdubbelen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452362-double-up-those-16ths.json",
       "vimeo_id": "1109152907",
@@ -235,7 +285,10 @@
     {
       "role": "lesson",
       "id": 452368,
-      "title": "Bass Drum Creativity",
+      "title": {
+        "en": "Bass Drum Creativity",
+        "nl": "Creativiteit op de basdrum"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452368-bass-drum-creativity.json",
       "vimeo_id": "1098829217",
@@ -244,7 +297,10 @@
     {
       "role": "lesson",
       "id": 452374,
-      "title": "16th Notes",
+      "title": {
+        "en": "16th Notes",
+        "nl": "16de noten"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452374-16th-notes.json",
       "vimeo_id": "1122016065",
@@ -253,7 +309,10 @@
     {
       "role": "lesson",
       "id": 452363,
-      "title": "Crashing Through The 16ths",
+      "title": {
+        "en": "Crashing Through The 16ths",
+        "nl": "Crashen door de 16den"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452363-crashing-through-the-16ths.json",
       "vimeo_id": "1109153145",
@@ -262,7 +321,10 @@
     {
       "role": "lesson",
       "id": 452369,
-      "title": "Transitioning Around The Kit",
+      "title": {
+        "en": "Transitioning Around The Kit",
+        "nl": "Overgangen over het drumstel"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452369-transitioning-around-the-kit.json",
       "vimeo_id": "1098829499",
@@ -271,7 +333,10 @@
     {
       "role": "lesson",
       "id": 452375,
-      "title": "Adding Crashes",
+      "title": {
+        "en": "Adding Crashes",
+        "nl": "Crashes toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452375-adding-crashes.json",
       "vimeo_id": "1122016207",
@@ -280,7 +345,10 @@
     {
       "role": "lesson",
       "id": 452364,
-      "title": "Increase Your Speed",
+      "title": {
+        "en": "Increase Your Speed",
+        "nl": "Verhoog je snelheid"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452364-increase-your-speed.json",
       "vimeo_id": "1109153321",
@@ -289,7 +357,10 @@
     {
       "role": "lesson",
       "id": 452370,
-      "title": "A Crash To Top It Off",
+      "title": {
+        "en": "A Crash To Top It Off",
+        "nl": "Een crash als afsluiter"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452370-a-crash-to-top-it-off.json",
       "vimeo_id": "1098829785",
@@ -298,7 +369,10 @@
     {
       "role": "lesson",
       "id": 452376,
-      "title": "Adding Rests",
+      "title": {
+        "en": "Adding Rests",
+        "nl": "Pauzes toevoegen"
+      },
       "type": "skill-pack-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452376-adding-rests.json",
       "vimeo_id": "1122016372",
@@ -307,7 +381,10 @@
     {
       "role": "lesson",
       "id": 452378,
-      "title": "The Verse",
+      "title": {
+        "en": "The Verse",
+        "nl": "Het couplet"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452378-the-verse.json",
       "vimeo_id": "1113319472",
@@ -316,7 +393,10 @@
     {
       "role": "lesson",
       "id": 452379,
-      "title": "The Chorus",
+      "title": {
+        "en": "The Chorus",
+        "nl": "Het refrein"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452379-the-chorus.json",
       "vimeo_id": "1113319612",
@@ -325,7 +405,10 @@
     {
       "role": "lesson",
       "id": 452380,
-      "title": "The Bridge",
+      "title": {
+        "en": "The Bridge",
+        "nl": "De bridge"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452380-the-bridge.json",
       "vimeo_id": "1113319742",
@@ -334,7 +417,10 @@
     {
       "role": "lesson",
       "id": 452381,
-      "title": "Guided Playthrough",
+      "title": {
+        "en": "Guided Playthrough",
+        "nl": "Begeleide playthrough"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452381-guided-playthrough.json",
       "vimeo_id": "1113319882",
@@ -343,7 +429,10 @@
     {
       "role": "lesson",
       "id": 452382,
-      "title": "Final Performance",
+      "title": {
+        "en": "Final Performance",
+        "nl": "Einduitvoering"
+      },
       "type": "song-tutorial-lesson",
       "file": "lessons/d2_add-variety-to-your-drumming/452382-final-performance.json",
       "vimeo_id": "1113320003",

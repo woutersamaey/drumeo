@@ -4,10 +4,16 @@
     "id": 459444,
     "sanity_id": "d9-sp6-l2",
     "type": "skill-pack-lesson",
-    "title": "Embellishing The Groove",
+    "title": {
+      "en": "Embellishing The Groove",
+      "nl": "De groove versieren"
+    },
     "slug": "d9-sp6-l2_embellishing-the-groove",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 303,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459444"
     },
@@ -39,7 +51,10 @@
       "id": 459447,
       "sanity_id": "d9-sp6",
       "type": "skill-pack",
-      "title": "Leaving Gaps In Your Groove",
+      "title": {
+        "en": "Leaving Gaps In Your Groove",
+        "nl": "Gaten in je groove"
+      },
       "slug": "d9-sp6_leaving-gaps-in-your-groove",
       "child_count": 4
     }

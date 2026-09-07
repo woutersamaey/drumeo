@@ -15,12 +15,18 @@
     "id": 459452,
     "sanity_id": "d9-st1-l5",
     "type": "song-tutorial-lesson",
-    "title": "Final Performance",
+    "title": {
+      "en": "Final Performance",
+      "nl": "Einduitvoering"
+    },
     "slug": "d9-st1-l5_final-performance",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 4,
-    "difficulty_string": "Intermediate",
+    "difficulty_string": {
+      "en": "Intermediate",
+      "nl": "Gevorderd"
+    },
     "language": null,
     "length_in_seconds": 245,
     "length": "4:05",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 459454,
       "type": "learning-path-v2",
-      "title": "Groove Variety & Vocabulary",
+      "title": {
+        "en": "Groove Variety & Vocabulary",
+        "nl": "Groove-variatie en vocabulaire"
+      },
       "slug": "d9_groove-variety-and-vocabulary",
-      "difficulty_string": "Intermediate",
+      "difficulty_string": {
+        "en": "Intermediate",
+        "nl": "Gevorderd"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/459454/459452"
@@ -56,7 +68,10 @@
       "id": 459453,
       "sanity_id": "d9-st1",
       "type": "song-tutorial",
-      "title": "Learn \"Three Leaves\"",
+      "title": {
+        "en": "Learn \"Three Leaves\"",
+        "nl": "Leer \"Three Leaves\""
+      },
       "slug": "d9-st1_learn-three-leaves",
       "child_count": 5
     }

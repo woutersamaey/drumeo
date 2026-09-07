@@ -15,12 +15,18 @@
     "id": 456460,
     "sanity_id": "64639485-1ed6-4a9d-8db3-1d486de1c848",
     "type": "skill-pack-lesson",
-    "title": "Normal To Double And Back",
+    "title": {
+      "en": "Normal To Double And Back",
+      "nl": "Normaal naar double en terug"
+    },
     "slug": "d6-sp1-l2_normal-to-double-and-back",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 3,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 313,
     "length": "5:13",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 456457,
       "type": "learning-path-v2",
-      "title": "Develop & Coordinate Your Groove",
+      "title": {
+        "en": "Develop & Coordinate Your Groove",
+        "nl": "Ontwikkel en coördineer je groove"
+      },
       "slug": "d6_develop-and-coordinate-your-groove",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/456457/456460"
@@ -56,7 +68,10 @@
       "id": 456459,
       "sanity_id": "36b0acc4-02d9-42c6-83b9-1ec93858b53b",
       "type": "skill-pack",
-      "title": "Double Time Grooves",
+      "title": {
+        "en": "Double Time Grooves",
+        "nl": "Double-time grooves"
+      },
       "slug": "d6-sp1_double-time-grooves",
       "child_count": null
     }

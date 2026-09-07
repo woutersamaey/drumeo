@@ -4,10 +4,16 @@
     "id": 456091,
     "sanity_id": "6dc2cd35-ef86-4e29-a201-7ef8b49531a6",
     "type": "skill-pack-lesson",
-    "title": "The Iconic Rudiment",
+    "title": {
+      "en": "The Iconic Rudiment",
+      "nl": "Het iconische rudiment"
+    },
     "slug": "d5-sp3-l1_the-iconic-rudiment",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 331,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456091"
     },
@@ -39,7 +51,10 @@
       "id": 456090,
       "sanity_id": "f62db95c-5016-497e-bbb2-6dcbd18e3ff1",
       "type": "skill-pack",
-      "title": "Intro To Paradiddles",
+      "title": {
+        "en": "Intro To Paradiddles",
+        "nl": "Intro tot paradiddles"
+      },
       "slug": "d5-sp3_intro-to-paradiddles",
       "child_count": null
     }

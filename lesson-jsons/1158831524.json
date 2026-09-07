@@ -4,10 +4,16 @@
     "id": 456113,
     "sanity_id": "157c8df1-8613-4ad1-87c1-c18d7024d775",
     "type": "skill-pack-lesson",
-    "title": "A Toolbox Of Fills",
+    "title": {
+      "en": "A Toolbox Of Fills",
+      "nl": "Een gereedschapskist vol fills"
+    },
     "slug": "d5-sp6-l5_a-toolbox-of-fills",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": null,
     "length_in_seconds": 340,
     "popularity": null,
@@ -29,9 +35,15 @@
     "learning_path": {
       "id": 455942,
       "type": "learning-path-v2",
-      "title": "Expand Your Groove And Feel",
+      "title": {
+        "en": "Expand Your Groove And Feel",
+        "nl": "Verbreed je groove en feel"
+      },
       "slug": "d5_expand-your-groove-and-feel",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "url": "https://app.musora.com/drumeo/method/lesson/455942/456113"
     },
@@ -39,7 +51,10 @@
       "id": 456108,
       "sanity_id": "53912fe2-b988-40ca-85f1-e67836577d10",
       "type": "skill-pack",
-      "title": "Crash Cymbal Fills",
+      "title": {
+        "en": "Crash Cymbal Fills",
+        "nl": "Crashbekken-fills"
+      },
       "slug": "d5-sp6_crash-cymbal-fills",
       "child_count": null
     }

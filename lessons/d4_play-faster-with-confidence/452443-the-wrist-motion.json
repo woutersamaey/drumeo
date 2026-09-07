@@ -15,12 +15,18 @@
     "id": 452443,
     "sanity_id": "d4-sp2-l1",
     "type": "skill-pack-lesson",
-    "title": "The Wrist Motion",
+    "title": {
+      "en": "The Wrist Motion",
+      "nl": "De polsbeweging"
+    },
     "slug": "d4-sp2-l1_the-wrist-motion",
     "brand": "drumeo",
     "status": "published",
     "difficulty": 2,
-    "difficulty_string": "Beginner",
+    "difficulty_string": {
+      "en": "Beginner",
+      "nl": "Beginner"
+    },
     "language": "en-US",
     "length_in_seconds": 309,
     "length": "5:09",
@@ -45,9 +51,15 @@
     "learning_path": {
       "id": 452478,
       "type": "learning-path-v2",
-      "title": "Play Faster With Confidence",
+      "title": {
+        "en": "Play Faster With Confidence",
+        "nl": "Speel sneller met vertrouwen"
+      },
       "slug": "d4_play-faster-with-confidence",
-      "difficulty_string": "Beginner",
+      "difficulty_string": {
+        "en": "Beginner",
+        "nl": "Beginner"
+      },
       "description": null,
       "status": "published",
       "url": "https://app.musora.com/drumeo/method/lesson/452478/452443"
@@ -56,7 +68,10 @@
       "id": 452442,
       "sanity_id": "d4-sp2",
       "type": "skill-pack",
-      "title": "Lead-Hand Speed And Endurance",
+      "title": {
+        "en": "Lead-Hand Speed And Endurance",
+        "nl": "Snelheid en uithouding van de leidende hand"
+      },
       "slug": "d4-sp2_lead-hand-speed-and-endurance",
       "child_count": 5
     }
@@ -150,26 +165,5 @@
         }
       ]
     }
-  },
-  "path_resources": [
-    {
-      "resource_name": "Setting Up Your Acoustic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452430"
-    },
-    {
-      "resource_name": "Setting Up Your Electronic Kit",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452431"
-    },
-    {
-      "resource_name": "Using Musora In Your Space",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452432"
-    },
-    {
-      "resource_name": "The Basics Of Drum Tuning",
-      "resource_url": "https://app.musora.com/drumeo/lessons/quick-tips/452433"
-    },
-    {
-      "resource_name": "PDF Notation Key"
-    }
-  ]
+  }
 }
