@@ -1,6 +1,8 @@
 # Homelab video-backend
 
-PHP 8.4 service that turns local MKVs into HLS on demand. No database.
+PHP 8.4 service that turns local MKVs into HLS on demand. No database. Stack-docs: repo-root [`README.md`](../README.md). Ontwerpcontract: [`video-backend-briefing.md`](video-backend-briefing.md).
+
+Bronnamen: `titel [vimeoId].mkv` of `{vimeoId}.mkv`. Audio is spoorindex, niet taal: `0` Engels, `1` Nederlands. Sommige bronnen hebben `Original` i.p.v. `en`, of geen NL-spoor.
 
 ## Layout
 

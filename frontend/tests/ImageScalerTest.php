@@ -89,4 +89,17 @@ if ($fin === false || $fin[0] !== 400) {
 }
 ok('no upscale');
 
+$thumbs = $tmp . '/thumbs';
+mkdir($thumbs, 0777, true);
+copy($src, $thumbs . '/abc123.jpg');
+$fromThumbs = ImageScaler::fromThumbs($tmp . '/cache2', $thumbs);
+$viaThumbs = $fromThumbs->ensure('abc123', 160, 'jpg');
+if ($viaThumbs === null || !is_file($viaThumbs)) {
+    fail('fromThumbs should read local jpg');
+}
+if ($fromThumbs->ensure('missing', 160, 'jpg') !== null) {
+    fail('fromThumbs must not invent a source');
+}
+ok('fromThumbs local only');
+
 echo "ImageScaler tests passed\n";

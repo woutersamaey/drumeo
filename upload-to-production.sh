@@ -93,7 +93,7 @@ if [[ "$ok" -ne 1 ]]; then
   exit 1
 fi
 
-docker compose "${files[@]}" exec -T redis redis-cli DEL catalog:v3 catalog:v4 >/dev/null || true
+docker compose "${files[@]}" exec -T redis redis-cli DEL catalog:v3 catalog:v4 catalog:v5 catalog:v6 catalog:v7 media-index:v1 media-index:v2 >/dev/null || true
 docker compose "${files[@]}" ps
 REMOTE
 

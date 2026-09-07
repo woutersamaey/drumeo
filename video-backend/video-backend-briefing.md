@@ -1,6 +1,8 @@
 # Technische briefing — homelab video-backend
 
-Bindend document voor de coding agent. Geen extra productfeatures buiten deze tekst. Geen database.
+Oorspronkelijk ontwerpcontract. Operationele docs: [`README.md`](README.md) en de stack-README in de repo-root.
+
+Bindend voor de coding agent. Geen extra productfeatures buiten deze tekst. Geen database.
 
 ## 1. Opdracht
 

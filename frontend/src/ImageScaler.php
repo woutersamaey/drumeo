@@ -21,24 +21,19 @@ final class ImageScaler
         $this->sourceFinder = $sourceFinder;
     }
 
-    public static function fromCatalog(Catalog $catalog, string $cacheDir, string $thumbsDir = ''): self
+    public static function fromThumbs(string $cacheDir, string $thumbsDir): self
     {
         $thumbsDir = rtrim($thumbsDir, '/');
         return new self(
             $cacheDir,
-            static function (string $id) use ($catalog, $thumbsDir): ?string {
-                if ($thumbsDir !== '') {
-                    foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
-                        $local = $thumbsDir . '/' . $id . '.' . $ext;
-                        if (is_file($local) && is_readable($local)) {
-                            return $local;
-                        }
-                    }
+            static function (string $id) use ($thumbsDir): ?string {
+                if ($thumbsDir === '') {
+                    return null;
                 }
-                foreach (['jpg', 'png'] as $ext) {
-                    $path = $catalog->mediaPath($id, $ext);
-                    if (is_string($path) && is_file($path) && is_readable($path)) {
-                        return $path;
+                foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
+                    $local = $thumbsDir . '/' . $id . '.' . $ext;
+                    if (is_file($local) && is_readable($local)) {
+                        return $local;
                     }
                 }
                 return null;

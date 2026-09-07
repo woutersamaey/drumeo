@@ -38,52 +38,18 @@ final class Catalog
         return $this->all()['lessons'][(string) $id] ?? null;
     }
 
-    /** @return array<string,mixed>|null */
-    public function path(string $slug): ?array
-    {
-        foreach ($this->all()['paths'] as $path) {
-            if (($path['slug'] ?? '') === $slug) {
-                return $path;
-            }
-        }
-        return null;
-    }
-
     /** @return list<array<string,mixed>> */
     public function orderedLessons(): array
     {
         return $this->all()['order'];
     }
 
-    public function nextLessonId(?int $currentId): ?int
-    {
-        $order = $this->orderedLessons();
-        if ($currentId === null) {
-            return isset($order[0]) ? (int) $order[0]['id'] : null;
-        }
-        foreach ($order as $i => $lesson) {
-            if ((int) $lesson['id'] === $currentId) {
-                return isset($order[$i + 1]) ? (int) $order[$i + 1]['id'] : null;
-            }
-        }
-        return null;
-    }
-
-    public function mediaPath(string $vimeoId, string $ext): ?string
-    {
-        $index = $this->mediaIndex();
-        $key = $vimeoId . '.' . strtolower($ext);
-        return $index[$key] ?? null;
-    }
-
     /** @return array<string,bool> */
     public function availableVideos(): array
     {
         $out = [];
-        foreach ($this->mediaIndex() as $key => $_) {
-            if (str_ends_with($key, '.mkv')) {
-                $out[substr($key, 0, -4)] = true;
-            }
+        foreach (array_keys($this->mediaIndex()) as $id) {
+            $out[$id] = true;
         }
         return $out;
     }
@@ -138,7 +104,6 @@ final class Catalog
                 'difficultyNl' => $diff['nl'] ?? '',
                 'description' => $desc['en'],
                 'descriptionNl' => $desc['nl'] ?? '',
-                'resources' => [],
                 'videoCount' => 0,
                 'skillPacks' => [],
                 'lessons' => [],
@@ -272,11 +237,9 @@ final class Catalog
             'description' => $desc['en'] !== '' ? $desc['en'] : null,
             'descriptionNl' => $desc['nl'],
             'instructor' => is_string($row['instructor'] ?? null) ? $row['instructor'] : null,
-            'cmsThumb' => is_string($row['thumb'] ?? null) ? $row['thumb'] : null,
             'skillPackId' => isset($pack['id']) ? (int) $pack['id'] : null,
             'skillPackTitle' => $packTitle,
             'skillPackTitleNl' => $packLoc['nl'] ?? ($packTitle === 'Welcome' ? 'Welkom' : null),
-            'resources' => [],
         ];
     }
 
@@ -359,12 +322,12 @@ final class Catalog
         if (is_array($local)) {
             return $local;
         }
-        $cached = $this->cache->get('media-index:v1');
+        $cached = $this->cache->get('media-index:v2');
         if (is_array($cached)) {
             $local = $cached;
             return $local;
         }
-        $fileCache = sys_get_temp_dir() . '/drumeo-media-index.json';
+        $fileCache = sys_get_temp_dir() . '/drumeo-media-index-v2.json';
         if (is_file($fileCache) && (time() - (filemtime($fileCache) ?: 0)) < 900) {
             $decoded = json_decode((string) file_get_contents($fileCache), true);
             if (is_array($decoded)) {
@@ -381,19 +344,17 @@ final class Catalog
                     if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
                         continue;
                     }
-                    if (!preg_match('/\[([a-zA-Z0-9_-]+)\]\.(mkv|jpg|jpeg|png)$/i', $entry, $m)
-                        && !preg_match('/^([a-zA-Z0-9_-]+)\.(mkv|jpg|jpeg|png)$/i', $entry, $m)
+                    if (!preg_match('/\[([a-zA-Z0-9_-]+)\]\.mkv$/i', $entry, $m)
+                        && !preg_match('/^([a-zA-Z0-9_-]+)\.mkv$/i', $entry, $m)
                     ) {
                         continue;
                     }
-                    $id = $m[1];
-                    $ext = strtolower($m[2] === 'jpeg' ? 'jpg' : $m[2]);
-                    $map[$id . '.' . $ext] = $dir . '/' . $entry;
+                    $map[$m[1]] = $dir . '/' . $entry;
                 }
                 closedir($handle);
             }
         }
-        $this->cache->set('media-index:v1', $map, 900);
+        $this->cache->set('media-index:v2', $map, 900);
         @file_put_contents($fileCache, json_encode($map));
         $local = $map;
         return $map;

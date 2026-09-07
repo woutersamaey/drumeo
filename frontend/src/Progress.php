@@ -111,7 +111,7 @@ final class Progress
             $latest[$lid] = (int) $row['score'];
         }
 
-        $stateStmt = $pdo->prepare('SELECT last_lesson_id, last_audio_index, compat_mode, path_view FROM profile_state WHERE profile_id = ?');
+        $stateStmt = $pdo->prepare('SELECT last_lesson_id, last_audio_index, path_view FROM profile_state WHERE profile_id = ?');
         $stateStmt->execute([$profileId]);
         $state = $stateStmt->fetch();
 
@@ -133,7 +133,6 @@ final class Progress
             'notes' => $notes,
             'lastLessonId' => ($state && $state['last_lesson_id'] !== null) ? (int) $state['last_lesson_id'] : null,
             'lastAudioIndex' => $state ? ((int) $state['last_audio_index'] === 1 ? 1 : 0) : 1,
-            'compatMode' => (bool) ($state['compat_mode'] ?? 0),
             'pathView' => (is_array($state) && ($state['path_view'] ?? '') === 'skill') ? 'skill' : 'order',
         ];
     }
@@ -214,14 +213,6 @@ final class Progress
              ON DUPLICATE KEY UPDATE last_audio_index = VALUES(last_audio_index)'
         )->execute([$profileId, $audioIndex]);
         return $audioIndex;
-    }
-
-    public function setCompat(int $profileId, bool $on): void
-    {
-        $this->db->pdo()->prepare(
-            'INSERT INTO profile_state (profile_id, compat_mode) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE compat_mode = VALUES(compat_mode)'
-        )->execute([$profileId, $on ? 1 : 0]);
     }
 
     public function setPathView(int $profileId, string $view): string

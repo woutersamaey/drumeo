@@ -253,40 +253,9 @@ button.tap {
   font-weight: 800;
 }
 .lesson-num {
-  position: absolute;
-  left: 0.5rem;
-  bottom: 0.5rem;
-  z-index: 5;
-  min-width: 1.85rem;
-  height: 1.6rem;
-  padding: 0 0.4rem;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.72);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-  line-height: 1;
   font-variant-numeric: tabular-nums;
-}
-.path-num {
-  position: absolute;
-  top: 0.55rem;
-  left: 0.55rem;
-  z-index: 5;
-  min-width: 1.85rem;
-  height: 1.85rem;
-  padding: 0 0.4rem;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.72);
-  color: #fff;
-  font-size: 0.9rem;
+  color: var(--color-muted);
   font-weight: 800;
-  display: grid;
-  place-items: center;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
 }
 
 .path-grid {

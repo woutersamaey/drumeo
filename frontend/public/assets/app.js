@@ -279,6 +279,11 @@
     return i >= 0 ? i + 1 : null;
   }
 
+  function lessonNumHtml(lesson) {
+    const n = lessonNo(lesson);
+    return n ? `<span class="lesson-num">${n}.</span> ` : "";
+  }
+
   function lessonTotal() {
     const b = state.bootstrap;
     return (b?.order?.length || methodSequence().length || 0);
@@ -556,24 +561,22 @@
     });
   }
 
-  function card(lesson, { wide = false, number = null } = {}) {
+  function card(lesson, { wide = false } = {}) {
     const p = progressOf(lesson.id);
     const watched = p?.watched;
     const have = available(lesson.vimeoId);
     const w = wide ? "min-w-[280px] w-[280px] sm:w-[320px]" : "w-full";
-    const n = number != null ? number : lessonNo(lesson);
     return `
       <a href="/watch/${lesson.id}" data-link class="card-hover block ${w} rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} transition-transform">
         <div class="relative aspect-video thumb overflow-hidden${watched ? " thumb-watched" : ""}">
           ${thumbPic(lesson.vimeoId, { sizes: wide ? "(min-width: 640px) 320px, 85vw" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw", alt: disp(lesson) })}
           ${thumbBadges(lesson.id, { watched })}
-          ${n != null ? `<span class="lesson-num">${n}</span>` : ""}
           ${!have ? `<span class="absolute top-2 left-2 text-[11px] bg-black/70 px-2 py-1 rounded-full">Nog geen video</span>` : ""}
           <span class="absolute bottom-2 right-2 text-[11px] bg-black/70 px-2 py-0.5 rounded">${esc(lesson.length || fmt(lesson.seconds))}</span>
           <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${pct(lesson.id)}%"></span></div>
         </div>
         <div class="p-3">
-          <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${esc(disp(lesson))}</div>
+          <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${lessonNumHtml(lesson)}${esc(disp(lesson))}</div>
           <div class="text-muted text-sm mt-1 line-clamp-1">${esc(disp(lesson, "skillPackTitle") || disp(lesson, "pathTitle"))}</div>
         </div>
       </a>`;
@@ -686,7 +689,7 @@
           </div>
           <div class="p-5 sm:p-8 flex flex-col justify-center">
             <p class="text-accent text-sm font-semibold uppercase tracking-wide">${resume.reason === "continue" ? "Verder kijken" : "Volgende les"}${lessonNo(resumeLesson) ? ` · les ${lessonNo(resumeLesson)} van ${lessonTotal()}` : ""}</p>
-            <h2 class="text-2xl sm:text-3xl font-black mt-2">${esc(disp(resumeLesson))}</h2>
+            <h2 class="text-2xl sm:text-3xl font-black mt-2">${lessonNumHtml(resumeLesson)}${esc(disp(resumeLesson))}</h2>
             <p class="text-muted mt-2">${esc(disp(resumeLesson, "pathTitle"))}${resume.reason === "continue" ? " · hervat op " + fmt(resume.position) : ""} · ${esc(langMeta().label)}</p>
             <a href="/watch/${resumeLesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-5 sm:px-6 py-3 tap w-fit whitespace-nowrap">
               ${resume.reason === "continue" ? "Doorgaan" : "Start volgende les"}
@@ -766,8 +769,7 @@
                 <div class="relative aspect-video thumb overflow-hidden">
                   ${thumbPic(poster, { sizes: "(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw", alt: disp(p) })}
                   <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <span class="path-num">${num}</span>
-                  <h3 class="absolute bottom-2 left-4 right-4 text-lg font-black">${esc(disp(p))}</h3>
+                  <h3 class="absolute bottom-2 left-4 right-4 text-lg font-black"><span class="tabular-nums">${num}.</span> ${esc(disp(p))}</h3>
                 </div>
                 <div class="px-3 py-3">
                   <div class="flex justify-between text-xs text-muted mb-2">
@@ -784,8 +786,8 @@
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
         ${hero}
-        ${weekRow}
         ${practiceRow}
+        ${weekRow}
         ${shows}
       </div>`);
   }
@@ -882,7 +884,7 @@
                     <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${Math.round(ratio * 100)}%"></span></div>
                   </div>
                   <div class="min-w-0 py-3 pr-3 flex-1">
-                    <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${lessonNo(lesson) ? `${lessonNo(lesson)}. ` : ""}${esc(disp(lesson))}</div>
+                    <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${lessonNumHtml(lesson)}${esc(disp(lesson))}</div>
                     <div class="mt-1 text-sm leading-snug">
                       <div><span class="text-muted">Reeks</span> · ${esc(series)}</div>
                       ${skill ? `<div><span class="text-muted">Skill</span> · ${esc(skill)}</div>` : ""}
@@ -1111,7 +1113,6 @@
               const on = item.role === "nu";
               const w = progressOf(l.id)?.watched;
               const roleLabel = item.role === "eerder" ? "2 geleden" : item.role === "vorige" ? "Vorige" : item.role === "nu" ? "Nu aan het kijken" : item.role === "volgende" ? "Volgende" : "Over 2";
-              const num = lessonNo(l) ? `${lessonNo(l)}. ` : "";
               const body = `
                 <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
                   ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
@@ -1120,7 +1121,7 @@
                 </div>
                 <div class="min-w-0">
                   <div class="text-[11px] uppercase tracking-wide ${on ? "text-accent" : "text-muted"}">${roleLabel}</div>
-                  <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}">${num}<span ${locAttr(l.title, l.titleNl)}</span></div>
+                  <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}">${lessonNumHtml(l)}<span ${locAttr(l.title, l.titleNl)}</span></div>
                   <div class="text-muted text-xs mt-1">${esc(l.length || "")}</div>
                 </div>`;
               const cls = `flex gap-3 p-3 border-b border-line ${on ? "bg-ink" : "tap"}`;
@@ -1132,7 +1133,7 @@
           </aside>
           <section class="pt-1">
             <div class="flex items-start gap-2">
-              <h1 class="text-2xl sm:text-3xl font-black min-w-0 flex-1">${lessonNo(lesson) ? `<span class="text-muted font-bold">${lessonNo(lesson)}.</span> ` : ""}<span ${locAttr(lesson.title, lesson.titleNl)}</span></h1>
+              <h1 class="text-2xl sm:text-3xl font-black min-w-0 flex-1">${lessonNumHtml(lesson)}<span ${locAttr(lesson.title, lesson.titleNl)}</span></h1>
               <button type="button" data-action="note-edit" class="note-pen tap${noteOf(lesson.id) ? " is-on" : ""}" aria-expanded="false" aria-label="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}" title="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}">${pencilIcon()}</button>
             </div>
             <p class="text-muted mt-1">${esc([disp(lesson, "difficulty"), disp(lesson, "skillPackTitle"), lesson.instructor].filter(Boolean).join(" · "))}</p>
@@ -1149,14 +1150,7 @@
               <p id="note-error" class="hidden text-sm mt-2" style="color:#fb7185"></p>
             </div>
             ${lesson.description ? `<p class="mt-3">${esc(lesson.description)}</p>` : ""}
-            ${(lesson.resources || []).length ? `<div class="mt-4"><p class="text-sm text-muted mb-2">Path resources</p>
-              <div class="flex flex-col gap-2">
-                ${(lesson.resources || []).map((r) => {
-                  const pdf = /notation/i.test(r.resource_name || "");
-                  const href = pdf ? "/app/notation.pdf" : (r.resource_url || "");
-                  return href ? `<a class="rounded-xl bg-ink px-4 py-3 tap border border-line" href="${esc(href)}" target="_blank" rel="noopener">${esc(r.resource_name)}</a>` : `<div class="rounded-xl bg-ink px-4 py-3 border border-line">${esc(r.resource_name)}</div>`;
-                }).join("")}
-              </div></div>` : ""}
+            <p class="mt-4"><a href="/app/notation.pdf" class="text-sm text-accent tap inline-flex" target="_blank" rel="noopener">Notatiesleutel (PDF)</a></p>
           </section>
         </div>
         <div id="next-modal" class="hidden fixed inset-0 z-50 bg-black/70 grid place-items-center p-4">

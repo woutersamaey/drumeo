@@ -24,7 +24,7 @@ final class Http
         $catalog = new Catalog($config, $cache);
         $progress = new Progress($db, $catalog);
         $progress->ensureSchema();
-        $scaler = ImageScaler::fromCatalog($catalog, $config->imageCacheDir, $config->thumbsDir);
+        $scaler = ImageScaler::fromThumbs($config->imageCacheDir, $config->thumbsDir);
         return new self($config, $catalog, $progress, $cache, $db, $scaler);
     }
 
@@ -96,15 +96,6 @@ final class Http
             return;
         }
 
-        if ($path === '/app/media' || preg_match('#^/app/thumb/([a-zA-Z0-9_-]+)\.(jpg|jpeg|png)$#', $path, $m)) {
-            $id = $m[1] ?? '';
-            $this->sendThumb($id);
-            return;
-        }
-        if (preg_match('#^/app/thumb/([a-zA-Z0-9_-]+)$#', $path, $m)) {
-            $this->sendThumb($m[1]);
-            return;
-        }
         if ($path === '/app/notation.pdf') {
             $file = $this->config->notationPath;
             if (!is_file($file)) {
@@ -126,26 +117,6 @@ final class Http
 
         if ($path === '/app/bootstrap' && $method === 'GET') {
             $this->json(200, $this->bootstrap($profile));
-            return;
-        }
-
-        if ($path === '/app/catalog' && $method === 'GET') {
-            $all = $this->catalog->all();
-            $this->json(200, [
-                'intro' => $all['intro'],
-                'paths' => $all['paths'],
-                'available' => array_keys($this->catalog->availableVideos()),
-            ]);
-            return;
-        }
-
-        if (preg_match('#^/app/path/([a-zA-Z0-9_-]+)$#', $path, $m) && $method === 'GET') {
-            $p = $this->catalog->path($m[1]);
-            if (!$p) {
-                $this->json(404, ['error' => 'not found']);
-                return;
-            }
-            $this->json(200, $p);
             return;
         }
 
@@ -228,12 +199,6 @@ final class Http
             return;
         }
 
-        if ($path === '/app/compat' && $method === 'POST') {
-            $this->progress->setCompat($pid, (bool) ($this->body()['on'] ?? false));
-            $this->json(200, ['ok' => true]);
-            return;
-        }
-
         if ($path === '/app/path-view' && $method === 'POST') {
             $view = $this->progress->setPathView($pid, (string) ($this->body()['view'] ?? 'order'));
             $this->json(200, ['ok' => true, 'pathView' => $view]);
@@ -278,7 +243,6 @@ final class Http
             'latestScore' => new \stdClass(),
             'lastAudioIndex' => 1,
             'language' => 'nl',
-            'compatMode' => false,
             'pathView' => 'order',
             'notes' => new \stdClass(),
         ];
@@ -289,7 +253,6 @@ final class Http
             $payload['notes'] = $snap['notes'] ?: new \stdClass();
             $payload['lastAudioIndex'] = $snap['lastAudioIndex'];
             $payload['language'] = $snap['lastAudioIndex'] === 1 ? 'nl' : 'en';
-            $payload['compatMode'] = $snap['compatMode'];
             $payload['pathView'] = $snap['pathView'] ?? 'order';
             $payload['resume'] = $this->progress->resume((int) $profile['id'], $snap);
             $payload['practice'] = $this->progress->practice($snap);
@@ -316,11 +279,6 @@ final class Http
             'httponly' => false,
             'samesite' => 'Lax',
         ]);
-    }
-
-    private function sendThumb(string $id): void
-    {
-        $this->sendVariant('/img/' . $id . '/640.jpg');
     }
 
     private function sendVariant(string $path): void
