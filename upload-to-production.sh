@@ -30,7 +30,7 @@ rsync -az --delete --human-readable --stats \
   --exclude '.DS_Store' \
   --exclude 'downloads/' \
   --exclude 'data/' \
-  --exclude 'lesson-jsons/' \
+
   --exclude 'frontend/node_modules/' \
   --exclude 'frontend/vendor/' \
   --exclude 'video-backend/vendor/' \

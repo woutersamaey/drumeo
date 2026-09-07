@@ -29,6 +29,7 @@ RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' 
     && printf '\n[www]\nclear_env = no\n' >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
 ENV CATALOG_PATH=/app/catalog.json \
+    THUMBS_DIR=/app/thumbs \
     MEDIA_DIR=/media/nas \
     IMAGE_CACHE_DIR=/media/img-cache \
     NOTATION_PATH=/app/notation.pdf

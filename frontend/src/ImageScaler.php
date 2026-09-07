@@ -21,15 +21,29 @@ final class ImageScaler
         $this->sourceFinder = $sourceFinder;
     }
 
-    public static function fromCatalog(Catalog $catalog, string $cacheDir): self
+    public static function fromCatalog(Catalog $catalog, string $cacheDir, string $thumbsDir = ''): self
     {
-        return new self($cacheDir, static function (string $id) use ($catalog): ?string {
-            $jpg = $catalog->mediaPath($id, 'jpg');
-            if ($jpg !== null) {
-                return $jpg;
-            }
-            return $catalog->mediaPath($id, 'png');
-        });
+        $thumbsDir = rtrim($thumbsDir, '/');
+        return new self(
+            $cacheDir,
+            static function (string $id) use ($catalog, $thumbsDir): ?string {
+                if ($thumbsDir !== '') {
+                    foreach (['jpg', 'jpeg', 'webp', 'png'] as $ext) {
+                        $local = $thumbsDir . '/' . $id . '.' . $ext;
+                        if (is_file($local) && is_readable($local)) {
+                            return $local;
+                        }
+                    }
+                }
+                foreach (['jpg', 'png'] as $ext) {
+                    $path = $catalog->mediaPath($id, $ext);
+                    if (is_string($path) && is_file($path) && is_readable($path)) {
+                        return $path;
+                    }
+                }
+                return null;
+            },
+        );
     }
 
     public static function isAllowedWidth(int $width): bool
@@ -60,7 +74,7 @@ final class ImageScaler
             return $dest;
         }
         $source = ($this->sourceFinder)($id);
-        if ($source === null || !is_file($source)) {
+        if ($source === null || !is_file($source) || !is_readable($source)) {
             return null;
         }
         $dir = dirname($dest);

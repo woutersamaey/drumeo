@@ -485,7 +485,7 @@ final class Progress
     /**
      * Last 7 days, oldest first (left) and today last (right).
      *
-     * @return list<array{date:string,label:string,isToday:bool,isFuture:bool}>
+     * @return list<array{date:string,label:string,labelShort:string,isToday:bool,isFuture:bool}>
      */
     private function rollingDays(\DateTimeImmutable $today): array
     {
@@ -499,9 +499,16 @@ final class Progress
                 2 => 'eergisteren',
                 default => $weekday[(int) $d->format('w')],
             };
+            $labelShort = match ($ago) {
+                0 => 'nu',
+                1 => 'gister',
+                2 => 'eerg.',
+                default => $label,
+            };
             $days[] = [
                 'date' => $d->format('Y-m-d'),
                 'label' => $label,
+                'labelShort' => $labelShort,
                 'isToday' => $ago === 0,
                 'isFuture' => false,
             ];

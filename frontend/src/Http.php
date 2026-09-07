@@ -24,7 +24,7 @@ final class Http
         $catalog = new Catalog($config, $cache);
         $progress = new Progress($db, $catalog);
         $progress->ensureSchema();
-        $scaler = ImageScaler::fromCatalog($catalog, $config->imageCacheDir);
+        $scaler = ImageScaler::fromCatalog($catalog, $config->imageCacheDir, $config->thumbsDir);
         return new self($config, $catalog, $progress, $cache, $db, $scaler);
     }
 

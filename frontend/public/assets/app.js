@@ -51,15 +51,74 @@
     return `data-en="${esc(e)}" data-nl="${esc(n)}">${esc(shown)}`;
   }
 
+  function closePopMenus() {
+    $$("[data-menu-panel]").forEach((menu) => menu.classList.add("hidden"));
+    $$("[data-action=lang-menu], [data-action=method-menu]").forEach((btn) => {
+      btn.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function togglePopMenu(panelId) {
+    const menu = $(panelId);
+    if (!menu) return;
+    const willOpen = menu.classList.contains("hidden");
+    closePopMenus();
+    if (willOpen) {
+      menu.classList.remove("hidden");
+      const wrap = menu.closest("[data-menu]");
+      wrap?.querySelector("[aria-expanded]")?.setAttribute("aria-expanded", "true");
+    }
+  }
+
+  function currentPathSlug() {
+    if (state.route.name === "path") return state.route.params.slug || "";
+    if (state.route.name === "watch") {
+      return lessonById(state.route.params.id)?.pathSlug || "";
+    }
+    return "";
+  }
+
+  function methodNav() {
+    const paths = state.bootstrap?.paths || [];
+    if (!paths.length) return "";
+    const current = currentPathSlug();
+    const onMethod = !!current;
+    const methodLabel = isNl() ? "Hoofdstukken" : "The Method";
+    return `
+      <div class="relative flex items-center" data-menu="method">
+        <button type="button" data-action="method-menu" class="px-3 py-2 rounded-lg tap nav-hover flex items-center gap-1 ${onMethod ? "bg-card font-semibold" : ""}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(methodLabel)}">
+          <span ${locAttr("The Method", "Hoofdstukken")}</span>
+          <span class="text-muted text-xs leading-none">▾</span>
+        </button>
+        <div id="method-menu" data-menu-panel class="nav-drop hidden" role="menu">
+          ${paths.map((p, i) => {
+            const on = p.slug === current;
+            const diffEn = p.difficulty || "";
+            const diffNl = p.difficultyNl || diffEn;
+            const num = p.n || i + 1;
+            return `<a href="/path/${esc(p.slug)}" data-link role="menuitem"
+              class="tap flex gap-2.5 w-full rounded-lg px-3 py-2 text-left nav-hover ${on ? "bg-card font-bold" : ""}"
+              ${on ? 'aria-current="page"' : ""}>
+              <span class="text-sm text-muted tabular-nums w-5 shrink-0 text-right pt-px">${num}</span>
+              <span class="min-w-0 flex flex-col">
+                <span class="text-sm leading-snug" ${locAttr(p.title, p.titleNl)}</span>
+                ${diffEn ? `<span class="text-xs text-muted mt-0.5" ${locAttr(diffEn, diffNl)}</span>` : ""}
+              </span>
+            </a>`;
+          }).join("")}
+        </div>
+      </div>`;
+  }
+
   function langToggle() {
     const cur = langMeta();
     return `
-      <div id="lang-wrap" class="relative shrink-0">
-        <button type="button" data-action="lang-menu" class="tap text-sm font-bold flex items-center gap-1" aria-haspopup="listbox" aria-label="Taal">
+      <div id="lang-wrap" class="relative shrink-0" data-menu="lang">
+        <button type="button" data-action="lang-menu" class="tap text-sm font-bold flex items-center gap-1 px-3 py-2 rounded-lg nav-hover" aria-haspopup="listbox" aria-expanded="false" aria-label="Taal">
           <span data-lang-short>${esc(cur.short)}</span>
           <span class="text-muted text-xs">▾</span>
         </button>
-        <div id="lang-menu" class="hidden absolute right-0 mt-1 z-40 min-w-[11rem] rounded-xl bg-panel border border-line p-1 shadow-lg" role="listbox">
+        <div id="lang-menu" data-menu-panel class="hidden absolute right-0 mt-1 z-40 min-w-[11rem] rounded-xl bg-panel border border-line p-1 shadow-lg" role="listbox">
           ${LANGS.map((l) => {
             const on = l.index === cur.index;
             return `<button type="button" data-action="audio" data-index="${l.index}" role="option"
@@ -192,6 +251,8 @@
         nearby.push({ role: roles[String(off)], lesson: seq[i], chapterNumber: chapterNo(seq[i]) });
       }
     }
+    const globalN = lessonNo(lesson) || (seqIdx >= 0 ? seqIdx + 1 : number);
+    const globalTotal = lessonTotal() || seq.length || total;
     return {
       title,
       titleNl: (path?.skillPacks?.length && lesson.skillPackTitle
@@ -203,9 +264,24 @@
       packAnchor: anchor,
       number,
       total,
-      pct: Math.round((number / total) * 100),
+      globalN,
+      globalTotal,
+      pct: Math.round((globalN / globalTotal) * 100),
       nearby,
     };
+  }
+
+  function lessonNo(lesson) {
+    if (!lesson) return null;
+    const n = Number(lesson.n);
+    if (n > 0) return n;
+    const i = methodSequence().findIndex((l) => sameId(l.id, lesson.id));
+    return i >= 0 ? i + 1 : null;
+  }
+
+  function lessonTotal() {
+    const b = state.bootstrap;
+    return (b?.order?.length || methodSequence().length || 0);
   }
 
   function lessonById(id) {
@@ -400,48 +476,49 @@
     };
   }
 
-  function navLink(href, label, { mobile = false } = {}) {
+  function navLink(href, label, { mobile = false, cls = "" } = {}) {
     const on = pathOf() === href;
+    const extra = cls ? ` ${cls}` : "";
     if (mobile) {
-      return `<a href="${href}" data-link class="py-3 tap ${on ? "font-bold text-white" : "text-muted"}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
+      return `<a href="${href}" data-link class="py-3 tap ${on ? "font-bold text-white" : "text-muted"}${extra}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
     }
-    return `<a href="${href}" data-link class="px-3 py-2 rounded-lg tap ${on ? "bg-card font-semibold" : "hover:bg-card"}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
+    return `<a href="${href}" data-link class="px-3 py-2 rounded-lg tap nav-hover ${on ? "bg-card font-semibold" : ""}${extra}"${on ? ' aria-current="page"' : ""}>${esc(label)}</a>`;
   }
 
   function layout(main, { nav = true } = {}) {
     const profile = state.bootstrap?.profile;
     const top = nav ? `
-      <header class="sticky top-0 z-30 bg-ink/90 backdrop-blur border-b border-line">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <a href="/home" data-link class="flex items-center gap-2 tap">
-            <span class="w-9 h-9 rounded-xl bg-accent grid place-items-center font-black">d</span>
-            <span class="font-semibold tracking-tight hidden sm:block">The Method</span>
+      <header class="site-header sticky top-0 z-30 bg-ink/90 border-b border-line">
+        <div class="site-header-inner max-w-7xl mx-auto py-3 flex items-center gap-2 sm:gap-3 min-w-0">
+          <a href="/home" data-link class="flex items-center tap shrink-0" aria-label="Home">
+            <img src="/assets/logo-drumeo.svg?v=4f805dc6" alt="Drumeo" class="site-logo" width="96" height="24" decoding="async" draggable="false">
           </a>
-          <nav class="hidden md:flex items-center gap-1 ml-4 text-sm">
-            ${navLink("/home", "Home")}
-            ${navLink("/history", "Afspeelgeschiedenis")}
-            ${navLink("/stats", "Statistieken")}
-            ${navLink("/practice", "Opnieuw oefenen")}
+          <nav class="flex items-center gap-1 text-sm min-w-0 flex-nowrap">
+            ${navLink("/home", "Home", { cls: "hidden lg:flex items-center" })}
+            ${methodNav()}
+            ${navLink("/practice", "Oefenen", { cls: "hidden lg:flex items-center" })}
+            ${navLink("/history", "Geschiedenis", { cls: "hidden lg:flex items-center" })}
+            ${navLink("/stats", "Statistieken", { cls: "hidden lg:flex items-center" })}
           </nav>
           <div class="ml-auto flex items-center gap-2">
             ${profile ? langToggle() : ""}
-            ${profile ? `<button data-action="switch-profile" class="tap rounded-full" aria-label="Profiel wisselen">
+            ${profile ? `<button data-action="switch-profile" class="tap rounded-full nav-hover" aria-label="Profiel wisselen">
               <span class="w-9 h-9 rounded-full ${COLORS[profile.slug] || "bg-accent"} grid place-items-center font-bold">${profile.name[0]}</span>
             </button>` : ""}
           </div>
         </div>
       </header>` : "";
     const bottom = nav ? `
-      <nav class="md:hidden fixed bottom-0 inset-x-0 bg-panel/95 backdrop-blur border-t border-line z-30 pb-[env(safe-area-inset-bottom)]">
+      <nav class="nav-dock lg:hidden fixed bottom-0 inset-x-0 bg-panel/95 border-t border-line z-30">
         <div class="nav-mobile">
           ${navLink("/home", "Home", { mobile: true })}
+          ${navLink("/practice", "Oefenen", { mobile: true })}
           ${navLink("/history", "Geschiedenis", { mobile: true })}
           ${navLink("/stats", "Stats", { mobile: true })}
-          ${navLink("/practice", "Oefenen", { mobile: true })}
           <button data-action="switch-profile" class="py-3 tap text-muted">Profiel</button>
         </div>
       </nav>` : "";
-    return `${top}<main class="${nav ? "pb-24 md:pb-10" : ""}">${main}</main>${bottom}`;
+    return `${top}<main class="${nav ? "has-dock pb-24 lg:pb-10" : ""}">${main}</main>${bottom}`;
   }
 
   function esc(s) {
@@ -484,12 +561,13 @@
     const watched = p?.watched;
     const have = available(lesson.vimeoId);
     const w = wide ? "min-w-[280px] w-[280px] sm:w-[320px]" : "w-full";
+    const n = number != null ? number : lessonNo(lesson);
     return `
       <a href="/watch/${lesson.id}" data-link class="card-hover block ${w} rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} transition-transform">
         <div class="relative aspect-video thumb overflow-hidden${watched ? " thumb-watched" : ""}">
           ${thumbPic(lesson.vimeoId, { sizes: wide ? "(min-width: 640px) 320px, 85vw" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw", alt: disp(lesson) })}
           ${thumbBadges(lesson.id, { watched })}
-          ${number != null ? `<span class="lesson-num">${number}</span>` : ""}
+          ${n != null ? `<span class="lesson-num">${n}</span>` : ""}
           ${!have ? `<span class="absolute top-2 left-2 text-[11px] bg-black/70 px-2 py-1 rounded-full">Nog geen video</span>` : ""}
           <span class="absolute bottom-2 right-2 text-[11px] bg-black/70 px-2 py-0.5 rounded">${esc(lesson.length || fmt(lesson.seconds))}</span>
           <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${pct(lesson.id)}%"></span></div>
@@ -571,10 +649,10 @@
     const profiles = state.bootstrap?.profiles || [];
     const root = $("#app");
     root.innerHTML = layout(`
-      <div class="min-h-[80dvh] grid place-items-center px-4 py-10">
+      <div class="min-h-[80vh] grid place-items-center px-4 py-10">
         <div class="w-full max-w-4xl text-center">
           <p class="text-muted uppercase tracking-[0.2em] text-sm">Drumeo</p>
-          <h1 class="text-4xl sm:text-6xl font-black mt-2 mb-10">Wie gaat er drummen?</h1>
+          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black mt-2 mb-8 sm:mb-10">Wie gaat er drummen?</h1>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
             ${profiles.map((p) => {
               const total = Number(p.lessonCount) || 0;
@@ -601,16 +679,16 @@
     const practice = b.practice || [];
     const hero = resumeLesson ? `
       <section class="relative overflow-hidden rounded-3xl bg-card border border-line mb-10">
-        <div class="grid md:grid-cols-2">
-          <div class="relative aspect-video md:aspect-auto min-h-[220px] thumb overflow-hidden">
-            ${thumbPic(resumeLesson.vimeoId, { sizes: "(min-width: 768px) 50vw, 100vw", alt: disp(resumeLesson), eager: true })}
-            <div class="absolute inset-0 bg-gradient-to-r from-card via-card/40 to-transparent hidden md:block"></div>
+        <div class="grid lg:grid-cols-2">
+          <div class="relative aspect-video lg:aspect-auto lg:min-h-[280px] thumb overflow-hidden">
+            ${thumbPic(resumeLesson.vimeoId, { sizes: "(min-width: 1024px) 50vw, 100vw", alt: disp(resumeLesson), eager: true })}
+            <div class="absolute inset-0 bg-gradient-to-r from-card via-card/40 to-transparent hidden lg:block"></div>
           </div>
-          <div class="p-6 sm:p-8 flex flex-col justify-center">
-            <p class="text-accent text-sm font-semibold uppercase tracking-wide">${resume.reason === "continue" ? "Verder kijken" : "Volgende les"}</p>
-            <h2 class="text-3xl font-black mt-2">${esc(disp(resumeLesson))}</h2>
+          <div class="p-5 sm:p-8 flex flex-col justify-center">
+            <p class="text-accent text-sm font-semibold uppercase tracking-wide">${resume.reason === "continue" ? "Verder kijken" : "Volgende les"}${lessonNo(resumeLesson) ? ` · les ${lessonNo(resumeLesson)} van ${lessonTotal()}` : ""}</p>
+            <h2 class="text-2xl sm:text-3xl font-black mt-2">${esc(disp(resumeLesson))}</h2>
             <p class="text-muted mt-2">${esc(disp(resumeLesson, "pathTitle"))}${resume.reason === "continue" ? " · hervat op " + fmt(resume.position) : ""} · ${esc(langMeta().label)}</p>
-            <a href="/watch/${resumeLesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-6 py-3 tap w-fit">
+            <a href="/watch/${resumeLesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-5 sm:px-6 py-3 tap w-fit whitespace-nowrap">
               ${resume.reason === "continue" ? "Doorgaan" : "Start volgende les"}
             </a>
           </div>
@@ -656,7 +734,7 @@
             return `<button type="button" data-action="week-day" data-date="${esc(d.date)}" class="${cls}">
               <span class="week-dot"></span>
               <span class="week-emojis">${emojis.length ? emojis.map((e) => `<span>${e}</span>`).join("") : "&nbsp;"}</span>
-              <span class="week-label${d.label.length > 8 ? " is-long" : ""}">${esc(d.label)}</span>
+              <span class="week-label"><span class="week-full">${esc(d.label)}</span><span class="week-short">${esc(d.labelShort || d.label)}</span></span>
             </button>`;
           }).join("")}
         </div>
@@ -664,7 +742,7 @@
           <div class="mt-5 pt-5 border-t border-line">
             <p class="font-semibold">${esc(selectedDay.label.charAt(0).toUpperCase() + selectedDay.label.slice(1))} · ${selectedDay.played ? "dit speelde je" : "nog niks gespeeld"}</p>
             ${selectedDay.lessonIds?.length
-              ? `<div class="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              ? `<div class="mt-3 lesson-grid">
                   ${selectedDay.lessonIds.map((id) => {
                     const l = lessonById(id);
                     return l ? card(l) : "";
@@ -678,15 +756,17 @@
       <section class="mb-10">
         <h3 class="text-2xl font-bold mb-4">The Method</h3>
         <div class="path-grid">
-          ${(b.paths || []).map((p) => {
+          ${(b.paths || []).map((p, i) => {
             const watched = (p.lessons || []).filter((l) => progressOf(l.id)?.watched).length;
             const poster = p.posterVimeoId || p.lessons?.[0]?.vimeoId;
             const pctDone = p.videoCount ? Math.round((watched / p.videoCount) * 100) : 0;
+            const num = p.n || i + 1;
             return `
               <a href="/path/${p.slug}" data-link class="card-hover block rounded-2xl overflow-hidden bg-card border border-line">
                 <div class="relative aspect-video thumb overflow-hidden">
                   ${thumbPic(poster, { sizes: "(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw", alt: disp(p) })}
                   <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                  <span class="path-num">${num}</span>
                   <h3 class="absolute bottom-2 left-4 right-4 text-lg font-black">${esc(disp(p))}</h3>
                 </div>
                 <div class="px-3 py-3">
@@ -752,7 +832,7 @@
     } else {
       const seen = new Set();
       body = `<section class="mt-8">
-        <div class="path-grid">
+        <div class="lesson-grid">
           ${lessons.map((l, i) => {
             const aid = packAnchor({ id: l.skillPackId, title: l.skillPackTitle });
             let idAttr = "";
@@ -760,7 +840,7 @@
               seen.add(aid);
               idAttr = ` id="${esc(aid)}" style="scroll-margin-top:6rem"`;
             }
-            return `<div${idAttr}>${card(l, { number: i + 1 })}</div>`;
+            return `<div${idAttr}>${card(l)}</div>`;
           }).join("")}
         </div>
       </section>`;
@@ -770,7 +850,7 @@
         <a href="/home" data-link class="text-muted text-sm">← Home</a>
         <div class="path-head">
           <div class="min-w-0">
-            <h1 class="text-4xl font-black">${esc(disp(path))}</h1>
+            <h1 class="text-3xl sm:text-4xl font-black">${path.n ? `${path.n}. ` : ""}${esc(disp(path))}</h1>
             <p class="text-muted mt-2">${esc(disp(path, "difficulty"))} · ${path.videoCount} lessen</p>
           </div>
           ${pathViewToggle()}
@@ -784,7 +864,7 @@
     const items = historyItems();
     $("#app").innerHTML = layout(`
       <div class="max-w-3xl mx-auto px-4 pt-6">
-        <h1 class="text-4xl font-black">Afspeelgeschiedenis</h1>
+        <h1 class="text-3xl sm:text-4xl font-black">Afspeelgeschiedenis</h1>
         <p class="text-muted mt-2 mb-8">Alles wat je minstens een derde hebt bekeken, meest recent eerst.</p>
         ${items.length === 0
           ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog geen geschiedenis. Speel een les tot minstens een derde om hem hier te zien.</div>`
@@ -802,7 +882,7 @@
                     <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${Math.round(ratio * 100)}%"></span></div>
                   </div>
                   <div class="min-w-0 py-3 pr-3 flex-1">
-                    <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${esc(disp(lesson))}</div>
+                    <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${lessonNo(lesson) ? `${lessonNo(lesson)}. ` : ""}${esc(disp(lesson))}</div>
                     <div class="mt-1 text-sm leading-snug">
                       <div><span class="text-muted">Reeks</span> · ${esc(series)}</div>
                       ${skill ? `<div><span class="text-muted">Skill</span> · ${esc(skill)}</div>` : ""}
@@ -879,7 +959,7 @@
 
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
-        <h1 class="text-4xl font-black">Statistieken</h1>
+        <h1 class="text-3xl sm:text-4xl font-black">Statistieken</h1>
         <p class="text-muted mt-2 mb-8">Jouw groei, oefentijd en een drum battle met de rest.</p>
 
         <section class="mb-10">
@@ -901,7 +981,7 @@
                 const h = Math.max(sec > 0 ? 8 : 3, Math.round((sec / weekMax) * 100));
                 return `<div class="week-bar${d.isToday ? " is-today" : ""}${d.isFuture ? " is-future" : ""}">
                   <div class="week-bar-fill" style="height:${d.isFuture ? 3 : h}%"></div>
-                  <span class="lab${d.label.length > 8 ? " is-long" : ""}">${esc(d.label)}</span>
+                  <span class="lab"><span class="week-full">${esc(d.label)}</span><span class="week-short">${esc(d.labelShort || d.label)}</span></span>
                 </div>`;
               }).join("")}
             </div>
@@ -968,10 +1048,10 @@
     const items = state.bootstrap?.practice || [];
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
-        <h1 class="text-4xl font-black">Opnieuw oefenen</h1>
+        <h1 class="text-3xl sm:text-4xl font-black">Opnieuw oefenen</h1>
         <p class="text-muted mt-2 mb-8">Alles wat nog geen top-score kreeg. Oefenen mag altijd opnieuw — we bewaren elke score.</p>
         ${items.length === 0 ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog niks hier. Speel een les en geef een score!</div>` : `
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div class="lesson-grid">
             ${items.map((l) => card(l)).join("")}
           </div>`}
       </div>`);
@@ -980,7 +1060,7 @@
   async function renderWatch() {
     const id = state.route.params.id;
     let lesson = state.lessonCache[id] || lessonById(id);
-    if (!lesson || !lesson.vimeoId || !lesson.resources) {
+    if (!lesson || !lesson.vimeoId) {
       try { lesson = await api(`/app/lesson/${id}`); state.lessonCache[id] = lesson; }
       catch { lesson = lessonById(id); }
     }
@@ -998,11 +1078,11 @@
 
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-3 sm:px-4 pt-3">
-        <div class="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-4">
+        <div class="grid lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px] gap-4">
           <section>
-            <div id="stage" class="relative bg-black rounded-2xl overflow-hidden aspect-video">
-              <div id="player-slot" class="absolute inset-0 z-0"></div>
-              <div id="prep" class="absolute inset-0 z-10 grid place-items-center bg-black/80 p-6 text-center">
+            <div id="stage" class="stage relative bg-black rounded-2xl overflow-hidden">
+              <div id="player-slot" class="z-0 min-h-0 min-w-0"></div>
+              <div id="prep" class="z-10 grid place-items-center bg-black/80 p-6 text-center">
                 <div>
                   <div class="text-lg font-semibold">${have ? "Video wordt klaargezet in " + esc(lang.label) + "…" : "Deze video staat nog niet op de NAS"}</div>
                   <div id="prep-detail" class="text-muted mt-2 text-sm"></div>
@@ -1023,15 +1103,15 @@
             <div class="p-4 border-b border-line">
               <div class="text-muted text-xs uppercase tracking-wide" ${locAttr(chapter.pathTitle, chapter.pathTitleNl)}</div>
               <div class="font-bold mt-0.5" ${locAttr(chapter.title, chapter.titleNl)}</div>
-              <div class="text-sm mt-2">Nu les ${chapter.number} van ${chapter.total}</div>
-              <div class="progress-bar mt-2" style="height:6px" role="progressbar" aria-valuenow="${chapter.number}" aria-valuemin="1" aria-valuemax="${chapter.total}" aria-label="Les ${chapter.number} van ${chapter.total}"><span style="width:${chapter.pct}%"></span></div>
+              <div class="text-sm mt-2">Les ${chapter.globalN} van ${chapter.globalTotal}</div>
+              <div class="progress-bar mt-2" style="height:6px" role="progressbar" aria-valuenow="${chapter.globalN}" aria-valuemin="1" aria-valuemax="${chapter.globalTotal}" aria-label="Les ${chapter.globalN} van ${chapter.globalTotal}"><span style="width:${chapter.pct}%"></span></div>
             </div>
             ${chapter.nearby.map((item) => {
               const l = item.lesson;
               const on = item.role === "nu";
               const w = progressOf(l.id)?.watched;
               const roleLabel = item.role === "eerder" ? "2 geleden" : item.role === "vorige" ? "Vorige" : item.role === "nu" ? "Nu aan het kijken" : item.role === "volgende" ? "Volgende" : "Over 2";
-              const num = item.chapterNumber ? `${item.chapterNumber}. ` : "";
+              const num = lessonNo(l) ? `${lessonNo(l)}. ` : "";
               const body = `
                 <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
                   ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
@@ -1052,7 +1132,7 @@
           </aside>
           <section class="pt-1">
             <div class="flex items-start gap-2">
-              <h1 class="text-2xl sm:text-3xl font-black min-w-0 flex-1" ${locAttr(lesson.title, lesson.titleNl)}</h1>
+              <h1 class="text-2xl sm:text-3xl font-black min-w-0 flex-1">${lessonNo(lesson) ? `<span class="text-muted font-bold">${lessonNo(lesson)}.</span> ` : ""}<span ${locAttr(lesson.title, lesson.titleNl)}</span></h1>
               <button type="button" data-action="note-edit" class="note-pen tap${noteOf(lesson.id) ? " is-on" : ""}" aria-expanded="false" aria-label="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}" title="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}">${pencilIcon()}</button>
             </div>
             <p class="text-muted mt-1">${esc([disp(lesson, "difficulty"), disp(lesson, "skillPackTitle"), lesson.instructor].filter(Boolean).join(" · "))}</p>
@@ -1314,6 +1394,8 @@
       if (mark) mark.textContent = on ? "✓" : (Number(btn.dataset.index) === 1 ? "NL" : "EN");
     });
     paintLocalized();
+    const methodBtn = $("[data-action=method-menu]");
+    if (methodBtn) methodBtn.setAttribute("aria-label", isNl() ? "Hoofdstukken" : "The Method");
   }
 
   function bind() {
@@ -1377,7 +1459,12 @@
     }
     if (action === "lang-menu") {
       e.stopPropagation();
-      $("#lang-menu")?.classList.toggle("hidden");
+      togglePopMenu("#lang-menu");
+      return;
+    }
+    if (action === "method-menu") {
+      e.stopPropagation();
+      togglePopMenu("#method-menu");
       return;
     }
     if (action === "fullscreen") {
@@ -1388,7 +1475,7 @@
       return;
     }
     if (action === "audio") {
-      $("#lang-menu")?.classList.add("hidden");
+      closePopMenus();
       const idx = Number(el.dataset.index) === 1 ? 1 : 0;
       if (idx === currentAudioIndex() && state.route.name === "watch" && state.player.video) return;
       const t = state.player.video?.currentTime || 0;
@@ -1515,11 +1602,9 @@
   });
 
   document.addEventListener("click", (e) => {
-    const wrap = $("#lang-wrap");
-    const menu = $("#lang-menu");
-    if (!menu || menu.classList.contains("hidden")) return;
-    if (wrap && wrap.contains(e.target)) return;
-    menu.classList.add("hidden");
+    const inside = e.target.closest?.("[data-menu]");
+    if (inside) return;
+    closePopMenus();
   });
 
   state.route = parseRoute();
