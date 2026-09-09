@@ -379,12 +379,18 @@ final class PlaybackService
     public function statusPayload(string $id, array $meta, string $recipe, int $audioIndex, array $offer, bool $playIntent): array
     {
         $info = $this->hls->inspect($id, $recipe, $audioIndex);
+        if ($info['hasEndlist']) {
+            $this->hls->finalizeForVod($id, $recipe, $audioIndex);
+            $info = $this->hls->inspect($id, $recipe, $audioIndex);
+        }
         $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
         $state = $variant['state'] ?? ($info['hasEndlist'] ? 'ready' : ($info['hasPlaylist'] ? 'running' : 'missing'));
         if ($info['hasEndlist']) {
             $state = 'ready';
+        } elseif (in_array($state, ['ready'], true)) {
+            $state = $info['hasPlaylist'] ? 'running' : 'missing';
         }
-        $playable = $info['segmentCount'] >= $this->config->prepareMinSegments && $info['hasPlaylist'];
+        $playable = $info['hasEndlist'] && $info['hasPlaylist'] && $info['segmentCount'] >= 1;
         $playlistUrl = $playable ? $this->hls->publicUrl($id, $recipe, $audioIndex) : null;
 
         if ($playIntent && $playlistUrl) {

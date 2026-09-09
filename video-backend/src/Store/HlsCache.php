@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drumeo\Video\Store;
 
 use Drumeo\Video\Config;
+use Drumeo\Video\Hls\MasterPlaylist;
 use Drumeo\Video\Hls\MediaPlaylist;
 use Drumeo\Video\VideoId;
 
@@ -41,7 +42,12 @@ final class HlsCache
 
     public function publicUrl(string $id, string $recipe, int $audioIndex): string
     {
-        return $this->config->publicHlsBase . '/' . $this->relativeMaster($id, $recipe, $audioIndex);
+        $url = $this->config->publicHlsBase . '/' . $this->relativeMaster($id, $recipe, $audioIndex);
+        $index = $this->playlistPath($id, $recipe, $audioIndex);
+        if (is_file($index)) {
+            $url .= '?v=' . (int) filemtime($index);
+        }
+        return $url;
     }
 
     public function inspect(string $id, string $recipe, int $audioIndex): array
@@ -77,7 +83,54 @@ final class HlsCache
     public function playable(string $id, string $recipe, int $audioIndex): bool
     {
         $info = $this->inspect($id, $recipe, $audioIndex);
-        return $info['hasPlaylist'] && $info['segmentCount'] >= $this->config->prepareMinSegments;
+        if ($info['hasEndlist']) {
+            $this->finalizeForVod($id, $recipe, $audioIndex);
+            $info = $this->inspect($id, $recipe, $audioIndex);
+        }
+        return $info['hasPlaylist'] && $info['hasEndlist'] && $info['segmentCount'] >= 1;
+    }
+
+    /**
+     * Convert a finished EVENT playlist into seekable VOD and cache-bust the master URI.
+     * Without $force, no-op while FFmpeg is still writing (no ENDLIST yet).
+     */
+    public function finalizeForVod(string $id, string $recipe, int $audioIndex, bool $force = false): void
+    {
+        $path = $this->playlistPath($id, $recipe, $audioIndex);
+        if (!is_file($path)) {
+            return;
+        }
+        $raw = file_get_contents($path);
+        if ($raw === false) {
+            return;
+        }
+        $parsed = MediaPlaylist::parse($raw);
+        if (!$force && !$parsed['endlist']) {
+            return;
+        }
+        $vod = MediaPlaylist::toVod($raw);
+        if ($vod !== $raw) {
+            file_put_contents($path, $vod);
+        }
+        $this->bustMasterUri($id, $recipe, $audioIndex);
+    }
+
+    private function bustMasterUri(string $id, string $recipe, int $audioIndex): void
+    {
+        $master = $this->masterPath($id, $recipe, $audioIndex);
+        $index = $this->playlistPath($id, $recipe, $audioIndex);
+        if (!is_file($master) || !is_file($index)) {
+            return;
+        }
+        $raw = file_get_contents($master);
+        if ($raw === false) {
+            return;
+        }
+        $uri = 'index.m3u8?v=' . (int) filemtime($index);
+        $updated = MasterPlaylist::withMediaUri($raw, $uri);
+        if ($updated !== $raw) {
+            file_put_contents($master, $updated);
+        }
     }
 
     public function deleteVariant(string $id, string $recipe, int $audioIndex): void

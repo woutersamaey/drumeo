@@ -81,7 +81,8 @@ final class PlayerRenderer
     var hls = new HlsClass({
       enableWorker: false,
       lowLatencyMode: false,
-      liveDurationInfinity: true,
+      liveDurationInfinity: false,
+      startPosition: 0,
       manifestLoadingMaxRetry: 6,
       manifestLoadingRetryDelay: 1000,
       levelLoadingMaxRetry: 6

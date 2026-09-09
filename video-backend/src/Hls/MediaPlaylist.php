@@ -35,6 +35,14 @@ final class MediaPlaylist
         if (!preg_match('/#EXT-X-PLAYLIST-TYPE:/i', $contents)) {
             $contents = preg_replace('/(#EXTM3U\s*)/', "$1\n#EXT-X-PLAYLIST-TYPE:VOD", $contents, 1) ?? $contents;
         }
+        if (!preg_match('/#EXT-X-START:/i', $contents)) {
+            $contents = preg_replace(
+                '/(#EXT-X-PLAYLIST-TYPE:[^\n]*\n)/i',
+                "$1#EXT-X-START:TIME-OFFSET=0\n",
+                $contents,
+                1,
+            ) ?? $contents;
+        }
         if (!str_contains($contents, '#EXT-X-ENDLIST')) {
             $contents = rtrim($contents) . "\n#EXT-X-ENDLIST\n";
         }

@@ -6,7 +6,6 @@ namespace Drumeo\Video\Jobs;
 
 use Drumeo\Video\Clock;
 use Drumeo\Video\Config;
-use Drumeo\Video\Hls\MediaPlaylist;
 use Drumeo\Video\Recipe\Recipe;
 use Drumeo\Video\Store\HlsCache;
 use Drumeo\Video\Store\MetadataStore;
@@ -138,7 +137,7 @@ final class Worker
         $n = 0;
         foreach ($this->locks->all() as $lock) {
             $pid = $lock['pid'] ?? null;
-            if (is_int($pid) && $this->locks->pidAlive($pid)) {
+            if ($this->pidRunning($pid)) {
                 $n++;
             } elseif (($lock['state'] ?? '') === 'queued' || ($lock['pid'] ?? null) === null) {
                 $n++;
@@ -160,7 +159,7 @@ final class Worker
                 continue;
             }
             $pid = $lock['pid'] ?? null;
-            if (is_int($pid) && $this->locks->pidAlive($pid)) {
+            if ($this->pidRunning($pid)) {
                 $n++;
             }
         }
@@ -174,7 +173,7 @@ final class Worker
             return false;
         }
         $pid = $lock['pid'] ?? null;
-        if (is_int($pid) && $this->locks->pidAlive($pid)) {
+        if ($this->pidRunning($pid)) {
             return true;
         }
         return ($lock['pid'] ?? null) === null; // queued
@@ -263,7 +262,7 @@ final class Worker
         $transcodes = 0;
         foreach ($this->locks->all() as $lock) {
             $pid = $lock['pid'] ?? null;
-            if (is_int($pid) && $this->locks->pidAlive($pid)) {
+            if ($this->pidRunning($pid)) {
                 $running++;
                 if (($lock['recipe'] ?? '') === Recipe::AVC_1080) {
                     $transcodes++;
@@ -436,17 +435,17 @@ final class Worker
         return $variant;
     }
 
+    private function pidRunning(mixed $pid): bool
+    {
+        if (!is_int($pid) || $pid <= 0) {
+            return false;
+        }
+        return $this->runner->poll($pid)['running'] === true;
+    }
+
     private function finalizePlaylist(string $id, string $recipe, int $audio): void
     {
-        $path = $this->hls->playlistPath($id, $recipe, $audio);
-        if (!is_file($path)) {
-            return;
-        }
-        $raw = file_get_contents($path);
-        if ($raw === false) {
-            return;
-        }
-        file_put_contents($path, MediaPlaylist::toVod($raw));
+        $this->hls->finalizeForVod($id, $recipe, $audio, true);
     }
 
     /** @return array<string,array<string,mixed>> */

@@ -22,7 +22,7 @@ Kleine backend die lokale MKV’s on-demand afspeelbaar maakt voor een eigen web
 2. Remux als de codecs het toelaten; anders minimaal transcoden.
 3. Capability-driven API: client beschrijft wat hij aankan, server kiest een recept.
 4. Cache per `(bron, recept, audioIndex)`.
-5. Afspelen mag starten na 2 HLS-segmenten; daarna doorgroeien tot VOD.
+5. Afspelen pas als de HLS-variant VOD is (`ENDLIST`). Geen EVENT/live-start op de client: Safari (iPad) behandelt een groeiende playlist als live, start middenin en blokkeert seek.
 6. Prefetch van N+1 verstoort N nooit.
 7. Eén metadata-JSON per film in één schrijfbare map.
 8. Laatst-afgespeeld bewaren.
@@ -202,12 +202,12 @@ GOP = 2× fps (24 fps → 48), `-sc_threshold 0`, `-hls_time 6`.
 ## 9. HLS
 
 - Segmenten: MPEG-TS, 6 seconden.
-- Tijdens encode: `EVENT`, geen `ENDLIST`.
-- Na FFmpeg exit 0: `VOD` + `ENDLIST`.
+- Tijdens encode: `EVENT`, geen `ENDLIST` (alleen voor voortgang op schijf).
+- Na FFmpeg exit 0: `VOD` + `ENDLIST` + `#EXT-X-START:TIME-OFFSET=0`.
 - `master.m3u8`: `BANDWIDTH`, `AVERAGE-BANDWIDTH`, `RESOLUTION`, `FRAME-RATE`, `CODECS`, `VIDEO-RANGE=SDR`.
 - `BANDWIDTH` = piek (ruim).
 - Muxed A/V per variant (geen alternate-audio-groepen).
-- Starten vanaf `PREPARE_MIN_SEGMENTS=2`.
+- `playlistUrl` / player pas bij `ENDLIST`. Niet starten na 2 segmenten.
 
 Schijf blijft leidend voor “bestaat het bestand?”:
 
@@ -325,7 +325,7 @@ Zelfde statusobject als query, inclusief `progress` tijdens `running`:
 }
 ```
 
-`playlistUrl` pas bij ≥2 segmenten, anders `null`.
+`playlistUrl` pas bij VOD (`ENDLIST`), anders `null`. Voortgang (`segmentCount` / `durationReadySec`) wél tijdens encode.
 
 `intent=play` + speelbare url → `lastPlayedAt` en variant `lastAccessAt` bijwerken.  
 Prefetch-poll: geen `lastPlayedAt`; `lastAccessAt` mag.
@@ -362,8 +362,8 @@ Eisen aan dit endpoint:
 - Gedrag:
   - iOS / iPadOS: native `video.src = playlistUrl`.
   - Anders: ingebouwde HLS-via-MSE-logica. Niet `canPlayType('application/vnd.apple.mpegurl')` op Chrome als enige beslissing.
-  - Zolang de variant niet `ready` is: EVENT/live-achtig herladen van de playlist tot `ENDLIST` verschijnt.
-- Endpoint geeft `409` als er nog geen speelbare playlist is (≥2 segmenten). Eerst `prepare` + poll.
+  - Player krijgt alleen een VOD-playlist. Geen live-duration / live-edge.
+- Endpoint geeft `409` als de variant nog geen VOD-playlist heeft (`ENDLIST`). Eerst `prepare` + poll tot `state=ready`.
 - Endpoint werkt niet als HTML-pagina (`Content-Type: application/json`).
 
 ### `GET /api/jobs/{jobId}`
@@ -415,7 +415,7 @@ Huidige clip:
 1. Capabilities bepalen (preset in de site).
 2. `POST /playback/query` met `audioIndex`.
 3. `POST /playback/prepare` `intent=play`.
-4. Poll `GET /playback/status` tot `playlistUrl`.
+4. Poll `GET /playback/status` tot `state=ready` en `playlistUrl`.
 5. `GET /playback/player` → `{ html, js }` in de pagina zetten en het script uitvoeren.
 
 Tegelijk:
@@ -454,7 +454,7 @@ FFMPEG_VCODEC=libx264
 MAX_CONCURRENT_JOBS=2
 MAX_CONCURRENT_VIDEO_TRANSCODES=1
 MAX_VARIANT_FAILS=3
-PREPARE_MIN_SEGMENTS=2
+PREPARE_MIN_SEGMENTS=2   # unused for start (VOD-only); kept for env compat
 JOB_TIMEOUT_SECONDS=14400
 MAX_AGE_DAYS=90
 MAX_CACHE_GB=80
@@ -480,7 +480,7 @@ PUBLIC_HLS_BASE=/hls
 - Prefetch tijdens `avc_1080`-play start geen tweede video-transcode.
 - Drie fails → geen nieuwe encode zonder `force`.
 - `lastPlayedAt` wijzigt bij play, niet bij prefetch.
-- Safari speelt EVENT na 2 segmenten; daarna VOD.
+- Safari speelt pas VOD (seekbaar, start bij 0 of resume). Geen LIVE-indicator op iPad.
 - `GET /playback/player` geeft precies `{ html, js }`; `js` bevat geen URL naar een JS-file; fragment + script speelt op iOS native en op Chrome via de meegeleverde JS.
 - Ready overleeft restart zonder rework.
 - Cleanup `--dry-run` raakt geen MKV.

@@ -74,7 +74,7 @@ final class FfmpegCommand
             '-hls_time', '6',
             '-hls_list_size', '0',
             '-hls_playlist_type', 'event',
-            '-hls_flags', 'independent_segments',
+            '-hls_flags', 'independent_segments+temp_file',
             '-hls_segment_type', 'mpegts',
             '-hls_segment_filename', $segment,
             $playlist,

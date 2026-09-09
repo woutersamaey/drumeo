@@ -61,7 +61,9 @@ final class TestHarness
     public function plantHls(string $id, string $recipe, int $audio, int $segments, bool $endlist): void
     {
         $dir = $this->root . '/cache/' . $id . '/' . $recipe . '/' . $audio;
-        mkdir($dir, 0777, true);
+        if (!is_dir($dir) && !mkdir($dir, 0777, true) && !is_dir($dir)) {
+            throw new \RuntimeException('Cannot plant HLS dir: ' . $dir);
+        }
         $body = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:6\n#EXT-X-PLAYLIST-TYPE:EVENT\n";
         for ($i = 0; $i < $segments; $i++) {
             $body .= "#EXTINF:6.0,\nseg_" . sprintf('%03d', $i) . ".ts\n";

@@ -33,6 +33,12 @@ final class MasterPlaylist
         file_put_contents($path, $body);
     }
 
+    public static function withMediaUri(string $contents, string $uri): string
+    {
+        $updated = preg_replace('/^index\.m3u8(?:\?[^\s]*)?\s*$/m', $uri, $contents);
+        return is_string($updated) ? $updated : $contents;
+    }
+
     public static function codecs(string $videoCodec, string $audioCodec): string
     {
         $video = match ($videoCodec) {

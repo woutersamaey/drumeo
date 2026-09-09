@@ -29,6 +29,9 @@ final class PlayerJsonTest extends TestCase
             $this->assertStringNotContainsString('/static/player.js', $out['js']);
             $this->assertStringNotContainsString('src="https://', $out['js']);
             $this->assertStringContainsString('/hls/film1/remux/0/master.m3u8', $out['html']);
+            $this->assertStringContainsString('liveDurationInfinity: false', $out['js']);
+            $this->assertStringContainsString('startPosition: 0', $out['js']);
+            $this->assertStringNotContainsString('liveDurationInfinity: true', $out['js']);
         } finally {
             $h->destroy();
         }

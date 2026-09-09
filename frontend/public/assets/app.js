@@ -15,6 +15,9 @@
     countdown: null,
     playGen: 0,
     weekDay: null,
+    pendingFullscreen: false,
+    hadFullscreenThisClip: false,
+    fsListener: null,
   };
 
   const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter" };
@@ -155,6 +158,14 @@
     else history.pushState({}, "", href);
     state.route = parseRoute();
     render();
+  }
+
+  function scrollPageToTop() {
+    const root = document.scrollingElement || document.documentElement;
+    root.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    window.scrollTo(0, 0);
   }
 
   async function api(url, opts = {}) {
@@ -437,6 +448,16 @@
   function isApple() {
     const ua = navigator.userAgent || "";
     return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function isHandheld() {
+    if (isApple()) return true;
+    const ua = navigator.userAgent || "";
+    if (/Android|webOS|iPhone|iPad|iPod|Mobile|Tablet|Silk/i.test(ua) && !/Windows NT/i.test(ua)) return true;
+    try {
+      if (navigator.maxTouchPoints > 0 && window.matchMedia("(pointer: coarse)").matches) return true;
+    } catch {}
+    return false;
   }
 
   function hevcOk() {
@@ -1157,7 +1178,7 @@
           <div class="w-full max-w-lg rounded-3xl bg-panel border border-line p-6 text-center">
             <p class="text-muted">Hoe ging deze les?</p>
             <div class="grid grid-cols-4 gap-3 my-5">
-              ${[["4","🤩","Top"],["3","😊","Goed"],["2","😕","Matig"],["1","😢","Moeilijk"]].map(([s,e,l]) => `
+              ${[["1","😢","Moeilijk"],["2","😕","Matig"],["3","😊","Goed"],["4","🤩","Top"]].map(([s,e,l]) => `
                 <button data-action="rate" data-score="${s}" class="tap rounded-2xl bg-card border border-line py-5 text-4xl">
                   <div>${e}</div><div class="text-xs mt-2 text-muted">${l}</div>
                 </button>`).join("")}
@@ -1201,11 +1222,14 @@
       if (!detail) return;
       const ready = st.durationReadySec || 0;
       const total = st.progress?.durationTotalSec || lesson.seconds || 1;
-      const pctN = Math.min(95, Math.round((ready / total) * 100));
-      if (bar) bar.style.width = (st.playlistUrl ? 100 : pctN) + "%";
-      detail.textContent = st.playlistUrl
+      const done = st.state === "ready" && st.playlistUrl;
+      const pctN = done ? 100 : Math.min(95, Math.round((ready / total) * 100));
+      if (bar) bar.style.width = pctN + "%";
+      detail.textContent = done
         ? "Klaar om te spelen"
-        : `${st.state || "starting"} · ${st.segmentCount || 0} segmenten`;
+        : (pctN > 0
+          ? "Bezig met klaarzetten · " + pctN + "%"
+          : "Bezig met klaarzetten…");
     };
 
     try {
@@ -1213,7 +1237,7 @@
         const q = await api("/api/playback/query", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), audioIndex, capabilities: c }) });
         let st = await api("/api/playback/prepare", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), recipe: q.recipe, audioIndex, intent: "play" }) });
         tickPrep(st);
-        while (!st.playlistUrl) {
+        while (!(st.state === "ready" && st.playlistUrl)) {
           if (st.state === "failed") throw Object.assign(new Error(st.error || "failed"), { body: st });
           await sleep(1000);
           st = await api(`/api/playback/status?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${audioIndex}&intent=play`);
@@ -1242,16 +1266,19 @@
       slot.appendChild(script);
       const video = slot.querySelector("video");
       if (!video) throw new Error("no video tag");
+      const wantFs = !!state.pendingFullscreen;
+      state.pendingFullscreen = false;
+      state.hadFullscreenThisClip = false;
       state.player = { video, lesson, recipe: result.st.recipe, audioIndex, safe: usedSafe, lastPos: null };
       if (prep) prep.classList.add("hidden");
-      bindVideo(video, lesson, resumeAt, usedSafe);
+      bindVideo(video, lesson, resumeAt, usedSafe, wantFs);
       prefetchNext(lesson, audioIndex, caps);
     } catch (err) {
       if (detail) detail.textContent = "Kon de video niet klaarzetten: " + (err.body?.error || err.message);
     }
   }
 
-  function bindVideo(video, lesson, resumeAt, alreadySafe) {
+  function bindVideo(video, lesson, resumeAt, alreadySafe, wantFs) {
     let armed = false;
     const save = (force) => {
       if (!armed) return;
@@ -1270,20 +1297,39 @@
       }).catch(() => {});
     };
 
-    video.addEventListener("loadedmetadata", () => {
-      if (resumeAt > 1 && resumeAt < (video.duration || lesson.seconds) - 5) {
+    const tryResume = () => {
+      const duration = video.duration;
+      const seekable = isFinite(duration) && duration > 0;
+      if (!seekable) return;
+      if (resumeAt > 1 && resumeAt < duration - 5) {
         try { video.currentTime = resumeAt; } catch {}
       }
       if (state.player) state.player.lastPos = video.currentTime || resumeAt || 0;
       armed = true;
-    });
+    };
+    video.addEventListener("loadedmetadata", tryResume);
+    video.addEventListener("durationchange", () => { if (!armed) tryResume(); });
     video.addEventListener("timeupdate", () => save(false));
     video.addEventListener("pause", () => save(true));
-    video.addEventListener("ended", () => {
+    let endHandled = false;
+    const onClipEnd = () => {
+      if (endHandled) return;
+      endHandled = true;
       save(true);
       api("/app/watched", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, duration: video.duration || lesson.seconds }) }).catch(() => {});
-      showNext(lesson);
+      state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
+      whenExitedFullscreen(video, () => showNext(lesson));
+    };
+    video.addEventListener("ended", onClipEnd);
+    video.addEventListener("webkitendfullscreen", () => {
+      if (video.ended) onClipEnd();
+      else noteFullscreen(video, false);
     });
+    video.addEventListener("webkitbeginfullscreen", () => noteFullscreen(video, true));
+    unbindFullscreenWatch();
+    state.fsListener = () => noteFullscreen(video, isVideoFullscreen(video));
+    document.addEventListener("fullscreenchange", state.fsListener);
+    document.addEventListener("webkitfullscreenchange", state.fsListener);
     const fallback = () => {
       if (alreadySafe || state.player?.safe) return;
       rememberSafeProfile();
@@ -1291,21 +1337,126 @@
     };
     video.addEventListener("error", fallback);
     window.addEventListener("pagehide", () => save(true));
+    let programmaticPlay = false;
+    let firstPlayFsDone = false;
+    video.addEventListener("play", () => {
+      if (programmaticPlay) return;
+      if (firstPlayFsDone || !isHandheld()) return;
+      firstPlayFsDone = true;
+      enterFullscreen(video);
+    });
+    programmaticPlay = true;
     const playP = video.play();
-    if (playP && playP.catch) playP.catch(fallback);
+    const clearProg = () => { programmaticPlay = false; };
+    if (playP && playP.finally) playP.finally(clearProg);
+    else setTimeout(clearProg, 50);
+    if (playP && playP.catch) playP.catch((err) => {
+      clearProg();
+      fallback(err);
+    });
+    if (wantFs) {
+      const goFs = () => {
+        if (state.player?.video !== video) return;
+        enterFullscreen(video);
+      };
+      video.addEventListener("playing", goFs, { once: true });
+      if (!video.paused) goFs();
+    }
   }
 
-  function tryEnterFullscreen(video) {
+  function fsElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+
+  function isVideoFullscreen(video) {
+    if (video?.webkitDisplayingFullscreen) return true;
+    const el = fsElement();
+    if (!el) return false;
+    if (el === video) return true;
     const stage = $("#stage");
+    return !!(stage && (el === stage || el.contains(video)));
+  }
+
+  function noteFullscreen(video, on) {
+    if (on) {
+      state.hadFullscreenThisClip = true;
+      return;
+    }
+    const dur = Number(video?.duration) || 0;
+    const t = Number(video?.currentTime) || 0;
+    if (dur > 0 && t >= dur - 1.5) return;
+    state.hadFullscreenThisClip = false;
+  }
+
+  function exitFullscreen(video) {
     try {
-      if (video.webkitEnterFullscreen && isApple()) {
-        // iOS: user gesture already happened on play; enter on video element
-        return;
-      }
-      if (stage && !document.fullscreenElement && stage.requestFullscreen) {
-        stage.requestFullscreen().catch(() => {});
+      if (video?.webkitDisplayingFullscreen && typeof video.webkitExitFullscreen === "function") {
+        video.webkitExitFullscreen();
       }
     } catch {}
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+      try { document.webkitExitFullscreen(); } catch {}
+    }
+  }
+
+  function whenExitedFullscreen(video, cb) {
+    if (!isVideoFullscreen(video)) {
+      cb();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      video.removeEventListener("webkitendfullscreen", finish);
+      document.removeEventListener("fullscreenchange", finish);
+      document.removeEventListener("webkitfullscreenchange", finish);
+      cb();
+    };
+    video.addEventListener("webkitendfullscreen", finish);
+    document.addEventListener("fullscreenchange", finish);
+    document.addEventListener("webkitfullscreenchange", finish);
+    exitFullscreen(video);
+    setTimeout(finish, 700);
+  }
+
+  function requestDocFullscreen(video) {
+    const stage = $("#stage");
+    const target = stage || video;
+    const req = target.requestFullscreen || target.webkitRequestFullscreen;
+    if (typeof req === "function") {
+      Promise.resolve(req.call(target)).catch(() => {
+        const vreq = video.requestFullscreen || video.webkitRequestFullscreen;
+        if (typeof vreq === "function") Promise.resolve(vreq.call(video)).catch(() => {});
+      });
+    }
+  }
+
+  function enterFullscreen(video) {
+    if (!video || isVideoFullscreen(video)) return;
+    let usedWebkit = false;
+    try {
+      if (typeof video.webkitEnterFullscreen === "function") {
+        video.webkitEnterFullscreen();
+        usedWebkit = true;
+      }
+    } catch {}
+    if (!usedWebkit) {
+      requestDocFullscreen(video);
+      return;
+    }
+    setTimeout(() => {
+      if (state.player?.video === video && !isVideoFullscreen(video)) requestDocFullscreen(video);
+    }, 300);
+  }
+
+  function unbindFullscreenWatch() {
+    if (!state.fsListener) return;
+    document.removeEventListener("fullscreenchange", state.fsListener);
+    document.removeEventListener("webkitfullscreenchange", state.fsListener);
+    state.fsListener = null;
   }
 
   function nextIdOf(lesson) {
@@ -1353,6 +1504,7 @@
 
   function teardownPlayer() {
     state.playGen++;
+    unbindFullscreenWatch();
     if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
     if (state.countdown) { clearInterval(state.countdown); state.countdown = null; }
     const video = state.player.video;
@@ -1519,10 +1671,16 @@
       $("#next-modal")?.classList.add("hidden");
       const lesson = state.player.lesson || lessonById(state.route.params.id);
       await api("/app/reset", { method: "POST", body: JSON.stringify({ lessonId: lesson.id }) });
+      const wantFs = !!state.pendingFullscreen;
+      state.pendingFullscreen = false;
       if (state.player.video) {
         state.player.video.currentTime = 0;
         state.player.video.play().catch(() => {});
-      } else startPlayback(lesson, state.bootstrap.lastAudioIndex || 0, 0);
+        if (wantFs) enterFullscreen(state.player.video);
+      } else {
+        state.pendingFullscreen = wantFs;
+        startPlayback(lesson, state.bootstrap.lastAudioIndex || 0, 0);
+      }
       return;
     }
     if (action === "play-next") {
@@ -1537,6 +1695,10 @@
   async function render() {
     teardownPlayer();
     const route = state.route;
+    if (route.name !== "watch") {
+      state.pendingFullscreen = false;
+      state.hadFullscreenThisClip = false;
+    }
     if (!state.bootstrap) {
       $("#app").innerHTML = `<div class="grid place-items-center min-h-dvh text-muted">Laden…</div>`;
       try { await refresh(); } catch (e) {
@@ -1571,8 +1733,16 @@
         const top = el.getBoundingClientRect().top + window.scrollY - headerH - 12;
         window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
       });
+    } else {
+      scrollPageToTop();
+      requestAnimationFrame(() => {
+        scrollPageToTop();
+        requestAnimationFrame(scrollPageToTop);
+      });
     }
   }
+
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
   window.addEventListener("popstate", () => {
     state.route = parseRoute();
