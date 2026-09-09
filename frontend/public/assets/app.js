@@ -18,6 +18,7 @@
     pendingFullscreen: false,
     hadFullscreenThisClip: false,
     fsListener: null,
+    keepWatchStage: false,
   };
 
   const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter" };
@@ -458,6 +459,46 @@
       if (navigator.maxTouchPoints > 0 && window.matchMedia("(pointer: coarse)").matches) return true;
     } catch {}
     return false;
+  }
+
+  function usesNativeHls() {
+    const ua = navigator.userAgent || "";
+    const iOS = /iPad|iPhone|iPod/.test(ua);
+    const iPadOS = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    const safari = /^((?!chrome|android|crios|fxios).)*safari/i.test(ua);
+    return iOS || iPadOS || (safari && !/Chrome/.test(ua));
+  }
+
+  function isAutoplayBlock(err) {
+    const name = err && err.name;
+    const msg = String((err && err.message) || err || "");
+    return name === "NotAllowedError" || /not allowed|user didn't interact|autoplay/i.test(msg);
+  }
+
+  function attachPlaylist(video, url) {
+    if (!video || !url) return;
+    if (video._vbHls) {
+      try { video._vbHls.destroy(); } catch {}
+      video._vbHls = null;
+    }
+    if (usesNativeHls()) {
+      video.src = url;
+      return;
+    }
+    const HlsClass = window.Hls;
+    if (HlsClass && HlsClass.isSupported()) {
+      const hls = new HlsClass({
+        enableWorker: false,
+        lowLatencyMode: false,
+        liveDurationInfinity: false,
+        startPosition: 0,
+      });
+      video._vbHls = hls;
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      return;
+    }
+    video.src = url;
   }
 
   function hevcOk() {
@@ -1193,20 +1234,38 @@
         </div>
       </div>`);
 
-    if (have) startPlayback(lesson, audioIndex);
-    else {
+    const savedStage = state.savedStage;
+    state.savedStage = null;
+    if (savedStage) {
+      const fresh = $("#stage");
+      if (fresh) fresh.replaceWith(savedStage);
+    }
+    const reuseVideo = savedStage ? savedStage.querySelector("video") : null;
+    const alreadyOn = state.player.video && state.player.lesson && sameId(state.player.lesson.id, lesson.id);
+    if (have && !alreadyOn) startPlayback(lesson, audioIndex, undefined, reuseVideo);
+    else if (!have) {
       const d = $("#prep-detail");
       if (d) d.textContent = "Zodra het MKV-bestand binnen is, kun je hier kijken.";
     }
   }
 
-  async function startPlayback(lesson, audioIndex, startAt) {
+  async function startPlayback(lesson, audioIndex, startAt, reuseVideo) {
     const slot = $("#player-slot");
     const prep = $("#prep");
     const detail = $("#prep-detail");
     const bar = $("#prep-bar");
     if (!slot) return;
-    teardownPlayer();
+    if (reuseVideo) {
+      if (reuseVideo._vbBind) {
+        try { reuseVideo._vbBind.abort(); } catch {}
+        reuseVideo._vbBind = null;
+      }
+      unbindFullscreenWatch();
+      if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
+      state.playGen++;
+    } else {
+      teardownPlayer();
+    }
     const gen = ++state.playGen;
     const p = progressOf(lesson.id);
     const resumeAt = startAt ?? (p && !p.watched ? p.position : 0);
@@ -1260,11 +1319,16 @@
       }
 
       if (gen !== state.playGen) return;
-      slot.innerHTML = result.player.html;
-      const script = document.createElement("script");
-      script.textContent = result.player.js;
-      slot.appendChild(script);
-      const video = slot.querySelector("video");
+      let video = reuseVideo;
+      if (video) {
+        attachPlaylist(video, result.st.playlistUrl);
+      } else {
+        slot.innerHTML = result.player.html;
+        const script = document.createElement("script");
+        script.textContent = result.player.js;
+        slot.appendChild(script);
+        video = slot.querySelector("video");
+      }
       if (!video) throw new Error("no video tag");
       const wantFs = !!state.pendingFullscreen;
       state.pendingFullscreen = false;
@@ -1279,6 +1343,12 @@
   }
 
   function bindVideo(video, lesson, resumeAt, alreadySafe, wantFs) {
+    if (video._vbBind) {
+      try { video._vbBind.abort(); } catch {}
+    }
+    const ac = new AbortController();
+    video._vbBind = ac;
+    const sig = { signal: ac.signal };
     let armed = false;
     const save = (force) => {
       if (!armed) return;
@@ -1307,10 +1377,10 @@
       if (state.player) state.player.lastPos = video.currentTime || resumeAt || 0;
       armed = true;
     };
-    video.addEventListener("loadedmetadata", tryResume);
-    video.addEventListener("durationchange", () => { if (!armed) tryResume(); });
-    video.addEventListener("timeupdate", () => save(false));
-    video.addEventListener("pause", () => save(true));
+    video.addEventListener("loadedmetadata", tryResume, sig);
+    video.addEventListener("durationchange", () => { if (!armed) tryResume(); }, sig);
+    video.addEventListener("timeupdate", () => save(false), sig);
+    video.addEventListener("pause", () => save(true), sig);
     let endHandled = false;
     const onClipEnd = () => {
       if (endHandled) return;
@@ -1320,12 +1390,12 @@
       state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
       whenExitedFullscreen(video, () => showNext(lesson));
     };
-    video.addEventListener("ended", onClipEnd);
+    video.addEventListener("ended", onClipEnd, sig);
     video.addEventListener("webkitendfullscreen", () => {
       if (video.ended) onClipEnd();
       else noteFullscreen(video, false);
-    });
-    video.addEventListener("webkitbeginfullscreen", () => noteFullscreen(video, true));
+    }, sig);
+    video.addEventListener("webkitbeginfullscreen", () => noteFullscreen(video, true), sig);
     unbindFullscreenWatch();
     state.fsListener = () => noteFullscreen(video, isVideoFullscreen(video));
     document.addEventListener("fullscreenchange", state.fsListener);
@@ -1335,8 +1405,8 @@
       rememberSafeProfile();
       startPlayback(lesson, state.player.audioIndex ?? currentAudioIndex(), video.currentTime || 0);
     };
-    video.addEventListener("error", fallback);
-    window.addEventListener("pagehide", () => save(true));
+    video.addEventListener("error", fallback, sig);
+    window.addEventListener("pagehide", () => save(true), sig);
     let programmaticPlay = false;
     let firstPlayFsDone = false;
     video.addEventListener("play", () => {
@@ -1344,7 +1414,7 @@
       if (firstPlayFsDone || !isHandheld()) return;
       firstPlayFsDone = true;
       enterFullscreen(video);
-    });
+    }, sig);
     programmaticPlay = true;
     const playP = video.play();
     const clearProg = () => { programmaticPlay = false; };
@@ -1352,6 +1422,7 @@
     else setTimeout(clearProg, 50);
     if (playP && playP.catch) playP.catch((err) => {
       clearProg();
+      if (isAutoplayBlock(err)) return;
       fallback(err);
     });
     if (wantFs) {
@@ -1359,7 +1430,7 @@
         if (state.player?.video !== video) return;
         enterFullscreen(video);
       };
-      video.addEventListener("playing", goFs, { once: true });
+      video.addEventListener("playing", goFs, { once: true, signal: ac.signal });
       if (!video.paused) goFs();
     }
   }
@@ -1497,9 +1568,46 @@
       if (node) node.textContent = String(n);
       if (n <= 0) {
         clearInterval(state.countdown);
-        go(`/watch/${next.id}`);
+        state.countdown = null;
+        advanceWatch(next);
       }
     }, 1000);
+  }
+
+  function advanceWatch(next) {
+    if (!next) {
+      go("/home");
+      return;
+    }
+    if (state.countdown) {
+      clearInterval(state.countdown);
+      state.countdown = null;
+    }
+    $("#next-modal")?.classList.add("hidden");
+    const video = state.player.video;
+    if (video) {
+      if (video._vbBind) {
+        try { video._vbBind.abort(); } catch {}
+        video._vbBind = null;
+      }
+      if (video._vbHls) {
+        try { video._vbHls.destroy(); } catch {}
+        video._vbHls = null;
+      }
+    }
+    unbindFullscreenWatch();
+    if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
+    history.pushState({}, "", `/watch/${next.id}`);
+    state.route = parseRoute();
+    const audioIndex = currentAudioIndex();
+    const run = async () => {
+      if (video && available(next.vimeoId)) {
+        await startPlayback(next, audioIndex, undefined, video);
+      }
+      state.keepWatchStage = !!$("#stage") && !!state.player.video;
+      render();
+    };
+    run();
   }
 
   function teardownPlayer() {
@@ -1509,6 +1617,10 @@
     if (state.countdown) { clearInterval(state.countdown); state.countdown = null; }
     const video = state.player.video;
     if (video) {
+      if (video._vbBind) {
+        try { video._vbBind.abort(); } catch {}
+        video._vbBind = null;
+      }
       try { if (video._vbHls) video._vbHls.destroy(); } catch {}
       try { video.pause(); video.removeAttribute("src"); video.load(); } catch {}
     }
@@ -1684,16 +1796,29 @@
       return;
     }
     if (action === "play-next") {
-      if (state.countdown) clearInterval(state.countdown);
       const lesson = state.player.lesson || lessonById(state.route.params.id);
       const nid = nextIdOf(lesson);
-      if (nid) go(`/watch/${nid}`);
+      const next = nid ? lessonById(nid) : null;
+      if (next) advanceWatch(next);
       else go("/home");
     }
   }
 
   async function render() {
-    teardownPlayer();
+    const keepStage = !!state.keepWatchStage;
+    state.keepWatchStage = false;
+    if (keepStage && $("#stage")) {
+      const stage = $("#stage");
+      stage.remove();
+      state.savedStage = stage;
+      unbindFullscreenWatch();
+      if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
+      if (state.countdown) { clearInterval(state.countdown); state.countdown = null; }
+      state.playGen++;
+    } else {
+      teardownPlayer();
+      state.savedStage = null;
+    }
     const route = state.route;
     if (route.name !== "watch") {
       state.pendingFullscreen = false;
