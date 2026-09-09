@@ -8,7 +8,8 @@ use PDO;
 
 final class Progress
 {
-    public const WATCHED_TAIL_SEC = 15;
+    public const WATCHED_RATIO = 0.85;
+    public const BUCKET_SEC = 3;
     public const DISMISS_TAIL_SEC = 5;
     private const TZ = 'Europe/Brussels';
 
@@ -66,6 +67,7 @@ final class Progress
              ) ENGINE=InnoDB'
         );
         $this->ensureColumn('watch_progress', 'played_sec', 'played_sec DOUBLE NOT NULL DEFAULT 0');
+        $this->ensureColumn('watch_progress', 'played_buckets', 'played_buckets TEXT NULL');
         $this->ensureColumn('play_events', 'played_sec', 'played_sec DOUBLE NOT NULL DEFAULT 0');
         $this->ensureColumn('profile_state', 'path_view', "path_view VARCHAR(16) NOT NULL DEFAULT 'order'");
         $pdo->exec(
@@ -157,23 +159,43 @@ final class Progress
         return $body;
     }
 
-    public function saveProgress(int $profileId, int $lessonId, string $vimeoId, float $position, float $duration, float $playedDelta = 0.0): array
+    /**
+     * @param list<int|float|string> $playedBuckets
+     * @return array{watched: bool, position: float}
+     */
+    public function saveProgress(int $profileId, int $lessonId, string $vimeoId, float $position, float $duration, float $playedDelta = 0.0, array $playedBuckets = []): array
     {
         $this->ensureSchema();
-        $watched = $duration > 0 && $position >= max(0, $duration - self::WATCHED_TAIL_SEC);
         $delta = max(0.0, min(30.0, $playedDelta));
         $pdo = $this->db->pdo();
+        $existing = $pdo->prepare('SELECT played_buckets, watched FROM watch_progress WHERE profile_id = ? AND lesson_id = ?');
+        $existing->execute([$profileId, $lessonId]);
+        $row = $existing->fetch(PDO::FETCH_ASSOC);
+        $storedJson = is_array($row) && is_string($row['played_buckets'] ?? null) ? $row['played_buckets'] : null;
+        $merged = self::mergeBuckets($storedJson, $playedBuckets, $duration);
+        $watched = self::qualifiesWatched(count($merged), $duration) || (is_array($row) && !empty($row['watched']));
+        $bucketJson = json_encode($merged, JSON_THROW_ON_ERROR);
         $stmt = $pdo->prepare(
-            'INSERT INTO watch_progress (profile_id, lesson_id, vimeo_id, position_sec, duration_sec, watched, played_sec)
-             VALUES (?, ?, ?, ?, ?, ?, ?)
+            'INSERT INTO watch_progress (profile_id, lesson_id, vimeo_id, position_sec, duration_sec, watched, played_sec, played_buckets)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 vimeo_id = VALUES(vimeo_id),
                 position_sec = IF(watch_progress.watched = 1 AND VALUES(watched) = 0, watch_progress.position_sec, VALUES(position_sec)),
                 duration_sec = VALUES(duration_sec),
                 watched = IF(VALUES(watched) = 1, 1, watch_progress.watched),
-                played_sec = watch_progress.played_sec + VALUES(played_sec)'
+                played_sec = VALUES(played_sec),
+                played_buckets = VALUES(played_buckets)'
         );
-        $stmt->execute([$profileId, $lessonId, $vimeoId, $position, $duration, $watched ? 1 : 0, $delta]);
+        $stmt->execute([
+            $profileId,
+            $lessonId,
+            $vimeoId,
+            $position,
+            $duration,
+            $watched ? 1 : 0,
+            count($merged) * self::BUCKET_SEC,
+            $bucketJson,
+        ]);
         $pdo->prepare(
             'INSERT INTO profile_state (profile_id, last_lesson_id) VALUES (?, ?)
              ON DUPLICATE KEY UPDATE last_lesson_id = VALUES(last_lesson_id)'
@@ -184,16 +206,66 @@ final class Progress
 
     public function markWatched(int $profileId, int $lessonId, string $vimeoId, float $duration): void
     {
-        $this->saveProgress($profileId, $lessonId, $vimeoId, max($duration, 0), $duration);
-        $this->db->pdo()->prepare(
-            'UPDATE watch_progress SET watched = 1, position_sec = GREATEST(position_sec, duration_sec) WHERE profile_id = ? AND lesson_id = ?'
-        )->execute([$profileId, $lessonId]);
+        $this->saveProgress($profileId, $lessonId, $vimeoId, max($duration, 0), $duration, 0.0, []);
+    }
+
+    public static function requiredBucketCount(float $duration): int
+    {
+        if ($duration <= 0) {
+            return 0;
+        }
+        $total = (int) ceil($duration / self::BUCKET_SEC);
+        return (int) ceil($total * self::WATCHED_RATIO);
+    }
+
+    public static function qualifiesWatched(int $uniqueBuckets, float $duration): bool
+    {
+        $need = self::requiredBucketCount($duration);
+        return $need > 0 && $uniqueBuckets >= $need;
+    }
+
+    /**
+     * @param list<mixed> $incoming
+     * @return list<int>
+     */
+    public static function mergeBuckets(?string $storedJson, array $incoming, float $duration): array
+    {
+        $stored = [];
+        if (is_string($storedJson) && $storedJson !== '') {
+            $decoded = json_decode($storedJson, true);
+            if (is_array($decoded)) {
+                $stored = $decoded;
+            }
+        }
+        $max = self::maxBucketIndex($duration);
+        $uniq = [];
+        foreach (array_merge($stored, $incoming) as $b) {
+            if (!is_numeric($b)) {
+                continue;
+            }
+            $i = (int) $b;
+            if ($i < 0 || ($max >= 0 && $i > $max)) {
+                continue;
+            }
+            $uniq[$i] = true;
+        }
+        $keys = array_map('intval', array_keys($uniq));
+        sort($keys, SORT_NUMERIC);
+        return $keys;
+    }
+
+    public static function maxBucketIndex(float $duration): int
+    {
+        if ($duration <= 0) {
+            return -1;
+        }
+        return (int) floor(($duration - 0.001) / self::BUCKET_SEC);
     }
 
     public function resetLesson(int $profileId, int $lessonId): void
     {
         $this->db->pdo()->prepare(
-            'UPDATE watch_progress SET position_sec = 0, watched = 0 WHERE profile_id = ? AND lesson_id = ?'
+            'UPDATE watch_progress SET position_sec = 0, watched = 0, played_sec = 0, played_buckets = NULL WHERE profile_id = ? AND lesson_id = ?'
         )->execute([$profileId, $lessonId]);
     }
 

@@ -144,6 +144,10 @@ final class Http
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
+            $buckets = $body['playedBuckets'] ?? [];
+            if (!is_array($buckets)) {
+                $buckets = [];
+            }
             $result = $this->progress->saveProgress(
                 $pid,
                 $lessonId,
@@ -151,6 +155,7 @@ final class Http
                 (float) ($body['position'] ?? 0),
                 (float) ($body['duration'] ?? $lesson['seconds']),
                 (float) ($body['playedDelta'] ?? 0),
+                array_slice($buckets, 0, 400),
             );
             $this->json(200, $result);
             return;

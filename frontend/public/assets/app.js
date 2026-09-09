@@ -169,6 +169,43 @@
     window.scrollTo(0, 0);
   }
 
+  const IDLE_MS = 60 * 60 * 1000;
+  const IDLE_KEY = "drumeo_last_active";
+
+  function lastActiveMs() {
+    try {
+      const v = Number(localStorage.getItem(IDLE_KEY) || 0);
+      return Number.isFinite(v) ? v : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function touchActive() {
+    try { localStorage.setItem(IDLE_KEY, String(Date.now())); } catch {}
+  }
+
+  function isSessionIdle() {
+    const last = lastActiveMs();
+    if (!last) {
+      touchActive();
+      return false;
+    }
+    return Date.now() - last >= IDLE_MS;
+  }
+
+  function onProfilesScreen() {
+    return state.route.name === "profiles";
+  }
+
+  function lockIfIdle() {
+    if (!isSessionIdle()) return false;
+    if (onProfilesScreen()) return true;
+    teardownPlayer();
+    go("/profiles", true);
+    return true;
+  }
+
   async function api(url, opts = {}) {
     const res = await fetch(url, {
       credentials: "same-origin",
@@ -655,17 +692,37 @@
     return rm ? `${h} u ${rm} min` : `${h} u`;
   }
 
+  const WATCH_BUCKET_SEC = 3;
+
+  function noteSeenBuckets(video) {
+    if (!state.player) return;
+    const pos = Number(video?.currentTime) || 0;
+    const duration = Number(video?.duration);
+    const prev = state.player.lastTickPos;
+    state.player.lastTickPos = pos;
+    if (prev == null || Number.isNaN(prev)) return;
+    const delta = pos - prev;
+    if (delta <= 0 || delta > 4) return;
+    if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
+    const end = (isFinite(duration) && duration > 0) ? duration : pos;
+    const from = Math.floor(Math.min(prev, end) / WATCH_BUCKET_SEC);
+    const to = Math.floor(Math.min(pos, end) / WATCH_BUCKET_SEC);
+    for (let b = from; b <= to; b++) {
+      if (b >= 0) state.player.seenBuckets.add(b);
+    }
+  }
+
   function takePlayedDelta(video) {
     const pos = Number(video?.currentTime) || 0;
-    if (state.player && (state.player.lastPos == null || Number.isNaN(state.player.lastPos))) {
-      state.player.lastPos = pos;
+    if (state.player && (state.player.lastSavedPos == null || Number.isNaN(state.player.lastSavedPos))) {
+      state.player.lastSavedPos = pos;
       return 0;
     }
-    const prev = Number(state.player?.lastPos) || 0;
+    const prev = Number(state.player?.lastSavedPos) || 0;
     let delta = pos - prev;
     if (delta < 0) delta = 0;
-    if (delta > 20) delta = 20;
-    if (state.player) state.player.lastPos = pos;
+    if (delta > 4) delta = 0;
+    if (state.player) state.player.lastSavedPos = pos;
     return Math.round(delta * 1000) / 1000;
   }
 
@@ -1333,7 +1390,7 @@
       const wantFs = !!state.pendingFullscreen;
       state.pendingFullscreen = false;
       state.hadFullscreenThisClip = false;
-      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, safe: usedSafe, lastPos: null };
+      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, safe: usedSafe, lastPos: null, lastTickPos: null, lastSavedPos: null, seenBuckets: new Set() };
       if (prep) prep.classList.add("hidden");
       bindVideo(video, lesson, resumeAt, usedSafe, wantFs);
       prefetchNext(lesson, audioIndex, caps);
@@ -1356,10 +1413,12 @@
       if (!force && now - state.lastSave < 4000) return;
       state.lastSave = now;
       const duration = video.duration && isFinite(video.duration) ? video.duration : lesson.seconds;
+      noteSeenBuckets(video);
       const playedDelta = takePlayedDelta(video);
+      const playedBuckets = [...(state.player.seenBuckets || [])];
       api("/app/progress", {
         method: "POST",
-        body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, position: video.currentTime || 0, duration, playedDelta }),
+        body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, position: video.currentTime || 0, duration, playedDelta, playedBuckets }),
       }).then(async (r) => {
         if (r.watched && state.bootstrap.progress) {
           state.bootstrap.progress[String(lesson.id)] = { ...(progressOf(lesson.id) || {}), watched: true, position: video.currentTime, duration };
@@ -1374,19 +1433,25 @@
       if (resumeAt > 1 && resumeAt < duration - 5) {
         try { video.currentTime = resumeAt; } catch {}
       }
-      if (state.player) state.player.lastPos = video.currentTime || resumeAt || 0;
+      if (state.player) {
+        state.player.lastTickPos = video.currentTime || resumeAt || 0;
+        state.player.lastSavedPos = video.currentTime || resumeAt || 0;
+        if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
+      }
       armed = true;
     };
     video.addEventListener("loadedmetadata", tryResume, sig);
     video.addEventListener("durationchange", () => { if (!armed) tryResume(); }, sig);
-    video.addEventListener("timeupdate", () => save(false), sig);
+    video.addEventListener("timeupdate", () => {
+      noteSeenBuckets(video);
+      save(false);
+    }, sig);
     video.addEventListener("pause", () => save(true), sig);
     let endHandled = false;
     const onClipEnd = () => {
       if (endHandled) return;
       endHandled = true;
       save(true);
-      api("/app/watched", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, duration: video.duration || lesson.seconds }) }).catch(() => {});
       state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
       whenExitedFullscreen(video, () => showNext(lesson));
     };
@@ -1695,6 +1760,7 @@
     if (action === "pick-profile") {
       await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: el.dataset.slug }) });
       await refresh();
+      touchActive();
       go("/home", true);
       return;
     }
@@ -1835,7 +1901,12 @@
       go("/profiles", true);
       return;
     }
-    if (state.bootstrap.profile && route.name === "profiles" && pathOf() === "/") {
+    if (isSessionIdle()) {
+      if (route.name !== "profiles") {
+        go("/profiles", true);
+        return;
+      }
+    } else if (state.bootstrap.profile && route.name === "profiles" && pathOf() === "/") {
       go("/home", true);
       return;
     }
@@ -1875,20 +1946,32 @@
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden" && state.player.video && state.player.lesson) {
-      const v = state.player.video;
-      api("/app/progress", {
-        method: "POST",
-        body: JSON.stringify({
-          lessonId: state.player.lesson.id,
-          vimeoId: state.player.lesson.vimeoId,
-          position: v.currentTime || 0,
-          duration: v.duration || state.player.lesson.seconds,
-          playedDelta: takePlayedDelta(v),
-        }),
-      }).catch(() => {});
+    if (document.visibilityState === "hidden") {
+      touchActive();
+      if (state.player.video && state.player.lesson) {
+        const v = state.player.video;
+        api("/app/progress", {
+          method: "POST",
+          body: JSON.stringify({
+            lessonId: state.player.lesson.id,
+            vimeoId: state.player.lesson.vimeoId,
+            position: v.currentTime || 0,
+            duration: v.duration || state.player.lesson.seconds,
+            playedDelta: takePlayedDelta(v),
+            playedBuckets: [...(state.player.seenBuckets || [])],
+          }),
+        }).catch(() => {});
+      }
+      return;
     }
+    lockIfIdle();
   });
+
+  window.addEventListener("pageshow", () => { lockIfIdle(); });
+  window.addEventListener("focus", () => { lockIfIdle(); });
+  setInterval(() => {
+    if (document.visibilityState === "visible" && !isSessionIdle()) touchActive();
+  }, 60 * 1000);
 
   document.addEventListener("click", (e) => {
     const inside = e.target.closest?.("[data-menu]");

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS watch_progress (
   duration_sec DOUBLE NOT NULL DEFAULT 0,
   watched TINYINT(1) NOT NULL DEFAULT 0,
   played_sec DOUBLE NOT NULL DEFAULT 0,
+  played_buckets TEXT NULL,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_profile_lesson (profile_id, lesson_id),
   KEY idx_profile_updated (profile_id, updated_at),
