@@ -322,13 +322,41 @@ final class Progress
     }
 
     /**
+     * Highest catalog index that is fully watched. -1 if none.
+     * Earlier gaps stay unwatched; we do not rewind past this point.
+     *
+     * @param list<int|array<string,mixed>> $order
+     * @param array<int|string, mixed> $progressByLesson
+     */
+    public static function furthestWatchedIndex(array $order, array $progressByLesson): int
+    {
+        $last = -1;
+        foreach ($order as $i => $lesson) {
+            $id = self::orderLessonId($lesson);
+            if ($id <= 0) {
+                continue;
+            }
+            $row = self::progressFor($progressByLesson, $id);
+            if ($row !== null && !empty($row['watched'])) {
+                $last = (int) $i;
+            }
+        }
+        return $last;
+    }
+
+    /**
+     * Next lesson after the furthest fully watched one. Unwatched lessons
+     * before that point are not treated as the resume target.
+     *
      * @param list<int|array<string,mixed>> $order
      * @param array<int|string, mixed> $progressByLesson
      */
     public static function firstUnwatchedId(array $order, array $progressByLesson): ?int
     {
-        foreach ($order as $lesson) {
-            $id = self::orderLessonId($lesson);
+        $from = self::furthestWatchedIndex($order, $progressByLesson) + 1;
+        $n = count($order);
+        for ($i = $from; $i < $n; $i++) {
+            $id = self::orderLessonId($order[$i]);
             if ($id <= 0) {
                 continue;
             }
@@ -389,6 +417,7 @@ final class Progress
      */
     public static function visibleIds(array $order, array $progressByLesson, bool $hideFuture): array
     {
+        $nextId = $hideFuture ? self::firstUnwatchedId($order, $progressByLesson) : null;
         $ids = [];
         foreach ($order as $lesson) {
             $id = self::orderLessonId($lesson);
@@ -396,11 +425,8 @@ final class Progress
                 continue;
             }
             $ids[] = $id;
-            if ($hideFuture) {
-                $row = self::progressFor($progressByLesson, $id);
-                if ($row === null || empty($row['watched'])) {
-                    break;
-                }
+            if ($hideFuture && $nextId !== null && $id === $nextId) {
+                break;
             }
         }
         return $ids;

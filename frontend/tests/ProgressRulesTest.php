@@ -121,6 +121,22 @@ if (Progress::firstUnwatchedId($order, ['10' => ['watched' => true]]) !== 20) {
 }
 ok('firstUnwatchedId');
 
+$skippedAhead = [
+    '10' => ['watched' => false, 'position' => 10, 'duration' => 100],
+    '30' => ['watched' => true],
+];
+if (Progress::furthestWatchedIndex($order, $skippedAhead) !== 2) {
+    fail('furthest watched should be last fully watched, got ' . (string) Progress::furthestWatchedIndex($order, $skippedAhead));
+}
+if (Progress::firstUnwatchedId($order, $skippedAhead) !== null) {
+    fail('after last watched at end, next should be null, got ' . json_encode(Progress::firstUnwatchedId($order, $skippedAhead)));
+}
+$skipResume = Progress::resumeFromOrder($order, ['progress' => $skippedAhead]);
+if ($skipResume === null || $skipResume['reason'] !== 'complete' || $skipResume['lessonId'] !== 30 || $skipResume['position'] !== 0) {
+    fail('skipped-ahead last watched should not rewind to the gap, got ' . json_encode($skipResume));
+}
+ok('skipped-ahead does not rewind');
+
 $catalog = [
     'intro' => ['id' => 1, 'n' => 1, 'vimeoId' => 'v1', 'title' => 'Intro'],
     'order' => [
@@ -193,6 +209,22 @@ if (Progress::visibleIds($catalog['order'], $allWatched, true) !== [1, 2, 3, 4])
     fail('all watched should expose every id');
 }
 ok('visibleIds all watched');
+
+$gapProgress = [
+    '3' => ['watched' => true, 'position' => 10, 'duration' => 10],
+];
+$gapVisible = Progress::visibleIds($catalog['order'], $gapProgress, true);
+if ($gapVisible !== [1, 2, 3, 4]) {
+    fail('visibleIds should keep earlier unwatched lessons and the next after furthest watched, got ' . json_encode($gapVisible));
+}
+if (Progress::firstUnwatchedId($catalog['order'], $gapProgress) !== 4) {
+    fail('next after furthest watched should be 4, got ' . json_encode(Progress::firstUnwatchedId($catalog['order'], $gapProgress)));
+}
+$gapResume = Progress::resumeFromOrder($catalog['order'], ['progress' => $gapProgress]);
+if ($gapResume === null || $gapResume['lessonId'] !== 4 || $gapResume['reason'] !== 'next' || $gapResume['position'] !== 0) {
+    fail('resume should continue after furthest watched, got ' . json_encode($gapResume));
+}
+ok('visibleIds/resume from furthest watched, gaps stay unwatched');
 
 $filtered = Progress::filterCatalogData($catalog, $visible);
 $orderIds = array_map(static fn(array $row): int => (int) $row['id'], $filtered['order']);
