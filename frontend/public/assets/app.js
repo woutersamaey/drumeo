@@ -341,6 +341,12 @@
 
   function lessonTotal() {
     const b = state.bootstrap;
+    const fromCatalog = Number(b?.lessonTotal);
+    if (fromCatalog > 0) return fromCatalog;
+    const slug = b?.profile?.slug;
+    const fromProfile = (b?.profiles || []).find((p) => p.slug === slug);
+    const n = Number(fromProfile?.lessonCount);
+    if (n > 0) return n;
     return (b?.order?.length || methodSequence().length || 0);
   }
 

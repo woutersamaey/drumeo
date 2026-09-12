@@ -250,6 +250,7 @@ final class Http
             'intro' => $all['intro'],
             'paths' => $all['paths'],
             'order' => $all['order'],
+            'lessonTotal' => count($all['order']),
             'available' => array_map('strval', array_keys($available)),
             'resume' => null,
             'practice' => [],
