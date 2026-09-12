@@ -95,6 +95,7 @@ services:
       MEDIA_DIR: /media/nas
       IMAGE_CACHE_DIR: /media/img-cache
       NOTATION_PATH: /app/notation.pdf
+      RECORDINGS_DIR: /media/coach
     volumes:
       - ./catalog.json:/app/catalog.json:ro
       - ./thumbs:/app/thumbs:ro
@@ -102,10 +103,29 @@ services:
       - ./drumeo-method-notation-key.pdf:/app/notation.pdf:ro
       - ./frontend/public/assets:/app/public/assets:ro
       - image-cache:/media/img-cache
+      - coach-data:/media/coach
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+
+  coach-worker:
+    build:
+      context: ./coach-worker
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_NAME: drumeo
+      DB_USER: drumeo
+      DB_PASS: drumeo
+      MEDIA_DIR: /media/nas
+      RECORDINGS_DIR: /media/coach
+    volumes:
+      - ${DRUMEO_MEDIA:-/Volumes/private/Drumeo}:/media/nas:ro
+      - coach-data:/media/coach
+    depends_on:
+      mysql:
         condition: service_healthy
 
   nginx:
@@ -135,3 +155,4 @@ volumes:
   video-meta:
   video-tmp:
   image-cache:
+  coach-data:

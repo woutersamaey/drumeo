@@ -22,6 +22,8 @@
     lessonsShown: 0,
     lessonsObserver: null,
     lessonsLoading: false,
+    coach: null,
+    cal: null,
   };
 
   const LESSONS_PAGE_SIZE = 12;
@@ -153,7 +155,11 @@
     if (p === "/history") return { name: "history", params: {} };
     if (p === "/stats") return { name: "stats", params: {} };
     if (p === "/practice") return { name: "practice", params: {} };
-    let m = p.match(/^\/path\/([a-zA-Z0-9_-]+)$/);
+    if (p === "/evaluaties") return { name: "evaluaties", params: {} };
+    if (p === "/calibratie") return { name: "calibratie", params: {} };
+    let m = p.match(/^\/evaluaties\/(\d+)$/);
+    if (m) return { name: "evaluatie", params: { id: Number(m[1]) } };
+    m = p.match(/^\/path\/([a-zA-Z0-9_-]+)$/);
     if (m) return { name: "path", params: { slug: m[1] } };
     m = p.match(/^\/watch\/(\d+)$/);
     if (m) return { name: "watch", params: { id: Number(m[1]) } };
@@ -622,6 +628,7 @@
             ${navLink("/lessons", "Lessen", { cls: "hidden lg:flex items-center" })}
             ${methodNav()}
             ${navLink("/practice", "Opnieuw oefenen", { cls: "hidden lg:flex items-center" })}
+            ${navLink("/evaluaties", "Evaluaties", { cls: "hidden lg:flex items-center" })}
             ${navLink("/history", "Geschiedenis", { cls: "hidden lg:flex items-center" })}
             ${navLink("/stats", "Statistieken", { cls: "hidden lg:flex items-center" })}
           </nav>
@@ -957,6 +964,27 @@
         ${hscroll(practice.slice(0, 12).map((l) => card(l, { wide: true })).join(""))}
       </section>` : "";
 
+    const coachRecent = (b.coach?.recent || []).filter((r) => r.status !== "uploading").slice(0, 6);
+    const evalsRow = coachRecent.length ? `
+      <section class="mb-10">
+        <div class="flex items-end justify-between mb-3">
+          <h3 class="text-2xl font-bold">Evaluaties</h3>
+          <a href="/evaluaties" data-link class="text-muted text-sm">Alles</a>
+        </div>
+        <div class="flex flex-col gap-2">
+          ${coachRecent.map((r) => {
+            const sc = r.hybrid != null ? Math.round(r.hybrid) : "…";
+            return `<a href="/evaluaties/${r.id}" data-link class="flex items-center gap-3 rounded-2xl bg-card border border-line px-4 py-3 tap">
+              <div class="font-black w-12 ${scoreClass(Number(r.hybrid))}">${esc(String(sc))}</div>
+              <div class="min-w-0">
+                <div class="font-semibold line-clamp-1">${r.n ? r.n + ". " : ""}${esc(disp(r))}</div>
+                <div class="text-muted text-xs">${esc(r.status === "ready" ? relativePlayed(r.created) : "analyseert…")}</div>
+              </div>
+            </a>`;
+          }).join("")}
+        </div>
+      </section>` : "";
+
     const week = b.week || { days: [], streak: 0, playedToday: false };
     const inWeek = (date) => (week.days || []).some((d) => d.date === date);
     const selectedDate = (state.weekDay && inWeek(state.weekDay))
@@ -1041,6 +1069,7 @@
       <div class="max-w-7xl mx-auto px-4 pt-6">
         ${hero}
         ${practiceRow}
+        ${evalsRow}
         ${weekRow}
         ${shows}
       </div>`);
@@ -1365,6 +1394,599 @@
       </div>`);
   }
 
+  const COACH_FROM = 1;
+  const ENGINE_META = {
+    hybrid: { label: "Totaal", hint: "Gewogen mix van alle technieken." },
+    onset_match: { label: "Slag-timing", hint: "Elke slag van de leraar, dichtstbijzijnde slag van jou (±160 ms)." },
+    onset_dtw: { label: "Ritme-patroon", hint: "Lijkt jouw patroon op dat van de leraar, ongeacht tempo?" },
+    tempo: { label: "Tempo", hint: "Speel je te snel of te traag t.o.v. de les?" },
+    envelope: { label: "Energie", hint: "Volgen jouw luide en stille momenten de leraar?" },
+    bands: { label: "Kick / snare / bekkens", hint: "Drie toonhoogte-banden apart vergeleken." },
+    activity: { label: "Activiteit", hint: "Hoeveel we hoorden, zonder leraar-referentie." },
+  };
+
+  function coachFrom() {
+    return Number(state.bootstrap?.coach?.fromLesson) || COACH_FROM;
+  }
+
+  function coachOn(lesson) {
+    return (lessonNo(lesson) || 0) >= coachFrom();
+  }
+
+  function coachCalibrated() {
+    return !!state.bootstrap?.coach?.calibration;
+  }
+
+  function coachDebugOn() {
+    try {
+      const v = localStorage.getItem("drumeo_coach_debug");
+      if (v === null) return true;
+      return v === "1";
+    } catch { return true; }
+  }
+
+  function setCoachDebug(on) {
+    try { localStorage.setItem("drumeo_coach_debug", on ? "1" : "0"); } catch {}
+    document.querySelectorAll("[data-coach-debug]").forEach((el) => el.classList.toggle("hidden", !on));
+    document.querySelectorAll("[data-action=coach-debug]").forEach((btn) => {
+      btn.textContent = on ? "Verberg debug" : "Toon debug";
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function debugToggleBtn() {
+    const on = coachDebugOn();
+    return `<button type="button" data-action="coach-debug" class="tap rounded-full bg-card px-3 py-1.5 text-xs border border-line text-muted" aria-pressed="${on ? "true" : "false"}">${on ? "Verberg debug" : "Toon debug"}</button>`;
+  }
+
+  function paintCoach(msg, kind) {
+    const el = $("#coach-msg");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("is-ok", "is-warn");
+    if (kind) el.classList.add("is-" + kind);
+  }
+
+  function paintCoachDebug() {
+    const root = $("#coach-debug-live");
+    if (!root) return;
+    const d = state.coach?.debug || {};
+    const rows = [
+      ["video t", d.t ?? "—"],
+      ["feedback", d.msg || "—"],
+      ["RMS", d.rms != null ? d.rms.toFixed(4) : "—"],
+      ["flux", d.flux != null ? d.flux.toFixed(4) : "—"],
+      ["slagen jij / les", (d.studentN ?? 0) + " / " + (d.teacherN ?? 0)],
+      ["venster 2.4s", (d.winStudent ?? 0) + " vs " + (d.winTeacher ?? 0) + " leraar"],
+      ["lag", d.lagMs == null ? "—" : d.lagMs + " ms"],
+      ["live BPM", d.liveBpm ?? "—"],
+      ["ref ready", d.refReady ? "ja" : "nee"],
+      ["recording", d.recId || "—"],
+      ["recorder", (d.recState || "—") + " " + (d.mime || "")],
+    ];
+    root.innerHTML = `<table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join("")}</table>`;
+  }
+
+  function coachMeter(rms) {
+    const bar = $("#coach-meter-bar");
+    if (!bar) return;
+    bar.style.width = Math.min(100, Math.round(rms * 400)) + "%";
+  }
+
+  function recorderMime() {
+    const types = ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"];
+    if (!window.MediaRecorder) return "";
+    return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  }
+
+  async function ensureCoachStream() {
+    if (state.coach?.stream && state.coach.stream.active) return state.coach.stream;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1,
+      },
+      video: false,
+    });
+    return stream;
+  }
+
+  function liveBpm(onsets) {
+    if (!onsets || onsets.length < 5) return null;
+    const ioi = [];
+    for (let i = 1; i < onsets.length; i++) {
+      const d = onsets[i] - onsets[i - 1];
+      if (d > 0.12 && d < 1.6) ioi.push(d);
+    }
+    if (ioi.length < 3) return null;
+    ioi.sort((a, b) => a - b);
+    const med = ioi[Math.floor(ioi.length / 2)];
+    let bpm = 60 / med;
+    if (bpm < 70) bpm *= 2;
+    if (bpm > 180) bpm /= 2;
+    return Math.round(bpm);
+  }
+
+  function coachRealtime(t) {
+    const c = state.coach;
+    if (!c) return;
+    const ref = c.refOnsets || [];
+    const win = 2.4;
+    const tOn = ref.filter((x) => x >= t - win && x <= t + 0.05);
+    const sOn = c.onsets.filter((x) => x >= t - win && x <= t + 0.05);
+    let msg = "Speel mee met de leraar";
+    let kind = "";
+    let med = null;
+    if (!ref.length) {
+      msg = c.onsets.length ? "We horen je!" : "Speel mee met de leraar";
+      kind = c.onsets.length ? "ok" : "";
+    } else if (tOn.length >= 4 && sOn.length === 0) {
+      msg = "Sla mee!";
+      kind = "warn";
+    } else if (sOn.length >= 2) {
+      const lags = sOn.map((s) => {
+        let best = 9, bestAbs = 9;
+        for (const te of tOn) {
+          const d = s - te;
+          if (Math.abs(d) < bestAbs) { bestAbs = Math.abs(d); best = d; }
+        }
+        return best;
+      }).filter((v) => Math.abs(v) < 9);
+      if (lags.length) {
+        lags.sort((a, b) => a - b);
+        med = lags[Math.floor(lags.length / 2)];
+        if (med < -0.055) { msg = "Je speelt te snel"; kind = "warn"; }
+        else if (med > 0.055) { msg = "Je speelt te traag"; kind = "warn"; }
+        else { msg = "Goed zo!"; kind = "ok"; }
+      }
+    } else {
+      msg = "Goed zo — speel mee";
+      kind = "ok";
+    }
+    paintCoach(msg, kind);
+    c.debug = {
+      t: Math.round(t * 100) / 100,
+      msg,
+      kind,
+      rms: c.lastRms,
+      flux: c.lastFlux,
+      studentN: c.onsets.length,
+      teacherN: ref.length,
+      winStudent: sOn.length,
+      winTeacher: tOn.length,
+      lagMs: med == null ? null : Math.round(med * 1000),
+      liveBpm: liveBpm(c.onsets.slice(-16)),
+      refReady: !!c.refReady,
+      recId: c.recordingId || null,
+      mime: c.mime || "",
+      recState: c.recorder?.state || "",
+    };
+    paintCoachDebug();
+  }
+
+  function attachCoachAnalyser(stream, video) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const src = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.2;
+    src.connect(analyser);
+    const td = new Uint8Array(analyser.fftSize);
+    const c = state.coach;
+    c.ctx = ctx;
+    c.analyser = analyser;
+    c.td = td;
+    const noise = Number(state.bootstrap?.coach?.calibration?.noiseRms) || 0.02;
+    const loop = () => {
+      if (!state.coach || state.coach.stream !== stream) return;
+      analyser.getByteTimeDomainData(td);
+      let sum = 0, diff = 0;
+      for (let i = 0; i < td.length; i++) {
+        const v = (td[i] - 128) / 128;
+        sum += v * v;
+        if (i) diff += Math.abs(td[i] - td[i - 1]);
+      }
+      const rms = Math.sqrt(sum / td.length);
+      diff = diff / (td.length * 128);
+      c.lastRms = rms;
+      c.lastFlux = diff;
+      coachMeter(rms);
+      const t = video && !video.paused ? video.currentTime : 0;
+      const thresh = Math.max(noise * 5.5, 0.035);
+      if (diff > thresh && rms > noise * 2.2 && t - (c.lastOnset || 0) > 0.05) {
+        c.lastOnset = t;
+        c.onsets.push(Math.round(t * 1000) / 1000);
+        if (c.onsets.length > 4000) c.onsets.splice(0, c.onsets.length - 3000);
+        coachRealtime(t);
+      } else if (video && !video.paused && (c.tick || 0) % 12 === 0) {
+        coachRealtime(t);
+      }
+      c.tick = (c.tick || 0) + 1;
+      c.raf = requestAnimationFrame(loop);
+    };
+    c.raf = requestAnimationFrame(loop);
+    ctx.resume?.();
+  }
+
+  async function loadCoachRef(lesson) {
+    try {
+      const ref = await api("/app/coach/ref/" + lesson.id);
+      if (ref?.ready && Array.isArray(ref.onsets) && state.coach) {
+        state.coach.refOnsets = ref.onsets.map(Number).filter((n) => n >= 0);
+        state.coach.refReady = true;
+      }
+    } catch {}
+  }
+
+  async function startCoach(lesson, video) {
+    if (!coachOn(lesson)) return;
+    if (state.coach?.active) return;
+    const gate = $("#coach-gate");
+    try {
+      const stream = await ensureCoachStream();
+      const mime = recorderMime();
+      const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      const chunks = [];
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.start(4000);
+      let row = null;
+      try {
+        row = await api("/app/coach/recording/start", {
+          method: "POST",
+          body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, videoOffset: video?.currentTime || 0 }),
+        });
+      } catch {}
+      state.coach = {
+        active: true,
+        stream,
+        recorder: rec,
+        chunks,
+        mime: rec.mimeType || mime || "audio/mp4",
+        recordingId: row?.id || null,
+        onsets: [],
+        refOnsets: [],
+        lastOnset: 0,
+        tick: 0,
+        lesson,
+      };
+      if (gate) gate.classList.add("hidden");
+      paintCoach("Speel mee met de leraar", "");
+      attachCoachAnalyser(stream, video);
+      loadCoachRef(lesson);
+    } catch (err) {
+      console.warn("coach mic", err);
+      if (gate) {
+        gate.classList.remove("hidden");
+        const t = gate.querySelector("p");
+        if (t) t.textContent = "Tik om de microfoon aan te zetten. We luisteren alleen naar jouw drums.";
+      }
+    }
+  }
+
+  function stopCoachUpload() {
+    const c = state.coach;
+    if (!c?.recorder) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const rec = c.recorder;
+      const finish = async () => {
+        try { rec.stream?.getTracks?.().forEach((t) => {}); } catch {}
+        const blob = new Blob(c.chunks || [], { type: c.mime || "audio/mp4" });
+        if (!c.recordingId || blob.size < 200) {
+          resolve(null);
+          return;
+        }
+        const fd = new FormData();
+        const ext = (c.mime || "").includes("webm") ? "webm" : "m4a";
+        fd.append("audio", blob, "take." + ext);
+        fd.append("mime", c.mime || "audio/mp4");
+        fd.append("duration", String(c.lesson?.seconds || 0));
+        try {
+          const row = await fetch("/app/coach/recording/" + c.recordingId + "/upload", {
+            method: "POST",
+            credentials: "same-origin",
+            body: fd,
+          }).then((r) => r.json());
+          if (state.bootstrap?.coach) {
+            state.bootstrap.coach.pending = (state.bootstrap.coach.pending || 0) + 1;
+          }
+          resolve(row);
+        } catch {
+          resolve(null);
+        }
+      };
+      rec.onstop = finish;
+      try {
+        if (rec.state !== "inactive") rec.stop();
+        else finish();
+      } catch { finish(); }
+    });
+  }
+
+  function teardownCoachMic() {
+    const c = state.coach;
+    if (!c) return;
+    if (c.raf) cancelAnimationFrame(c.raf);
+    try { c.ctx?.close(); } catch {}
+    try { c.stream?.getTracks?.().forEach((t) => t.stop()); } catch {}
+  }
+
+  async function stopCoach() {
+    const c = state.coach;
+    if (!c || c.stopped) return c?.lastRow || null;
+    c.stopped = true;
+    c.active = false;
+    const upload = stopCoachUpload();
+    teardownCoachMic();
+    const row = await upload;
+    c.lastRow = row;
+    state.coach = c.recordingId ? { recordingId: c.recordingId, lesson: c.lesson, lastRow: row, stopped: true } : null;
+    return row;
+  }
+
+  function scoreClass(n) {
+    if (n >= 85) return "text-good";
+    if (n >= 70) return "text-accent";
+    if (n >= 50) return "text-warn";
+    return "";
+  }
+
+  function evalCard(ev) {
+    const meta = ENGINE_META[ev.engine] || { label: ev.engine, hint: "" };
+    const sc = ev.score == null ? "—" : Math.round(ev.score);
+    return `<article class="engine-card">
+      <div class="flex items-baseline justify-between gap-2">
+        <h3 class="font-bold">${esc(meta.label)}</h3>
+        <div class="text-2xl font-black ${scoreClass(Number(sc))}">${esc(String(sc))}</div>
+      </div>
+      <p class="text-muted text-sm mt-1">${esc(meta.hint)}</p>
+    </article>`;
+  }
+
+  function renderCalibrate() {
+    const step = state.cal?.step || 0;
+    const hits = state.cal?.hits || 0;
+    const steps = [
+      { title: "Koptelefoon op", body: "Zet je koptelefoon op. De iPad mag alleen jóuw drums horen — niet de les." },
+      { title: "Stil zijn", body: "Blijf even stil. We meten de kamer, daarna mag je slaan." },
+      { title: "Sla op de snare", body: "Sla 4 keer stevig op de snare, niet te snel achter elkaar." },
+      { title: "Klaar!", body: "We horen je. Vanaf nu luisteren we mee tijdens elke les en geven we tips." },
+    ];
+    const s = steps[Math.min(step, steps.length - 1)];
+    $("#app").innerHTML = layout(`
+      <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
+        <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stap ${Math.min(step, 3) + 1} van 4</p>
+        <h1 class="text-3xl font-black mt-2">${esc(s.title)}</h1>
+        <p class="text-muted mt-3 text-lg">${esc(s.body)}</p>
+        <div class="cal-drum${hits && step === 2 ? " is-hit" : ""}" id="cal-drum">${step === 2 ? hits + " / 4" : "🥁"}</div>
+        ${step === 0 ? `<button data-action="cal-next" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Koptelefoon zit op</button>` : ""}
+        ${step === 1 ? `<p class="text-muted" id="cal-status">Even luisteren…</p>` : ""}
+        ${step === 2 ? `<p class="text-muted" id="cal-status">Sla maar!</p>` : ""}
+        ${step === 3 ? `<a href="${esc(sessionStorage.getItem("coach_next") || "/home")}" data-link class="tap rounded-full bg-white text-ink font-bold px-6 py-3 inline-block">Start de les</a>` : ""}
+      </div>`);
+    if (step === 1) runCalNoise();
+    if (step === 2) runCalHits();
+  }
+
+  async function runCalNoise() {
+    try {
+      const stream = await ensureCoachStream();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      src.connect(analyser);
+      const td = new Uint8Array(analyser.fftSize);
+      const samples = [];
+      const t0 = performance.now();
+      const poll = () => {
+        analyser.getByteTimeDomainData(td);
+        let sum = 0;
+        for (let i = 0; i < td.length; i++) {
+          const v = (td[i] - 128) / 128;
+          sum += v * v;
+        }
+        samples.push(Math.sqrt(sum / td.length));
+        if (performance.now() - t0 < 1600) requestAnimationFrame(poll);
+        else {
+          samples.sort((a, b) => a - b);
+          const noise = samples[Math.floor(samples.length * 0.5)] || 0.02;
+          state.cal = { ...(state.cal || {}), step: 2, noiseRms: noise, stream, ctx, analyser, sampleRate: ctx.sampleRate };
+          try { ctx.close(); } catch {}
+          render();
+        }
+      };
+      ctx.resume?.();
+      poll();
+    } catch {
+      const st = $("#cal-status");
+      if (st) st.textContent = "Microfoon mag niet. Sta toegang toe en probeer opnieuw.";
+    }
+  }
+
+  async function runCalHits() {
+    try {
+      const stream = state.cal?.stream || await ensureCoachStream();
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      src.connect(analyser);
+      const td = new Uint8Array(analyser.fftSize);
+      const noise = Number(state.cal?.noiseRms) || 0.02;
+      let last = 0;
+      const peaks = [];
+      const loop = () => {
+        if ((state.cal?.step || 0) !== 2) {
+          try { ctx.close(); } catch {}
+          return;
+        }
+        analyser.getByteTimeDomainData(td);
+        let sum = 0, diff = 0;
+        for (let i = 0; i < td.length; i++) {
+          const v = (td[i] - 128) / 128;
+          sum += v * v;
+          if (i) diff += Math.abs(td[i] - td[i - 1]);
+        }
+        const rms = Math.sqrt(sum / td.length);
+        diff = diff / (td.length * 128);
+        const now = performance.now();
+        if (diff > Math.max(noise * 6, 0.04) && rms > noise * 3 && now - last > 180) {
+          last = now;
+          peaks.push(rms);
+          state.cal.hits = peaks.length;
+          const drum = $("#cal-drum");
+          if (drum) {
+            drum.textContent = peaks.length + " / 4";
+            drum.classList.add("is-hit");
+            setTimeout(() => drum.classList.remove("is-hit"), 180);
+          }
+          if (peaks.length >= 4) {
+            const hit = peaks.reduce((a, b) => a + b, 0) / peaks.length;
+            finishCalibration(noise, hit, peaks.length, ctx.sampleRate, stream);
+            try { ctx.close(); } catch {}
+            return;
+          }
+        }
+        requestAnimationFrame(loop);
+      };
+      ctx.resume?.();
+      loop();
+    } catch {}
+  }
+
+  async function finishCalibration(noise, hit, hits, sampleRate, stream) {
+    try {
+      const res = await api("/app/coach/calibration", {
+        method: "POST",
+        body: JSON.stringify({ noiseRms: noise, hitRms: hit, hits, sampleRate }),
+      });
+      if (state.bootstrap) {
+        state.bootstrap.coach = state.bootstrap.coach || {};
+        state.bootstrap.coach.calibration = res.calibration;
+      }
+    } catch {}
+    try { stream?.getTracks?.().forEach((t) => t.stop()); } catch {}
+    state.cal = { step: 3, hits };
+    render();
+  }
+
+  async function renderEvaluaties() {
+    $("#app").innerHTML = layout(`<div class="grid place-items-center min-h-[40vh] text-muted">Laden…</div>`);
+    let rows = [];
+    try {
+      const data = await api("/app/coach/recordings");
+      rows = data.recordings || [];
+    } catch (e) {
+      $("#app").innerHTML = layout(`<div class="p-8">Kon evaluaties niet laden. ${esc(e.message)}</div>`);
+      return;
+    }
+    $("#app").innerHTML = layout(`
+      <div class="max-w-7xl mx-auto px-4 pt-6">
+        <h1 class="text-3xl sm:text-4xl font-black">Evaluaties</h1>
+        <p class="text-muted mt-2 mb-8">Elke keer dat je meespeelt, luisteren we mee. Hier zie je alle technieken naast elkaar.</p>
+        ${rows.length === 0 ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog geen opnames. Speel een les — we starten automatisch.</div>` : `
+          <div class="space-y-3">
+            ${rows.map((r) => {
+              const st = r.status === "ready" ? (r.hybrid != null ? Math.round(r.hybrid) + "%" : "klaar")
+                : r.status === "failed" ? "mislukt"
+                : r.status === "analyzing" ? "bezig…"
+                : "wacht op analyse";
+              const when = r.created ? relativePlayed(r.created) : "";
+              return `<a href="/evaluaties/${r.id}" data-link class="flex items-center gap-4 rounded-2xl bg-card border border-line p-4 tap">
+                <div class="text-2xl font-black w-16 ${scoreClass(Number(r.hybrid))}">${r.hybrid != null ? Math.round(r.hybrid) : "…"}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="font-semibold">${r.n ? r.n + ". " : ""}${esc(disp(r))}</div>
+                  <div class="text-muted text-sm">${esc(when)} · ${esc(st)}</div>
+                </div>
+              </a>`;
+            }).join("")}
+          </div>`}
+      </div>`);
+  }
+
+  function onsetLanes(teacher, student, duration) {
+    const dur = Math.max(1, Number(duration) || 1);
+    const dots = (arr, cls) => (arr || []).slice(0, 400).map((t) => {
+      const p = Math.max(0, Math.min(100, (Number(t) / dur) * 100));
+      return `<i class="${cls}" style="left:${p}%"></i>`;
+    }).join("");
+    return `<div class="space-y-2">
+      <div class="text-xs text-muted">Leraar</div>
+      <div class="onset-lane">${dots(teacher, "")}</div>
+      <div class="text-xs text-muted">Jij</div>
+      <div class="onset-lane">${dots(student, "student")}</div>
+    </div>`;
+  }
+
+  async function renderEvaluatie() {
+    const id = state.route.params.id;
+    $("#app").innerHTML = layout(`<div class="grid place-items-center min-h-[40vh] text-muted">Laden…</div>`);
+    let row;
+    try { row = await api("/app/coach/recording/" + id); }
+    catch (e) {
+      $("#app").innerHTML = layout(`<div class="p-8">Niet gevonden. ${esc(e.message)}</div>`);
+      return;
+    }
+    if (row.status === "queued" || row.status === "analyzing") {
+      $("#app").innerHTML = layout(`
+        <div class="max-w-3xl mx-auto px-4 pt-8">
+          <p class="text-muted"><a href="/evaluaties" data-link class="text-accent">← Evaluaties</a></p>
+          <h1 class="text-3xl font-black mt-3">${row.n ? row.n + ". " : ""}${esc(disp(row))}</h1>
+          <p class="text-muted mt-3">We luisteren nog. Dit mag een minuut duren — ververs straks.</p>
+        </div>`);
+      setTimeout(() => { if (state.route.name === "evaluatie") render(); }, 2500);
+      return;
+    }
+    const hybrid = (row.evaluations || []).find((e) => e.engine === "hybrid");
+    const comments = hybrid?.summary?.comments || row.comments || [];
+    const sc = hybrid?.score;
+    const others = (row.evaluations || []).filter((e) => e.engine !== "hybrid");
+    const meta = hybrid?.summary || {};
+    $("#app").innerHTML = layout(`
+      <div class="max-w-5xl mx-auto px-4 pt-6 pb-16">
+        <p class="text-muted"><a href="/evaluaties" data-link class="text-accent">← Evaluaties</a></p>
+        <div class="flex flex-wrap items-center gap-6 mt-4">
+          <div class="score-ring" style="--p:${Math.max(0, Math.min(100, Number(sc) || 0))}%"><span>${sc == null ? "—" : Math.round(sc)}</span></div>
+          <div class="min-w-0">
+            <h1 class="text-3xl font-black">${row.n ? row.n + ". " : ""}${esc(disp(row))}</h1>
+            <p class="text-muted mt-2">${esc(relativePlayed(row.created))} · ${esc(row.status)}</p>
+          </div>
+        </div>
+        ${comments.length ? `<ul class="mt-6 rounded-2xl bg-card border border-line p-5 space-y-2">${comments.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>` : ""}
+        <h2 class="text-2xl font-bold mt-10 mb-3">Technieken</h2>
+        <p class="text-muted mb-4">We bewaren ze allemaal, zodat we later de beste mix kunnen kiezen.</p>
+        <div class="engine-grid">${(row.evaluations || []).map(evalCard).join("")}</div>
+        <h2 class="text-2xl font-bold mt-10 mb-3">Slagen in de tijd</h2>
+        ${onsetLanes(meta.teacher_onsets || meta.teacherOnsets, meta.student_onsets || meta.studentOnsets, row.duration || 1)}
+        <h2 class="text-2xl font-bold mt-10 mb-3">Jouw opname</h2>
+        <audio class="w-full mt-2" controls src="/app/coach/recording/${row.id}/audio" preload="none"></audio>
+        <div class="mt-10 flex items-center gap-2">
+          <h2 class="text-2xl font-bold">Debug</h2>
+          ${debugToggleBtn()}
+        </div>
+        <p class="text-muted text-sm mt-1 mb-3">Ruwe output per techniek, om ze te vergelijken. Later verbergen we dit.</p>
+        <div data-coach-debug class="${coachDebugOn() ? "" : "hidden"} space-y-3">
+          ${(row.evaluations || []).map((ev) => {
+            const meta = ENGINE_META[ev.engine] || { label: ev.engine };
+            const raw = JSON.stringify(ev.summary || {}, null, 2);
+            return `<section class="engine-card">
+              <div class="flex items-baseline justify-between gap-2 mb-2">
+                <h3 class="font-bold">${esc(meta.label)} <span class="text-muted font-mono text-xs">${esc(ev.engine)}</span></h3>
+                <span class="font-black">${ev.score == null ? "—" : Math.round(ev.score)}</span>
+              </div>
+              <pre class="debug-pre">${esc(raw)}</pre>
+            </section>`;
+          }).join("")}
+        </div>
+      </div>`);
+  }
+
   async function renderWatch() {
     const id = state.route.params.id;
     let lesson = state.lessonCache[id] || lessonById(id);
@@ -1374,6 +1996,11 @@
     }
     if (!lesson) {
       $("#app").innerHTML = layout(`<div class="p-8">Les niet gevonden.</div>`);
+      return;
+    }
+    if (coachOn(lesson) && !coachCalibrated()) {
+      try { sessionStorage.setItem("coach_next", "/watch/" + lesson.id); } catch {}
+      go("/calibratie", true);
       return;
     }
     const path = (state.bootstrap?.paths || []).find((p) => p.slug === lesson.pathSlug);
@@ -1397,6 +2024,17 @@
                   <div class="progress-bar mt-4 max-w-sm mx-auto"><span id="prep-bar" style="width:0%"></span></div>
                 </div>
               </div>
+              ${coachOn(lesson) ? `
+              <div id="coach-hud" class="coach-hud">
+                <div class="coach-meter" aria-hidden="true"><span id="coach-meter-bar"></span></div>
+                <div id="coach-msg" class="coach-msg">Speel mee met de leraar</div>
+              </div>
+              <div id="coach-gate" class="coach-gate hidden">
+                <div>
+                  <p class="text-lg font-bold mb-4">Tik om de microfoon aan te zetten</p>
+                  <button type="button" data-action="coach-mic" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Ik ben klaar</button>
+                </div>
+              </div>` : ""}
             </div>
             <div class="flex items-center justify-between gap-3 mt-3">
               ${prevLesson
@@ -1406,6 +2044,12 @@
                 ? `<a href="/watch/${nextLesson.id}" data-link class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm inline-flex items-center gap-2">Volgende ${skipNextIcon()}</a>`
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">Volgende ${skipNextIcon()}</span>`}
             </div>
+            ${coachOn(lesson) ? `
+            <div class="mt-3 flex items-center gap-2">
+              ${debugToggleBtn()}
+              <span class="text-xs text-muted">Live: slagen, lag, engines</span>
+            </div>
+            <div data-coach-debug id="coach-debug-live" class="debug-panel mt-2${coachDebugOn() ? "" : " hidden"}">Wachten op microfoon…</div>` : ""}
           </section>
           <aside class="rounded-2xl bg-card border border-line overflow-hidden">
             <div class="p-4 border-b border-line">
@@ -1467,6 +2111,12 @@
                 <button data-action="rate" data-score="${s}" class="tap rounded-2xl bg-card border border-line py-5 text-4xl">
                   <div>${e}</div><div class="text-xs mt-2 text-muted">${l}</div>
                 </button>`).join("")}
+            </div>
+            <div id="coach-eval" class="hidden mt-4 text-left rounded-2xl bg-card border border-line p-4">
+              <p class="font-bold" id="coach-eval-title">We luisteren naar je spel…</p>
+              <p class="text-muted text-sm mt-1" id="coach-eval-body"></p>
+              <p class="mt-2 hidden" id="coach-eval-link"><a href="#" data-link class="text-accent text-sm">Bekijk de volledige evaluatie →</a></p>
+              <p class="mt-2 text-xs text-muted font-mono${coachDebugOn() ? "" : " hidden"}" data-coach-debug id="coach-eval-debug"></p>
             </div>
             <p id="next-title" class="font-bold text-lg"></p>
             <p class="text-muted text-sm mt-1">Volgende start over <span id="count">8</span>s</p>
@@ -1648,8 +2298,12 @@
       if (endHandled) return;
       endHandled = true;
       save(true);
-      state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
-      whenExitedFullscreen(video, () => showNext(lesson));
+      const goModal = () => {
+        state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
+        whenExitedFullscreen(video, () => showNext(lesson));
+      };
+      if (coachOn(lesson)) stopCoach().then(goModal).catch(goModal);
+      else goModal();
     };
     video.addEventListener("ended", onClipEnd, sig);
     video.addEventListener("webkitendfullscreen", () => {
@@ -1671,6 +2325,7 @@
     let programmaticPlay = false;
     let firstPlayFsDone = false;
     video.addEventListener("play", () => {
+      if (coachOn(lesson)) startCoach(lesson, video);
       if (programmaticPlay) return;
       if (firstPlayFsDone || !isHandheld()) return;
       firstPlayFsDone = true;
@@ -1768,6 +2423,10 @@
 
   function enterFullscreen(video) {
     if (!video || isVideoFullscreen(video)) return;
+    if (coachOn(state.player?.lesson)) {
+      requestDocFullscreen(video);
+      return;
+    }
     let usedWebkit = false;
     try {
       if (typeof video.webkitEnterFullscreen === "function") {
@@ -1812,6 +2471,38 @@
     }, 5000);
   }
 
+  function showCoachEval(row) {
+    const box = $("#coach-eval");
+    if (!box) return;
+    box.classList.remove("hidden");
+    const title = $("#coach-eval-title");
+    const body = $("#coach-eval-body");
+    const link = $("#coach-eval-link");
+    if (!row || row.status === "queued" || row.status === "analyzing") {
+      if (title) title.textContent = "We luisteren naar je spel…";
+      if (body) body.textContent = "De grondige score volgt. Je mag al verder.";
+      return;
+    }
+    if (row.status === "failed") {
+      if (title) title.textContent = "Evaluatie mislukt";
+      if (body) body.textContent = "De opname staat klaar — we proberen later opnieuw.";
+      return;
+    }
+    const hy = row.hybrid != null ? row.hybrid : (row.evaluations || []).find((e) => e.engine === "hybrid")?.score;
+    const comments = (row.evaluations || []).find((e) => e.engine === "hybrid")?.summary?.comments || [];
+    if (title) title.textContent = hy != null ? "Score: " + Math.round(hy) + " / 100" : "Evaluatie klaar";
+    if (body) body.textContent = comments[0] || "Bekijk alle technieken op de evaluatiepagina.";
+    if (link) {
+      link.classList.remove("hidden");
+      const a = link.querySelector("a");
+      if (a) a.setAttribute("href", "/evaluaties/" + row.id);
+    }
+    const dbg = $("#coach-eval-debug");
+    if (dbg && Array.isArray(row.evaluations)) {
+      dbg.textContent = row.evaluations.map((e) => `${e.engine}=${e.score == null ? "?" : Math.round(e.score)}`).join("  ");
+    }
+  }
+
   function showNext(lesson) {
     const modal = $("#next-modal");
     if (!modal) return;
@@ -1820,6 +2511,20 @@
     const title = $("#next-title");
     if (title) title.textContent = next ? disp(next) : "Einde van The Method — goed gedaan!";
     modal.classList.remove("hidden");
+    const recId = state.coach?.recordingId;
+    if (recId && $("#coach-eval")) {
+      showCoachEval({ status: "queued", id: recId });
+      const started = Date.now();
+      const poll = async () => {
+        if (Date.now() - started > 20000) return;
+        try {
+          const row = await api("/app/coach/recording/" + recId);
+          showCoachEval(row);
+          if (row.status === "queued" || row.status === "analyzing") setTimeout(poll, 1500);
+        } catch {}
+      };
+      setTimeout(poll, 1200);
+    }
     let n = 8;
     const node = $("#count");
     if (state.countdown) clearInterval(state.countdown);
@@ -1872,6 +2577,7 @@
   }
 
   function teardownPlayer() {
+    if (state.coach?.active) stopCoach().catch(() => {});
     state.playGen++;
     unbindFullscreenWatch();
     if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
@@ -1948,6 +2654,21 @@
   async function onAction(e) {
     const el = e.currentTarget;
     const action = el.getAttribute("data-action");
+    if (action === "cal-next") {
+      state.cal = { ...(state.cal || {}), step: 1, hits: 0 };
+      render();
+      return;
+    }
+    if (action === "coach-debug") {
+      setCoachDebug(!coachDebugOn());
+      return;
+    }
+    if (action === "coach-mic") {
+      const lesson = state.player.lesson || lessonById(state.route.params.id);
+      const video = state.player.video;
+      if (lesson && video) startCoach(lesson, video);
+      return;
+    }
     if (action === "week-day") {
       const date = el.dataset.date;
       if (!date) return;
@@ -1991,9 +2712,7 @@
     }
     if (action === "fullscreen") {
       const video = state.player.video;
-      const stage = $("#stage");
-      if (video?.webkitEnterFullscreen) { video.webkitEnterFullscreen(); return; }
-      (stage || video)?.requestFullscreen?.().catch(() => {});
+      enterFullscreen(video);
       return;
     }
     if (action === "audio") {
@@ -2119,6 +2838,9 @@
     else if (route.name === "stats") await renderStats();
     else if (route.name === "practice") renderPractice();
     else if (route.name === "lessons") renderLessons();
+    else if (route.name === "evaluaties") await renderEvaluaties();
+    else if (route.name === "evaluatie") await renderEvaluatie();
+    else if (route.name === "calibratie") renderCalibrate();
     else if (route.name === "watch") await renderWatch();
     else renderHome();
     bind();

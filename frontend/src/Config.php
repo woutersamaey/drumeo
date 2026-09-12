@@ -19,6 +19,7 @@ final class Config
         public readonly string $mediaDir,
         public readonly string $imageCacheDir,
         public readonly string $notationPath,
+        public readonly string $recordingsDir,
         public readonly string $cookieName = 'drumeo_profile',
     ) {
     }
@@ -39,6 +40,7 @@ final class Config
             mediaDir: self::env('MEDIA_DIR', '/media/nas'),
             imageCacheDir: self::env('IMAGE_CACHE_DIR', '/media/img-cache'),
             notationPath: self::env('NOTATION_PATH', $root . '/notation.pdf'),
+            recordingsDir: self::env('RECORDINGS_DIR', '/media/coach'),
         );
     }
 

@@ -14,7 +14,9 @@ RUN apt-get update \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install pdo_mysql zip gd \
     && rm -rf /var/lib/apt/lists/* \
-    && echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini
+    && echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini \
+    && echo "upload_max_filesize=32M" > /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size=32M" >> /usr/local/etc/php/conf.d/uploads.ini
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
@@ -32,6 +34,7 @@ ENV CATALOG_PATH=/app/catalog.json \
     THUMBS_DIR=/app/thumbs \
     MEDIA_DIR=/media/nas \
     IMAGE_CACHE_DIR=/media/img-cache \
-    NOTATION_PATH=/app/notation.pdf
+    NOTATION_PATH=/app/notation.pdf \
+    RECORDINGS_DIR=/media/coach
 
 CMD ["php-fpm", "-F", "-R"]

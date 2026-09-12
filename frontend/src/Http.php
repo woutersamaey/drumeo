@@ -13,6 +13,7 @@ final class Http
         private readonly RedisCache $cache,
         private readonly Database $db,
         private readonly ImageScaler $scaler,
+        private readonly Coach $coach,
     ) {
     }
 
@@ -24,8 +25,10 @@ final class Http
         $catalog = new Catalog($config, $cache);
         $progress = new Progress($db, $catalog);
         $progress->ensureSchema();
+        $coach = new Coach($db, $catalog, $config);
+        $coach->ensureSchema();
         $scaler = ImageScaler::fromThumbs($config->imageCacheDir, $config->thumbsDir);
-        return new self($config, $catalog, $progress, $cache, $db, $scaler);
+        return new self($config, $catalog, $progress, $cache, $db, $scaler, $coach);
     }
 
     public function run(): void
@@ -236,6 +239,103 @@ final class Http
             return;
         }
 
+        if ($path === '/app/coach/calibration' && $method === 'POST') {
+            $body = $this->body();
+            $saved = $this->coach->saveCalibration(
+                $pid,
+                (float) ($body['noiseRms'] ?? 0),
+                (float) ($body['hitRms'] ?? 0),
+                (int) ($body['hits'] ?? 0),
+                (int) ($body['sampleRate'] ?? 48000),
+                isset($body['latencyMs']) ? (float) $body['latencyMs'] : null,
+            );
+            $this->json(200, ['ok' => true, 'calibration' => $saved]);
+            return;
+        }
+
+        if ($path === '/app/coach/recording/start' && $method === 'POST') {
+            $body = $this->body();
+            $lessonId = (int) ($body['lessonId'] ?? 0);
+            $lesson = $this->visibleLesson($profile, $lessonId);
+            if ($lesson === null || !$this->coach->forLesson($lesson)) {
+                $this->json(404, ['error' => 'unknown lesson']);
+                return;
+            }
+            $row = $this->coach->startRecording(
+                $pid,
+                $lessonId,
+                (string) ($body['vimeoId'] ?? $lesson['vimeoId']),
+                (float) ($body['videoOffset'] ?? 0),
+            );
+            $this->json(200, $row);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/recording/(\d+)/upload$#', $path, $m) && $method === 'POST') {
+            $id = (int) $m[1];
+            $file = $_FILES['audio'] ?? null;
+            if (!is_array($file) || (int) ($file['error'] ?? 1) !== UPLOAD_ERR_OK) {
+                $this->json(400, ['error' => 'missing audio']);
+                return;
+            }
+            $mime = (string) ($file['type'] ?? 'audio/mp4');
+            if ($mime === '' || $mime === 'application/octet-stream') {
+                $mime = (string) ($_POST['mime'] ?? 'audio/mp4');
+            }
+            $duration = (float) ($_POST['duration'] ?? 0);
+            $row = $this->coach->saveUpload($pid, $id, (string) $file['tmp_name'], $mime, $duration);
+            if ($row === null) {
+                $this->json(404, ['error' => 'unknown recording']);
+                return;
+            }
+            $this->json(200, $row);
+            return;
+        }
+
+        if ($path === '/app/coach/recordings' && $method === 'GET') {
+            $this->json(200, ['recordings' => $this->coach->recordings($pid)]);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/recording/(\d+)/audio$#', $path, $m) && $method === 'GET') {
+            $file = $this->coach->recordingFile($pid, (int) $m[1]);
+            if ($file === null) {
+                http_response_code(404);
+                return;
+            }
+            header('Content-Type: ' . $file['mime']);
+            header('Content-Length: ' . (string) filesize($file['path']));
+            header('Cache-Control: private, max-age=3600');
+            header('Accept-Ranges: bytes');
+            readfile($file['path']);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/recording/(\d+)$#', $path, $m) && $method === 'GET') {
+            $row = $this->coach->recording($pid, (int) $m[1]);
+            if ($row === null) {
+                $this->json(404, ['error' => 'not found']);
+                return;
+            }
+            $this->json(200, $row);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/ref/(\d+)$#', $path, $m) && $method === 'GET') {
+            $lesson = $this->visibleLesson($profile, (int) $m[1]);
+            if ($lesson === null) {
+                $this->json(404, ['error' => 'unknown lesson']);
+                return;
+            }
+            $ref = $this->coach->teacherRef((string) $lesson['vimeoId']);
+            if ($ref === null) {
+                $this->json(200, ['ready' => false, 'vimeoId' => $lesson['vimeoId'], 'onsets' => []]);
+                return;
+            }
+            $this->json(200, ['ready' => true] + $ref);
+            return;
+        }
+
         $this->json(404, ['error' => 'unknown endpoint']);
     }
 
@@ -260,6 +360,7 @@ final class Http
             'language' => 'nl',
             'pathView' => 'order',
             'notes' => new \stdClass(),
+            'coach' => ['fromLesson' => Coach::FROM_LESSON, 'calibration' => null, 'recent' => [], 'pending' => 0],
         ];
         if ($profile) {
             $snap = $this->progress->snapshot((int) $profile['id']);
@@ -292,10 +393,12 @@ final class Http
             }
             $payload['practice'] = $practice;
             $payload['week'] = $this->progress->week((int) $profile['id'], $snap);
+            $payload['coach'] = $this->coach->bootstrap((int) $profile['id']);
         } else {
             $payload['intro'] = null;
             $payload['paths'] = [];
             $payload['order'] = [];
+            $payload['coach'] = ['fromLesson' => Coach::FROM_LESSON, 'calibration' => null, 'recent' => [], 'pending' => 0];
         }
         return $payload;
     }
