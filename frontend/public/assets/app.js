@@ -1480,6 +1480,50 @@
     return { spec, rms, centroid, low, high, decay };
   }
 
+  function bandMean(fd, a, b) {
+    let s = 0, n = 0;
+    const hi = Math.min(b, fd.length);
+    for (let i = a; i < hi; i++) { s += fd[i]; n++; }
+    return n ? s / n / 255 : 0;
+  }
+
+  function frameStats(td, fd) {
+    let sum = 0, diff = 0;
+    for (let i = 0; i < td.length; i++) {
+      const v = (td[i] - 128) / 128;
+      sum += v * v;
+      if (i) diff += Math.abs(td[i] - td[i - 1]);
+    }
+    return {
+      rms: Math.sqrt(sum / td.length),
+      flux: diff / (td.length * 128),
+      low: bandMean(fd, 0, 8),
+      mid: bandMean(fd, 8, 40),
+      high: bandMean(fd, 48, fd.length),
+    };
+  }
+
+  function isCalHit(pieceId, s, quiet, noise) {
+    const rmsJ = s.rms - quiet.rms;
+    const lowJ = s.low - quiet.low;
+    const highJ = s.high - quiet.high;
+    const fluxJ = s.flux - quiet.flux;
+    if (pieceId === "kick") {
+      return lowJ > 0.035 || (s.low > quiet.low * 1.8 + 0.02) || (rmsJ > 0.02 && s.low > 0.05);
+    }
+    if (pieceId === "hat_closed" || pieceId === "hat_open") {
+      return highJ > 0.04 || fluxJ > 0.008 || (s.high > 0.1 && s.flux > 0.01);
+    }
+    if (pieceId === "crash" || pieceId === "crash_extra" || pieceId === "ride") {
+      return highJ > 0.05 || rmsJ > 0.025 || (s.high > 0.12 && s.flux > 0.012);
+    }
+    return (s.flux > Math.max(noise * 3.5, 0.016) && s.rms > noise * 1.8) || rmsJ > 0.03 || fluxJ > 0.012;
+  }
+
+  function isGenericHit(s, quiet, noise) {
+    return isCalHit("kick", s, quiet, noise) || isCalHit("snare", s, quiet, noise) || isCalHit("hat_closed", s, quiet, noise);
+  }
+
   function cosine(a, b) {
     let d = 0, na = 0, nb = 0;
     const n = Math.min(a.length, b.length);
@@ -1798,22 +1842,15 @@
       if (!state.coach || state.coach.stream !== stream) return;
       analyser.getByteTimeDomainData(td);
       analyser.getByteFrequencyData(fd);
-      let sum = 0, diff = 0, high = 0;
-      for (let i = 0; i < td.length; i++) {
-        const v = (td[i] - 128) / 128;
-        sum += v * v;
-        if (i) diff += Math.abs(td[i] - td[i - 1]);
-      }
-      for (let i = fd.length - 80; i < fd.length; i++) high += fd[i];
-      const rms = Math.sqrt(sum / td.length);
-      diff = diff / (td.length * 128);
-      c.lastRms = rms;
-      c.lastFlux = diff;
-      coachMeter(rms);
+      const s = frameStats(td, fd);
+      c.lastRms = s.rms;
+      c.lastFlux = s.flux;
+      c.quiet = c.quiet || { rms: noise, flux: 0, low: 0.02, high: 0.02 };
+      coachMeter(s.rms);
       const t = video && !video.paused ? video.currentTime : (c.grooveT0 ? (performance.now() - c.grooveT0) / 1000 : 0);
       if (c.pending && c.pending.frames > 0) {
         c.pending.frames -= 1;
-        c.pending.highLater = high;
+        c.pending.highLater = s.high;
         if (c.pending.frames === 0) {
           const feat = specFeatures(c.pending.spec, c.pending.rms, c.pending.highNow, c.pending.highLater);
           const ranks = classifyHit(feat, templates);
@@ -1832,11 +1869,16 @@
           c.pending = null;
         }
       }
-      const thresh = Math.max(noise * 5.5, 0.035);
-      if (!c.pending && diff > thresh && rms > noise * 2.2 && t - (c.lastOnset || 0) > 0.07) {
+      if (!c.pending) {
+        c.quiet.rms = c.quiet.rms * 0.94 + s.rms * 0.06;
+        c.quiet.flux = c.quiet.flux * 0.94 + s.flux * 0.06;
+        c.quiet.low = c.quiet.low * 0.94 + s.low * 0.06;
+        c.quiet.high = c.quiet.high * 0.94 + s.high * 0.06;
+      }
+      if (!c.pending && t - (c.lastOnset || 0) > 0.07 && isGenericHit(s, c.quiet, noise)) {
         c.lastOnset = t;
         c.onsets.push(Math.round(t * 1000) / 1000);
-        c.pending = { t, spec: downsampleSpec(fd), rms, highNow: high, highLater: high, frames: 5 };
+        c.pending = { t, spec: downsampleSpec(fd), rms: s.rms, highNow: s.high, highLater: s.high, frames: 5 };
       }
       if ((c.tick || 0) % 2 === 0) coachRealtime(t);
       c.tick = (c.tick || 0) + 1;
@@ -2028,8 +2070,10 @@
           <h1 class="text-3xl font-black mt-2">${esc(piece.label)}</h1>
           <p class="text-muted mt-3 text-lg">${esc(piece.how)}</p>
           <div class="cal-drum${n ? " is-hit" : ""}" id="cal-drum">${n} / ${KIT_HITS}</div>
-          <p class="text-muted" id="cal-status">Sla maar. Te zachte tikken negeren we.</p>
-          ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3 mt-4">Ik heb dit stuk niet — overslaan</button>` : ""}
+          <p class="text-muted" id="cal-status">Sla maar. Kick = laag dreunen; hats = kort en hoog. De meter hieronder moet meebewegen.</p>
+          <p id="cal-live" class="font-mono text-xs text-muted mt-2">rms — · low — · high — · flux —</p>
+          <button data-action="cal-detect-failed" class="tap rounded-full bg-card border border-line px-5 py-3 mt-4">Ik heb 8× gespeeld, maar de detectie lukte niet</button>
+          ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3 mt-3">Ik heb dit stuk niet — overslaan</button>` : ""}
           <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug>wacht op tikken…</pre>
           <div class="mt-4">${debugToggleBtn()}</div>
         </div>`);
@@ -2057,6 +2101,22 @@
             <button data-action="cal-next" class="tap rounded-full bg-card border border-line px-6 py-3">Opnieuw een stuk</button>
           </div>
           <div class="mt-3">${debugToggleBtn()}</div>
+        </div>`);
+      return;
+    }
+    if (step === "failed") {
+      const sid = state.cal?.sessionId;
+      const piece = state.cal?.failedPiece || "onbekend";
+      $("#app").innerHTML = layout(`
+        <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
+          <h1 class="text-3xl font-black">Calibratie gestopt</h1>
+          <p class="text-muted mt-3">Detectie op <b>${esc(piece)}</b> volgde je slagen niet. We hebben <b>niet</b> de foute tikken als template bewaard.</p>
+          <p class="text-muted mt-2">De audio van jouw echte 8 slagen + het kliklog liggen klaar. Kom terug in de chat en zeg <code>/review-cal-feedback</code>.</p>
+          ${sid ? `<div class="mt-6 rounded-2xl bg-card border border-line p-4 text-left">
+            <p class="font-bold">Sessie <code>${esc(sid)}</code></p>
+            <audio class="w-full mt-3" controls src="/app/coach/calibration/session/${esc(sid)}/audio" preload="none"></audio>
+          </div>` : ""}
+          <p class="mt-6"><a href="/home" data-link class="text-accent">Naar home</a></p>
         </div>`);
       return;
     }
@@ -2132,6 +2192,8 @@
       const noise = Number(state.cal?.noiseRms) || 0.02;
       let last = 0;
       let pending = null;
+      const quiet = { rms: noise, flux: 0, low: 0.02, high: 0.02 };
+      const peak = { rms: 0, flux: 0, low: 0, high: 0 };
       const wantStep = state.cal?.step;
       const loop = () => {
         if (state.cal?.step !== wantStep) {
@@ -2140,18 +2202,19 @@
         }
         analyser.getByteTimeDomainData(td);
         analyser.getByteFrequencyData(fd);
-        let sum = 0, diff = 0, high = 0;
-        for (let i = 0; i < td.length; i++) {
-          const v = (td[i] - 128) / 128;
-          sum += v * v;
-          if (i) diff += Math.abs(td[i] - td[i - 1]);
+        const s = frameStats(td, fd);
+        const live = $("#cal-live");
+        if (live) {
+          live.textContent = `rms ${s.rms.toFixed(3)} · low ${s.low.toFixed(3)} · high ${s.high.toFixed(3)} · flux ${s.flux.toFixed(3)}`;
         }
-        for (let i = fd.length - 80; i < fd.length; i++) high += fd[i];
-        const rms = Math.sqrt(sum / td.length);
-        diff = diff / (td.length * 128);
+        peak.rms = Math.max(peak.rms, s.rms);
+        peak.flux = Math.max(peak.flux, s.flux);
+        peak.low = Math.max(peak.low, s.low);
+        peak.high = Math.max(peak.high, s.high);
+        state.cal.livePeak = { ...peak };
         if (pending && pending.frames > 0) {
           pending.frames -= 1;
-          pending.highLater = high;
+          pending.highLater = s.high;
           if (pending.frames === 0) {
             const feat = specFeatures(pending.spec, pending.rms, pending.highNow, pending.highLater);
             state.cal.captures = state.cal.captures || {};
@@ -2180,11 +2243,16 @@
               return;
             }
           }
+        } else {
+          quiet.rms = quiet.rms * 0.94 + s.rms * 0.06;
+          quiet.flux = quiet.flux * 0.94 + s.flux * 0.06;
+          quiet.low = quiet.low * 0.94 + s.low * 0.06;
+          quiet.high = quiet.high * 0.94 + s.high * 0.06;
         }
         const now = performance.now();
-        if (!pending && diff > Math.max(noise * 6, 0.04) && rms > noise * 3 && now - last > 220) {
+        if (!pending && now - last > 180 && isCalHit(pieceId, s, quiet, noise)) {
           last = now;
-          pending = { spec: downsampleSpec(fd), rms, highNow: high, highLater: high, frames: 5 };
+          pending = { spec: downsampleSpec(fd), rms: s.rms, highNow: s.high, highLater: s.high, frames: 5 };
         }
         requestAnimationFrame(loop);
       };
@@ -2194,6 +2262,24 @@
       const st = $("#cal-status");
       if (st) st.textContent = "Microfoon mag niet.";
     }
+  }
+
+  async function abortCalDetection() {
+    const pi = (state.cal?.step || 0) - 2;
+    const piece = KIT_PIECES[pi];
+    const n = (state.cal?.captures?.[piece?.id] || []).length;
+    const peak = state.cal?.livePeak || {};
+    const feedback = `Detectie mislukt op ${piece ? piece.label : "?"} (${piece?.id || "?"}). Ik heb 8× gespeeld, teller stond op ${n}/8. Pieken rms=${(peak.rms || 0).toFixed(3)} low=${(peak.low || 0).toFixed(3)} high=${(peak.high || 0).toFixed(3)} flux=${(peak.flux || 0).toFixed(3)}. Captures van dit stuk zijn onbetrouwbaar.`;
+    calLog("detection_failed", { button: "cal-detect-failed", piece: piece?.id, n, peak, feedback });
+    if (state.cal) {
+      state.cal.feedback = feedback;
+      if (piece?.id && state.cal.captures) delete state.cal.captures[piece.id];
+    }
+    const sid = state.cal?.sessionId;
+    await flushCalSession({ stop: true, kitReady: false, feedback });
+    try { state.cal?.stream?.getTracks?.().forEach((t) => t.stop()); } catch {}
+    state.cal = { step: "failed", sessionId: sid, lastFlush: state.cal?.lastFlush, failedPiece: piece?.label || piece?.id };
+    render();
   }
 
   async function finishKitCalibration(kitReady) {
@@ -3099,6 +3185,10 @@
     }
     if (action === "cal-groove-start") {
       startCalGroove();
+      return;
+    }
+    if (action === "cal-detect-failed") {
+      abortCalDetection();
       return;
     }
     if (action === "cal-skip") {

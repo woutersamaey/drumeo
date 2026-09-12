@@ -38,12 +38,12 @@ API (Wouter cookie): `GET /app/coach/calibration/sessions` and `GET /app/coach/c
 
 ## What to do
 
-1. Prefer rows with non-empty `feedback`.
-2. Read `feedback` first — that is the ground truth of what the staff got wrong.
-3. Open `meta.events` (clicks, skips, per-hit RMS/spectrum) and `meta.grooveHeard` (classified notes during the 20s test).
-4. Listen to the audio if the text is ambiguous (wrong piece vs timing vs missing notes).
-5. Propose a concrete change: skip-alias, template merge (two crashes → one `crash`), threshold, or staff mapping (`tom_mid` → `tom_floor`).
-6. If you change the classifier, say how to re-test: `/calibratie` groove + new feedback row.
+1. Prefer rows with non-empty `feedback`, especially `meta.events` of type `detection_failed`.
+2. Read `feedback` first. If detection failed, the user played the real piece ~8 times but the counter did not follow — **do not trust `captures` for that piece** (wrong drums may have been used earlier; we delete that piece's captures on abort).
+3. Listen to the audio around the `detection_failed` timestamp: those hits are the ground truth for kick/hat/etc.
+4. Open `meta.events` (`piece_start`, `hit`, `detection_failed` with `peak` rms/low/high/flux) and `meta.grooveHeard` when present.
+5. Propose a concrete detector change (kick = low-band jump, hats = high-band, thresholds).
+6. Re-test: `/calibratie` from scratch. Do not continue a polluted half-session.
 
 ## Do not
 
