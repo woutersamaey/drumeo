@@ -9,8 +9,8 @@ use PDO;
 final class Progress
 {
     public const WATCHED_RATIO = 0.85;
+    public const HISTORY_RATIO = 0.33;
     public const BUCKET_SEC = 3;
-    public const DISMISS_TAIL_SEC = 5;
     private const TZ = 'Europe/Brussels';
 
     public function __construct(
@@ -22,10 +22,16 @@ final class Progress
     /** @return array<string,mixed>|null */
     public function profileBySlug(string $slug): ?array
     {
-        $stmt = $this->db->pdo()->prepare('SELECT id, slug, name FROM profiles WHERE slug = ?');
+        $stmt = $this->db->pdo()->prepare('SELECT id, slug, name, hide_future FROM profiles WHERE slug = ?');
         $stmt->execute([$slug]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        if (!is_array($row)) {
+            return null;
+        }
+        $row['id'] = (int) $row['id'];
+        $row['hideFuture'] = ((int) ($row['hide_future'] ?? 1)) !== 0;
+        unset($row['hide_future']);
+        return $row;
     }
 
     /** @return list<array<string,mixed>> */
@@ -33,7 +39,7 @@ final class Progress
     {
         $total = count($this->catalog->orderedLessons());
         $rows = $this->db->pdo()->query(
-            'SELECT p.id, p.slug, p.name, COALESCE(s.last_audio_index, 1) AS last_audio_index,
+            'SELECT p.id, p.slug, p.name, p.hide_future, COALESCE(s.last_audio_index, 1) AS last_audio_index,
                     (SELECT COUNT(*) FROM watch_progress w WHERE w.profile_id = p.id AND w.watched = 1) AS watched_count,
                     (SELECT UNIX_TIMESTAMP(MAX(w.updated_at)) FROM watch_progress w WHERE w.profile_id = p.id) AS last_played
              FROM profiles p
@@ -42,11 +48,12 @@ final class Progress
         )->fetchAll() ?: [];
         foreach ($rows as &$row) {
             $row['id'] = (int) $row['id'];
+            $row['hideFuture'] = ((int) ($row['hide_future'] ?? 1)) !== 0;
             $row['lastAudioIndex'] = ((int) $row['last_audio_index'] === 1) ? 1 : 0;
             $row['watchedCount'] = (int) ($row['watched_count'] ?? 0);
             $row['lessonCount'] = $total;
             $row['lastPlayed'] = $row['last_played'] !== null ? (int) $row['last_played'] : null;
-            unset($row['last_audio_index'], $row['watched_count'], $row['last_played']);
+            unset($row['last_audio_index'], $row['watched_count'], $row['last_played'], $row['hide_future']);
         }
         unset($row);
         return $rows;
@@ -70,6 +77,7 @@ final class Progress
         $this->ensureColumn('watch_progress', 'played_buckets', 'played_buckets TEXT NULL');
         $this->ensureColumn('play_events', 'played_sec', 'played_sec DOUBLE NOT NULL DEFAULT 0');
         $this->ensureColumn('profile_state', 'path_view', "path_view VARCHAR(16) NOT NULL DEFAULT 'order'");
+        $this->ensureColumn('profiles', 'hide_future', 'hide_future TINYINT(1) NOT NULL DEFAULT 1');
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS lesson_notes (
                 profile_id TINYINT UNSIGNED NOT NULL,
@@ -224,6 +232,22 @@ final class Progress
         return $need > 0 && $uniqueBuckets >= $need;
     }
 
+    public static function isFollowed(?array $progress): bool
+    {
+        if (!is_array($progress)) {
+            return false;
+        }
+        if (!empty($progress['watched'])) {
+            return true;
+        }
+        $duration = (float) ($progress['duration'] ?? 0);
+        if ($duration <= 0) {
+            return false;
+        }
+        $position = (float) ($progress['position'] ?? 0);
+        return ($position / $duration) >= self::HISTORY_RATIO;
+    }
+
     /**
      * @param list<mixed> $incoming
      * @return list<int>
@@ -297,57 +321,178 @@ final class Progress
         return $view;
     }
 
-    /** @param array<string,mixed> $snap */
-    public function resume(int $profileId, array $snap): ?array
+    /**
+     * @param list<int|array<string,mixed>> $order
+     * @param array<int|string, mixed> $progressByLesson
+     */
+    public static function firstUnwatchedId(array $order, array $progressByLesson): ?int
     {
-        $order = $this->catalog->orderedLessons();
+        foreach ($order as $lesson) {
+            $id = self::orderLessonId($lesson);
+            if ($id <= 0) {
+                continue;
+            }
+            $row = self::progressFor($progressByLesson, $id);
+            if ($row === null || empty($row['watched'])) {
+                return $id;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param list<int|array<string,mixed>> $order
+     * @param array<string,mixed> $snap
+     * @return array{lessonId:int,position:int,reason:string}|null
+     */
+    public static function resumeFromOrder(array $order, array $snap): ?array
+    {
         if ($order === []) {
             return null;
         }
-        $lastId = $snap['lastLessonId'];
-        if ($lastId === null) {
-            $latest = 0;
-            foreach ($snap['progress'] as $row) {
-                if ($row['updated'] >= $latest) {
-                    $latest = $row['updated'];
-                    $lastId = $row['lessonId'];
+        $progress = is_array($snap['progress'] ?? null) ? $snap['progress'] : [];
+        $unwatchedId = self::firstUnwatchedId($order, $progress);
+        if ($unwatchedId === null) {
+            $lastId = self::orderLessonId($order[array_key_last($order)]);
+            return [
+                'lessonId' => $lastId,
+                'position' => 0,
+                'reason' => 'complete',
+            ];
+        }
+        $firstId = self::orderLessonId($order[0]);
+        $anyWatched = false;
+        foreach ($progress as $row) {
+            if (is_array($row) && !empty($row['watched'])) {
+                $anyWatched = true;
+                break;
+            }
+        }
+        $reason = ($unwatchedId === $firstId && !$anyWatched) ? 'start' : 'next';
+        return [
+            'lessonId' => $unwatchedId,
+            'position' => 0,
+            'reason' => $reason,
+        ];
+    }
+
+    /** @param array<string,mixed> $snap */
+    public function resume(int $profileId, array $snap): ?array
+    {
+        return self::resumeFromOrder($this->catalog->orderedLessons(), $snap);
+    }
+
+    /**
+     * @param list<int|array<string,mixed>> $order
+     * @param array<int|string, mixed> $progressByLesson
+     * @return list<int>
+     */
+    public static function visibleIds(array $order, array $progressByLesson, bool $hideFuture): array
+    {
+        $ids = [];
+        foreach ($order as $lesson) {
+            $id = self::orderLessonId($lesson);
+            if ($id <= 0) {
+                continue;
+            }
+            $ids[] = $id;
+            if ($hideFuture) {
+                $row = self::progressFor($progressByLesson, $id);
+                if ($row === null || empty($row['watched'])) {
+                    break;
                 }
             }
         }
-        if ($lastId === null) {
-            $first = $order[0];
-            return [
-                'lessonId' => $first['id'],
-                'position' => 0,
-                'reason' => 'start',
-            ];
-        }
-        $p = $snap['progress'][(string) $lastId] ?? null;
-        $lesson = $this->catalog->lesson($lastId);
-        $duration = (float) ($p['duration'] ?? $lesson['seconds'] ?? 0);
-        $position = (float) ($p['position'] ?? 0);
-        $watched = (bool) ($p['watched'] ?? false);
-        $remaining = $duration > 0 ? $duration - $position : 999;
-        if ($watched || $remaining <= self::DISMISS_TAIL_SEC) {
-            $nextId = $this->nextUnwatched($lastId, $snap);
-            if ($nextId === null) {
-                return [
-                    'lessonId' => $lastId,
-                    'position' => 0,
-                    'reason' => 'complete',
-                ];
+        return $ids;
+    }
+
+    /**
+     * @param array<string,mixed> $all
+     * @param list<int> $visibleIds
+     * @return array<string,mixed>
+     */
+    public static function filterCatalogData(array $all, array $visibleIds): array
+    {
+        $allow = [];
+        foreach ($visibleIds as $id) {
+            $id = (int) $id;
+            if ($id > 0) {
+                $allow[$id] = true;
             }
-            return [
-                'lessonId' => $nextId,
-                'position' => 0,
-                'reason' => 'next',
-            ];
         }
-        return [
-            'lessonId' => $lastId,
-            'position' => $position,
-            'reason' => 'continue',
-        ];
+
+        $keepLessons = static function (array $lessons) use ($allow): array {
+            $out = [];
+            foreach ($lessons as $lesson) {
+                if (!is_array($lesson)) {
+                    continue;
+                }
+                $id = (int) ($lesson['id'] ?? 0);
+                if (isset($allow[$id])) {
+                    $out[] = $lesson;
+                }
+            }
+            return $out;
+        };
+
+        $intro = $all['intro'] ?? null;
+        if (is_array($intro)) {
+            $introId = (int) ($intro['id'] ?? 0);
+            if (!isset($allow[$introId])) {
+                $intro = null;
+            }
+        } else {
+            $intro = null;
+        }
+
+        $order = $keepLessons(is_array($all['order'] ?? null) ? $all['order'] : []);
+
+        $paths = [];
+        foreach (is_array($all['paths'] ?? null) ? $all['paths'] : [] as $path) {
+            if (!is_array($path)) {
+                continue;
+            }
+            $pathLessons = $keepLessons(is_array($path['lessons'] ?? null) ? $path['lessons'] : []);
+            if ($pathLessons === []) {
+                continue;
+            }
+            $packs = [];
+            foreach (is_array($path['skillPacks'] ?? null) ? $path['skillPacks'] : [] as $pack) {
+                if (!is_array($pack)) {
+                    continue;
+                }
+                $packLessons = $keepLessons(is_array($pack['lessons'] ?? null) ? $pack['lessons'] : []);
+                if ($packLessons === []) {
+                    continue;
+                }
+                $pack['lessons'] = $packLessons;
+                $packs[] = $pack;
+            }
+            $path['lessons'] = $pathLessons;
+            $path['skillPacks'] = $packs;
+            $path['videoCount'] = count($pathLessons);
+            $path['posterVimeoId'] = $pathLessons[0]['vimeoId'] ?? null;
+            $paths[] = $path;
+        }
+
+        $out = $all;
+        $out['intro'] = $intro;
+        $out['order'] = $order;
+        $out['paths'] = $paths;
+        if (isset($all['lessons']) && is_array($all['lessons'])) {
+            $lessons = [];
+            foreach ($all['lessons'] as $key => $lesson) {
+                if (!is_array($lesson)) {
+                    continue;
+                }
+                $id = (int) ($lesson['id'] ?? $key);
+                if (isset($allow[$id])) {
+                    $lessons[$key] = $lesson;
+                }
+            }
+            $out['lessons'] = $lessons;
+        }
+        return $out;
     }
 
     /** @param array<string,mixed> $snap @return list<array<string,mixed>> */
@@ -495,6 +640,8 @@ final class Progress
             ];
         }
 
+        $progressByLesson = is_array($snap['progress'] ?? null) ? $snap['progress'] : [];
+
         $pdo = $this->db->pdo();
         $plays = $pdo->prepare('SELECT lesson_id, played_on FROM play_events WHERE profile_id = ? AND played_on BETWEEN ? AND ?');
         $plays->execute([$profileId, $from, $to]);
@@ -503,8 +650,11 @@ final class Progress
             if (!isset($byDay[$key])) {
                 continue;
             }
-            $byDay[$key]['played'] = true;
             $id = (int) $row['lesson_id'];
+            if (!self::isFollowed(self::progressFor($progressByLesson, $id))) {
+                continue;
+            }
+            $byDay[$key]['played'] = true;
             if (!in_array($id, $byDay[$key]['lessonIds'], true)) {
                 $byDay[$key]['lessonIds'][] = $id;
             }
@@ -517,11 +667,14 @@ final class Progress
             if (!isset($byDay[$key])) {
                 continue;
             }
+            $id = (int) $row['lesson_id'];
+            if (!self::isFollowed(self::progressFor($progressByLesson, $id))) {
+                continue;
+            }
             $score = (int) $row['score'];
             if ($score >= 1 && $score <= 4) {
                 $byDay[$key]['scores'][] = $score;
             }
-            $id = (int) $row['lesson_id'];
             if (!in_array($id, $byDay[$key]['lessonIds'], true)) {
                 $byDay[$key]['lessonIds'][] = $id;
             }
@@ -747,29 +900,22 @@ final class Progress
         ];
     }
 
-    /** @param array<string,mixed> $snap */
-    private function nextUnwatched(int $afterId, array $snap): ?int
+    /** @param mixed $lesson */
+    private static function orderLessonId(mixed $lesson): int
     {
-        $order = $this->catalog->orderedLessons();
-        $seen = false;
-        foreach ($order as $lesson) {
-            if (!$seen) {
-                if ((int) $lesson['id'] === $afterId) {
-                    $seen = true;
-                }
-                continue;
-            }
-            $row = $snap['progress'][(string) $lesson['id']] ?? null;
-            if (!$row || !$row['watched']) {
-                return (int) $lesson['id'];
-            }
+        if (is_array($lesson)) {
+            return (int) ($lesson['id'] ?? 0);
         }
-        foreach ($order as $lesson) {
-            $row = $snap['progress'][(string) $lesson['id']] ?? null;
-            if (!$row || !$row['watched']) {
-                return (int) $lesson['id'];
-            }
-        }
-        return null;
+        return is_numeric($lesson) ? (int) $lesson : 0;
+    }
+
+    /**
+     * @param array<int|string, mixed> $progressByLesson
+     * @return array<string,mixed>|null
+     */
+    private static function progressFor(array $progressByLesson, int $id): ?array
+    {
+        $row = $progressByLesson[(string) $id] ?? $progressByLesson[$id] ?? null;
+        return is_array($row) ? $row : null;
     }
 }

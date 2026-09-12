@@ -120,9 +120,15 @@ final class Http
             return;
         }
 
+        if ($profile === null) {
+            $this->json(401, ['error' => 'pick a profile']);
+            return;
+        }
+        $pid = (int) $profile['id'];
+
         if (preg_match('#^/app/lesson/(\d+)$#', $path, $m) && $method === 'GET') {
-            $lesson = $this->catalog->lesson((int) $m[1]);
-            if (!$lesson) {
+            $lesson = $this->visibleLesson($profile, (int) $m[1]);
+            if ($lesson === null) {
                 $this->json(404, ['error' => 'not found']);
                 return;
             }
@@ -130,17 +136,11 @@ final class Http
             return;
         }
 
-        if ($profile === null) {
-            $this->json(401, ['error' => 'pick a profile']);
-            return;
-        }
-        $pid = (int) $profile['id'];
-
         if ($path === '/app/progress' && $method === 'POST') {
             $body = $this->body();
             $lessonId = (int) ($body['lessonId'] ?? 0);
-            $lesson = $this->catalog->lesson($lessonId);
-            if (!$lesson) {
+            $lesson = $this->visibleLesson($profile, $lessonId);
+            if ($lesson === null) {
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
@@ -164,8 +164,8 @@ final class Http
         if ($path === '/app/watched' && $method === 'POST') {
             $body = $this->body();
             $lessonId = (int) ($body['lessonId'] ?? 0);
-            $lesson = $this->catalog->lesson($lessonId);
-            if (!$lesson) {
+            $lesson = $this->visibleLesson($profile, $lessonId);
+            if ($lesson === null) {
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
@@ -176,7 +176,12 @@ final class Http
 
         if ($path === '/app/reset' && $method === 'POST') {
             $body = $this->body();
-            $this->progress->resetLesson($pid, (int) ($body['lessonId'] ?? 0));
+            $lessonId = (int) ($body['lessonId'] ?? 0);
+            if ($this->visibleLesson($profile, $lessonId) === null) {
+                $this->json(404, ['error' => 'unknown lesson']);
+                return;
+            }
+            $this->progress->resetLesson($pid, $lessonId);
             $this->json(200, ['ok' => true]);
             return;
         }
@@ -185,8 +190,12 @@ final class Http
             $body = $this->body();
             $lessonId = (int) ($body['lessonId'] ?? 0);
             $score = (int) ($body['score'] ?? 0);
-            if ($this->catalog->lesson($lessonId) === null || $score < 1 || $score > 4) {
+            if ($score < 1 || $score > 4) {
                 $this->json(400, ['error' => 'invalid rating']);
+                return;
+            }
+            if ($this->visibleLesson($profile, $lessonId) === null) {
+                $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
             $this->progress->addRating($pid, $lessonId, $score);
@@ -218,8 +227,8 @@ final class Http
         if ($path === '/app/note' && $method === 'POST') {
             $body = $this->body();
             $lessonId = (int) ($body['lessonId'] ?? 0);
-            if ($this->catalog->lesson($lessonId) === null) {
-                $this->json(400, ['error' => 'unknown lesson']);
+            if ($this->visibleLesson($profile, $lessonId) === null) {
+                $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
             $saved = $this->progress->saveNote($pid, $lessonId, (string) ($body['body'] ?? ''));
@@ -253,6 +262,15 @@ final class Http
         ];
         if ($profile) {
             $snap = $this->progress->snapshot((int) $profile['id']);
+            $progressByLesson = is_array($snap['progress'] ?? null) ? $snap['progress'] : [];
+            $hideFuture = (bool) ($profile['hideFuture'] ?? true);
+            $visibleIds = Progress::visibleIds($all['order'], $progressByLesson, $hideFuture);
+            if ($hideFuture) {
+                $filtered = Progress::filterCatalogData($all, $visibleIds);
+                $payload['intro'] = $filtered['intro'];
+                $payload['paths'] = $filtered['paths'];
+                $payload['order'] = $filtered['order'];
+            }
             $payload['progress'] = $snap['progress'];
             $payload['latestScore'] = $snap['latestScore'];
             $payload['notes'] = $snap['notes'] ?: new \stdClass();
@@ -260,10 +278,44 @@ final class Http
             $payload['language'] = $snap['lastAudioIndex'] === 1 ? 'nl' : 'en';
             $payload['pathView'] = $snap['pathView'] ?? 'order';
             $payload['resume'] = $this->progress->resume((int) $profile['id'], $snap);
-            $payload['practice'] = $this->progress->practice($snap);
+            $practice = $this->progress->practice($snap);
+            if ($hideFuture) {
+                $allow = array_fill_keys($visibleIds, true);
+                $kept = [];
+                foreach ($practice as $row) {
+                    if (isset($allow[(int) $row['id']])) {
+                        $kept[] = $row;
+                    }
+                }
+                $practice = $kept;
+            }
+            $payload['practice'] = $practice;
             $payload['week'] = $this->progress->week((int) $profile['id'], $snap);
+        } else {
+            $payload['intro'] = null;
+            $payload['paths'] = [];
+            $payload['order'] = [];
         }
         return $payload;
+    }
+
+    /** @param array<string,mixed> $profile @return array<string,mixed>|null */
+    private function visibleLesson(array $profile, int $lessonId): ?array
+    {
+        $lesson = $this->catalog->lesson($lessonId);
+        if ($lesson === null) {
+            return null;
+        }
+        if (!($profile['hideFuture'] ?? true)) {
+            return $lesson;
+        }
+        $snap = $this->progress->snapshot((int) $profile['id']);
+        $ids = Progress::visibleIds(
+            $this->catalog->orderedLessons(),
+            is_array($snap['progress'] ?? null) ? $snap['progress'] : [],
+            true,
+        );
+        return in_array($lessonId, $ids, true) ? $lesson : null;
     }
 
     private function currentProfile(): ?array

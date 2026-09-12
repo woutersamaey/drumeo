@@ -357,6 +357,14 @@
     return (state.bootstrap?.progress || {})[String(id)] || null;
   }
 
+  function isFollowed(progress, lesson) {
+    if (!progress) return false;
+    if (progress.watched) return true;
+    const dur = progress.duration || lesson?.seconds || 0;
+    const pos = progress.position || 0;
+    return dur > 0 && pos / dur >= 0.33;
+  }
+
   function noteOf(id) {
     const raw = state.bootstrap?.notes?.[String(id)];
     return typeof raw === "string" && raw.trim() ? raw : "";
@@ -743,11 +751,10 @@
     const out = [];
     for (const p of prog) {
       const lesson = lessonById(p.lessonId);
-      if (!lesson) continue;
+      if (!lesson || !isFollowed(p, lesson)) continue;
       const dur = p.duration || lesson.seconds || 0;
       const pos = p.position || 0;
       const ratio = dur > 0 ? pos / dur : 0;
-      if (!p.watched && ratio < 0.33) continue;
       out.push({ lesson, progress: p, ratio: p.watched ? 1 : ratio });
     }
     out.sort((a, b) => (b.progress.updated || 0) - (a.progress.updated || 0));
@@ -807,11 +814,11 @@
             <div class="absolute inset-0 bg-gradient-to-r from-card via-card/40 to-transparent hidden lg:block"></div>
           </div>
           <div class="p-5 sm:p-8 flex flex-col justify-center">
-            <p class="text-accent text-sm font-semibold uppercase tracking-wide">${resume.reason === "continue" ? "Verder kijken" : "Volgende les"}${lessonNo(resumeLesson) ? ` · les ${lessonNo(resumeLesson)} van ${lessonTotal()}` : ""}</p>
+            <p class="text-accent text-sm font-semibold uppercase tracking-wide">Volgende les${lessonNo(resumeLesson) ? ` · les ${lessonNo(resumeLesson)} van ${lessonTotal()}` : ""}</p>
             <h2 class="text-2xl sm:text-3xl font-black mt-2">${lessonNumHtml(resumeLesson)}${esc(disp(resumeLesson))}</h2>
-            <p class="text-muted mt-2">${esc(disp(resumeLesson, "pathTitle"))}${resume.reason === "continue" ? " · hervat op " + fmt(resume.position) : ""} · ${esc(langMeta().label)}</p>
+            <p class="text-muted mt-2">${esc(disp(resumeLesson, "pathTitle"))} · ${esc(langMeta().label)}</p>
             <a href="/watch/${resumeLesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-5 sm:px-6 py-3 tap w-fit whitespace-nowrap">
-              ${resume.reason === "continue" ? "Doorgaan" : "Start volgende les"}
+              Start volgende les
             </a>
           </div>
         </div>
@@ -832,6 +839,10 @@
       ? state.weekDay
       : (week.days.find((d) => d.isToday)?.date || week.days[week.days.length - 1]?.date || null);
     const selectedDay = week.days.find((d) => d.date === selectedDate) || null;
+    const dayFollowed = (selectedDay?.lessonIds || []).filter((id) => {
+      const l = lessonById(id);
+      return l && isFollowed(progressOf(id), l);
+    });
     const nudge = !week.playedToday && week.streak > 0
       ? `Je reeks van ${week.streak} dagen wacht op vandaag.`
       : week.playedToday && week.streak > 1
@@ -862,10 +873,10 @@
         </div>
         ${selectedDay ? `
           <div class="mt-5 pt-5 border-t border-line">
-            <p class="font-semibold">${esc(selectedDay.label.charAt(0).toUpperCase() + selectedDay.label.slice(1))} · ${selectedDay.played ? "dit speelde je" : "nog niks gespeeld"}</p>
-            ${selectedDay.lessonIds?.length
+            <p class="font-semibold">${esc(selectedDay.label.charAt(0).toUpperCase() + selectedDay.label.slice(1))} · ${dayFollowed.length ? "dit speelde je" : "nog niks gespeeld"}</p>
+            ${dayFollowed.length
               ? `<div class="mt-3 lesson-grid">
-                  ${selectedDay.lessonIds.map((id) => {
+                  ${dayFollowed.map((id) => {
                     const l = lessonById(id);
                     return l ? card(l) : "";
                   }).join("")}
@@ -1324,8 +1335,7 @@
       teardownPlayer();
     }
     const gen = ++state.playGen;
-    const p = progressOf(lesson.id);
-    const resumeAt = startAt ?? (p && !p.watched ? p.position : 0);
+    const resumeAt = startAt ?? 0;
     let caps = capabilities(false);
     let usedSafe = wantsSafeProfile();
     if (prep) {
@@ -1420,8 +1430,18 @@
         method: "POST",
         body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, position: video.currentTime || 0, duration, playedDelta, playedBuckets }),
       }).then(async (r) => {
+        const prev = progressOf(lesson.id);
+        const wasWatched = !!prev?.watched;
         if (r.watched && state.bootstrap.progress) {
-          state.bootstrap.progress[String(lesson.id)] = { ...(progressOf(lesson.id) || {}), watched: true, position: video.currentTime, duration };
+          state.bootstrap.progress[String(lesson.id)] = { ...(prev || {}), watched: true, position: video.currentTime, duration };
+        }
+        if (r.watched && !wasWatched && !state.player?.didWatchRefresh) {
+          if (state.player) state.player.didWatchRefresh = true;
+          await refresh();
+          const p = state.player;
+          if (p?.lesson) {
+            prefetchNext(p.lesson, p.audioIndex ?? currentAudioIndex(), capabilities(!!p.safe));
+          }
         }
       }).catch(() => {});
     };
