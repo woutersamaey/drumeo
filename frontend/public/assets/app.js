@@ -2169,6 +2169,7 @@
           <p id="cal-live" class="font-mono text-xs text-muted mt-2">rms — · low — · high — · flux —</p>
           <p class="text-muted text-sm mt-1">Gehoord (debug): <span id="cal-drum">${n}</span></p>
           <button data-action="cal-played-eight" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-4">Ik heb 8× gespeeld</button>
+          <button data-action="cal-redo-piece" class="tap rounded-full bg-card border border-line px-5 py-3 mt-3">Deze stap opnieuw</button>
           ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3 mt-3">Ik heb dit stuk niet — overslaan</button>` : ""}
           <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug>wacht op tikken…</pre>
           <div class="mt-4">${debugToggleBtn()}</div>
@@ -2190,6 +2191,10 @@
           <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug></pre>
           <div class="flex flex-wrap gap-3 mt-6">
             <button data-action="cal-groove-ok" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Opslaan en klaar</button>
+          </div>
+          <p class="text-muted text-sm mt-8 mb-2">Een stuk opnieuw (de rest blijft staan):</p>
+          <div class="flex flex-wrap gap-2">
+            ${KIT_PIECES.map((p) => `<button type="button" data-action="cal-redo-piece" data-piece="${esc(p.id)}" class="tap rounded-full bg-card border border-line px-3 py-2 text-sm">${esc(p.label)}</button>`).join("")}
           </div>
           <div class="mt-3">${debugToggleBtn()}</div>
         </div>`);
@@ -3292,7 +3297,26 @@
       const pi = (state.cal?.step || 0) - 2;
       const piece = KIT_PIECES[pi];
       calLog("played_eight", { button: "cal-played-eight", piece: piece?.id, heard: (state.cal?.captures?.[piece?.id] || []).length });
-      try { state.cal.step = (state.cal.step || 0) + 1; } catch {}
+      if (state.cal.returnToGroove) {
+        state.cal.returnToGroove = false;
+        state.cal.step = 2 + KIT_PIECES.length;
+      } else {
+        try { state.cal.step = (state.cal.step || 0) + 1; } catch {}
+      }
+      finishKitCalibration(false).then(() => render());
+      return;
+    }
+    if (action === "cal-redo-piece") {
+      const id = el.dataset.piece || KIT_PIECES[(state.cal?.step || 0) - 2]?.id;
+      const idx = KIT_PIECES.findIndex((p) => p.id === id);
+      if (idx < 0) return;
+      if (state.cal.captures) delete state.cal.captures[id];
+      state.cal.skipped = (state.cal.skipped || []).filter((x) => x !== id);
+      const grooveStep = 2 + KIT_PIECES.length;
+      state.cal.returnToGroove = (state.cal.step === grooveStep);
+      state.cal._loggedPiece = null;
+      calLog("redo_piece", { button: "cal-redo-piece", piece: id, returnToGroove: !!state.cal.returnToGroove });
+      state.cal.step = 2 + idx;
       finishKitCalibration(false).then(() => render());
       return;
     }
@@ -3306,7 +3330,12 @@
       if (piece?.skip) {
         calLog("click", { button: "cal-skip", piece: piece.id });
         state.cal.skipped = [...new Set([...(state.cal.skipped || []), piece.id])];
-        state.cal.step = (state.cal.step || 0) + 1;
+        if (state.cal.returnToGroove) {
+          state.cal.returnToGroove = false;
+          state.cal.step = 2 + KIT_PIECES.length;
+        } else {
+          state.cal.step = (state.cal.step || 0) + 1;
+        }
         finishKitCalibration(false).then(() => render());
       }
       return;
