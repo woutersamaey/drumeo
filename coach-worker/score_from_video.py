@@ -410,24 +410,24 @@ def analyze_frames(paths: list[str], fps: float) -> dict:
             continue
         dt = max(1e-3, t - last_t)
         drel = rel - last_rel
-        wrap = drel < -0.18 and last_rel > 0.62
+        wrap = drel < -0.12 and last_rel > 0.45 and rel < 0.4
         if wrap:
             if speed > 0.04:
-                t_end = last_t + min(1.5, max(0.0, (1.0 - last_rel) / speed))
+                t_end = last_t + min(2.0, max(0.0, (1.0 - last_rel) / speed))
                 timed.extend(_emit_slice(notes, last_rel, 1.0, last_t, t_end))
-            t_start = t - min(1.5, rel / max(speed, 0.05))
+            t_start = t - min(2.0, rel / max(speed, 0.05))
             timed.extend(_emit_slice(notes, 0.0, rel, max(last_t, t_start), t))
             speed = 0.85 * speed + 0.15 * max(0.08, (1.0 - last_rel + rel) / dt)
             last_t, last_rel = t, rel
             continue
-        if drel > 0.14:
-            # Playhead jumped forward (cut / bad detect): skip, don't dump the bar.
+        if drel > 0.38:
+            # Cut / teleport — don't dump a whole stave into 100 ms.
             last_t, last_rel = t, rel
             continue
         if drel > 0.001:
             timed.extend(_emit_slice(notes, last_rel, rel, last_t, t))
             inst = drel / dt
-            if 0.05 < inst < 0.6:
+            if 0.05 < inst < 0.7:
                 speed = 0.7 * speed + 0.3 * inst
         last_t, last_rel = t, rel
 
