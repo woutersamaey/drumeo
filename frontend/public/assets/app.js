@@ -1518,7 +1518,19 @@
   }
 
   function isGenericHit(s, quiet, noise) {
-    return isCalHit("kick", s, quiet, noise) || isCalHit("snare", s, quiet, noise) || isCalHit("hat_closed", s, quiet, noise);
+    return (s.rms > quiet.rms * 1.85 + 0.012) || (s.flux > quiet.flux + 0.014) || (s.low > quiet.low * 2.1 + 0.025);
+  }
+
+  function collapseHits(hits, gap = 0.14) {
+    const out = [];
+    const sorted = hits.slice().sort((a, b) => a.t - b.t);
+    for (const h of sorted) {
+      const last = out[out.length - 1];
+      if (last && h.t - last.t < gap) {
+        if ((h.score || 0) > (last.score || 0)) out[out.length - 1] = h;
+      } else out.push(h);
+    }
+    return out;
   }
 
   function cosine(a, b) {
@@ -1800,7 +1812,7 @@
     const c = state.coach;
     if (!c) return;
     const expected = c.scoreEvents || [];
-    const heard = (c.heard || []).map((h) => ({ t: h.t, piece: h.piece, ok: true }));
+    const heard = collapseHits(c.heard || []).map((h) => ({ t: h.t, piece: h.piece, ok: true, score: h.score }));
     const mw = matchWindow(expected, heard, t, 0.1);
     c.debug = {
       t: Math.round(t * 100) / 100,
@@ -1833,8 +1845,16 @@
     c.fd = fd;
     c.heard = c.heard || [];
     c.pending = null;
+    c.onset = { armed: false, peak: 0, peakT: 0, peakSpec: null, peakS: null, deadUntil: -1 };
     const noise = Number(state.bootstrap?.coach?.calibration?.noiseRms) || 0.02;
     const templates = state.bootstrap?.coach?.calibration?.templates || {};
+    const firePending = (spec, rms, high, at) => {
+      c.pending = { t: at, spec, rms, highNow: high, highLater: high, frames: 4 };
+      c.lastOnset = at;
+      c.onsets.push(Math.round(at * 1000) / 1000);
+      c.onset.armed = false;
+      c.onset.deadUntil = at + 0.22;
+    };
     const loop = () => {
       if (!state.coach || state.coach.stream !== stream) return;
       analyser.getByteTimeDomainData(td);
@@ -1852,30 +1872,41 @@
           const feat = specFeatures(c.pending.spec, c.pending.rms, c.pending.highNow, c.pending.highLater);
           const ranks = classifyHit(feat, templates);
           const top = ranks[0];
-          const hit = {
-            t: c.pending.t,
-            piece: top?.piece || "?",
-            score: top?.score || 0,
-            ranks,
-            feat,
-          };
-          c.heard.push(hit);
-          if (c.heard.length > 2000) c.heard.splice(0, c.heard.length - 1500);
-          c.lastHit = hit;
-          if (typeof c.onHit === "function") c.onHit(hit);
+          if (top && top.score >= 0.22) {
+            const hit = { t: c.pending.t, piece: top.piece, score: top.score, ranks, feat };
+            c.heard.push(hit);
+            if (c.heard.length > 2000) c.heard.splice(0, c.heard.length - 1500);
+            c.lastHit = hit;
+            if (typeof c.onHit === "function") c.onHit(hit);
+          }
           c.pending = null;
         }
       }
-      if (!c.pending) {
-        c.quiet.rms = c.quiet.rms * 0.94 + s.rms * 0.06;
-        c.quiet.flux = c.quiet.flux * 0.94 + s.flux * 0.06;
-        c.quiet.low = c.quiet.low * 0.94 + s.low * 0.06;
-        c.quiet.high = c.quiet.high * 0.94 + s.high * 0.06;
-      }
-      if (!c.pending && t - (c.lastOnset || 0) > 0.07 && isGenericHit(s, c.quiet, noise)) {
-        c.lastOnset = t;
-        c.onsets.push(Math.round(t * 1000) / 1000);
-        c.pending = { t, spec: downsampleSpec(fd), rms: s.rms, highNow: s.high, highLater: s.high, frames: 5 };
+      const ringing = s.rms > c.quiet.rms * 2.3 && t - (c.lastOnset || -9) < 0.45;
+      if (t < c.onset.deadUntil || ringing) {
+        /* wait out the boom / sizzle of this stroke */
+      } else if (!c.pending) {
+        if (!c.onset.armed) {
+          if (isGenericHit(s, c.quiet, noise)) {
+            c.onset.armed = true;
+            c.onset.peak = s.rms;
+            c.onset.peakT = t;
+            c.onset.peakSpec = downsampleSpec(fd);
+            c.onset.peakS = s;
+          } else {
+            c.quiet.rms = c.quiet.rms * 0.95 + s.rms * 0.05;
+            c.quiet.flux = c.quiet.flux * 0.95 + s.flux * 0.05;
+            c.quiet.low = c.quiet.low * 0.95 + s.low * 0.05;
+            c.quiet.high = c.quiet.high * 0.95 + s.high * 0.05;
+          }
+        } else if (s.rms >= c.onset.peak) {
+          c.onset.peak = s.rms;
+          c.onset.peakT = t;
+          c.onset.peakSpec = downsampleSpec(fd);
+          c.onset.peakS = s;
+        } else if ((s.rms < c.onset.peak * 0.75 && t - c.onset.peakT > 0.012) || t - c.onset.peakT > 0.16) {
+          firePending(c.onset.peakSpec, c.onset.peakS.rms, c.onset.peakS.high, c.onset.peakT);
+        }
       }
       if ((c.tick || 0) % 2 === 0) coachRealtime(t);
       c.tick = (c.tick || 0) + 1;
@@ -2104,8 +2135,8 @@
           <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug></pre>
           <div class="flex flex-wrap gap-3 mt-6">
             <button data-action="cal-groove-start" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Start 20s test</button>
+            <button data-action="cal-groove-retry" class="tap rounded-full bg-card border border-line px-6 py-3">Nog een keer de test</button>
             <button data-action="cal-groove-ok" class="tap rounded-full bg-card border border-line px-6 py-3">Opslaan en klaar</button>
-            <button data-action="cal-next" class="tap rounded-full bg-card border border-line px-6 py-3">Opnieuw een stuk</button>
           </div>
           <div class="mt-3">${debugToggleBtn()}</div>
         </div>`);
@@ -2329,6 +2360,20 @@
       state.cal = { step: 2 + KIT_PIECES.length + 1, captures, sessionId, lastFlush: state.cal?.lastFlush };
       render();
     }
+  }
+
+  function stopCalGrooveAnalyser() {
+    const c = state.coach;
+    if (!c) return;
+    if (c.raf) cancelAnimationFrame(c.raf);
+    try { c.ctx?.close(); } catch {}
+    state.coach = null;
+  }
+
+  function retryCalGroove() {
+    calLog("groove_retry", { keepCaptures: Object.keys(state.cal?.captures || {}), skipped: state.cal?.skipped || [] });
+    stopCalGrooveAnalyser();
+    startCalGroove();
   }
 
   async function startCalGroove() {
@@ -3166,15 +3211,8 @@
       const cur = state.cal?.step || 0;
       calLog("click", { button: "cal-next", fromStep: cur });
       if (cur === 0) {
-        state.cal = { step: 1, captures: {}, skipped: [], log: state.cal?.log || [], t0: performance.now() };
+        state.cal = { ...state.cal, step: 1, captures: state.cal?.captures || {}, skipped: state.cal?.skipped || [], log: state.cal?.log || [], t0: state.cal?.t0 || performance.now() };
         calLog("headphones_ok", {});
-        render();
-        return;
-      }
-      if (cur === grooveStep) {
-        calLog("redo_pieces", {});
-        state.cal.step = 2;
-        state.cal.captures = {};
         render();
         return;
       }
@@ -3186,17 +3224,17 @@
       startCalGroove();
       return;
     }
+    if (action === "cal-groove-retry") {
+      calLog("click", { button: "cal-groove-retry" });
+      retryCalGroove();
+      return;
+    }
     if (action === "cal-played-eight") {
       const pi = (state.cal?.step || 0) - 2;
       const piece = KIT_PIECES[pi];
       calLog("played_eight", { button: "cal-played-eight", piece: piece?.id, heard: (state.cal?.captures?.[piece?.id] || []).length });
       try { state.cal.step = (state.cal.step || 0) + 1; } catch {}
-      const grooveStep = 2 + KIT_PIECES.length;
-      if (state.cal.step === grooveStep) {
-        finishKitCalibration(false).then(() => render());
-        return;
-      }
-      render();
+      finishKitCalibration(false).then(() => render());
       return;
     }
     if (action === "cal-detect-failed") {
@@ -3210,12 +3248,7 @@
         calLog("click", { button: "cal-skip", piece: piece.id });
         state.cal.skipped = [...new Set([...(state.cal.skipped || []), piece.id])];
         state.cal.step = (state.cal.step || 0) + 1;
-        const grooveStep = 2 + KIT_PIECES.length;
-        if (state.cal.step === grooveStep) {
-          finishKitCalibration(false).then(() => render());
-          return;
-        }
-        render();
+        finishKitCalibration(false).then(() => render());
       }
       return;
     }
