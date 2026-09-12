@@ -44,7 +44,7 @@ python coach-worker/score_from_video.py \
   --batch that.json \
   --media "$DRUMEO_MEDIA" \
   --out coach-worker/scores \
-  --fps 4
+  --fps 10
 ```
 
 Skip existing files unless `--force`.

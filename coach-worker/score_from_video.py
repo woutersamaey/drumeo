@@ -44,7 +44,7 @@ def find_source(media_dir: str, vimeo_id: str) -> str | None:
     return None
 
 
-def extract_frames(src: str, dest: str, fps: float = 5.0, width: int = 1280) -> list[str]:
+def extract_frames(src: str, dest: str, fps: float = 10.0, width: int = 1920) -> list[str]:
     os.makedirs(dest, exist_ok=True)
     pattern = os.path.join(dest, "%05d.jpg")
     cmd = [
@@ -85,6 +85,7 @@ def ink_mask(band: np.ndarray) -> np.ndarray:
     b = band.astype(np.float32)
     lum = b.mean(axis=2)
     sat = b.max(axis=2) - b.min(axis=2)
+    # Black ink or blue play-along notes on (near-)white paper.
     return (lum < 225) & ((lum < 200) | (sat > 18))
 
 
@@ -240,7 +241,8 @@ def parse_staff(band: np.ndarray) -> list[dict]:
     for ln in lines:
         notes_ink[max(0, ln - 2) : min(h, ln + 3)] = False
 
-    hat_lo, hat_hi = max(0, int(top - 1.7 * space)), max(1, int(top - 0.2 * space))
+    # Hats sit on/just above the top line (x-noteheads), not only in the air.
+    hat_lo, hat_hi = max(0, int(top - 2.0 * space)), min(h, int(top + 0.45 * space))
     snare_lo, snare_hi = int(lines[2] - 0.45 * space), int(lines[2] + 0.45 * space)
     kick_lo, kick_hi = int(lines[3] + 0.2 * space), min(h, int(bot + 0.85 * space))
 
@@ -275,14 +277,14 @@ def parse_staff(band: np.ndarray) -> list[dict]:
         while i >= 0 and hat_row[i] > 0.05:
             hw += 1
             i -= 1
-        if hat > 0.05:
+        if hat > 0.03:
             hat_widths.append(hw)
         chord = []
-        if hat > 0.05:
+        if hat > 0.03:
             chord.append("hat_closed")
-        if snare > 0.12:
+        if snare > 0.10:
             chord.append("snare")
-        if kick > 0.12:
+        if kick > 0.10:
             chord.append("kick")
         if not chord:
             continue
@@ -309,15 +311,39 @@ def pattern_hash(band: np.ndarray, playhead: int) -> str:
     return hashlib.sha1(small.tobytes()).hexdigest()[:12]
 
 
+def _staff_left_right(band: np.ndarray) -> tuple[int, int] | None:
+    ink = ink_mask(band)
+    xs = np.where(ink.mean(axis=0) > 0.02)[0]
+    if xs.size < 10:
+        return None
+    return int(xs[0]), int(xs[-1])
+
+
+def _emit_slice(notes: list[dict], r0: float, r1: float, t0: float, t1: float) -> list[dict]:
+    """Map every note with r0 < rel <= r1 onto a time between t0 and t1."""
+    if not notes or r1 <= r0:
+        return []
+    span = r1 - r0
+    dt = t1 - t0
+    out = []
+    for n in notes:
+        rel = float(n["rel"])
+        if rel <= r0 or rel > r1:
+            continue
+        alpha = (rel - r0) / span
+        t = t0 + alpha * dt
+        for piece in n.get("chord") or [n["piece"]]:
+            out.append({"t": round(float(t), 3), "piece": piece, "rel": round(rel, 4)})
+    return out
+
+
 def analyze_frames(paths: list[str], fps: float) -> dict:
-    events: list[dict] = []
     patterns: dict[str, list[dict]] = {}
     play_windows: list[list[float]] = []
-    last_hash = None
     window_start = None
-    last_rel = 0.0
-    loops = 0
     ph_series = []
+    best_notes: list[dict] = []
+
     for i, path in enumerate(paths):
         t = i / fps
         try:
@@ -329,56 +355,93 @@ def analyze_frames(paths: list[str], fps: float) -> dict:
             if window_start is not None:
                 play_windows.append([round(window_start, 3), round(t, 3)])
                 window_start = None
-            last_hash = None
             continue
         px, pscore = playhead_x(band)
-        if pscore < 4:
+        if pscore < 3.5:
             continue
+        bounds = _staff_left_right(band)
+        if bounds is None:
+            continue
+        left, right = bounds
+        rel = float(np.clip((px - left) / max(1, right - left), 0, 1))
         hsh = pattern_hash(band, px)
-        if hsh not in patterns:
-            patterns[hsh] = parse_staff(band)
-        notes = patterns[hsh]
-        # staff bounds for rel playhead
-        ink = ink_mask(band)
-        xs = np.where(ink.mean(axis=0) > 0.02)[0]
-        if xs.size < 10:
-            continue
-        left, right = int(xs[0]), int(xs[-1])
-        rel = (px - left) / max(1, right - left)
-        rel = float(np.clip(rel, 0, 1))
+        parsed = patterns.get(hsh)
+        if parsed is None:
+            parsed = parse_staff(band)
+            patterns[hsh] = parsed
+        # Keep the richest parse of the current staff (hashes jitter).
+        if len(parsed) >= len(best_notes) * 0.85 and len(parsed) >= 4:
+            best_notes = parsed
+        elif not best_notes and parsed:
+            best_notes = parsed
         if window_start is None:
             window_start = t
-        # new loop when playhead jumps backwards
-        if last_hash == hsh and rel + 0.12 < last_rel:
-            loops += 1
-        last_hash = hsh
-        last_rel = rel
-        ph_series.append({"t": round(t, 3), "rel": round(rel, 4), "hash": hsh, "pscore": round(pscore, 2)})
-        # emit notes whose rel is within this playhead tick (and not already at this loop)
-        # we instead reconstruct after the fact from ph_series + patterns
+        ph_series.append({
+            "t": round(t, 3),
+            "rel": round(rel, 4),
+            "hash": hsh,
+            "pscore": round(pscore, 2),
+            "n": len(best_notes),
+        })
+
     if window_start is not None:
         play_windows.append([round(window_start, 3), round(len(paths) / fps, 3)])
 
-    timed = []
-    last_rel = 0.0
-    last_notes: list[dict] = []
+    timed: list[dict] = []
+    speed = 0.22  # staff-widths per second; 2 bars ~ 4–5s
+    last_t = None
+    last_rel = None
+    notes = best_notes
+    # Smooth playhead; ignore one-frame spikes.
+    rels = [s["rel"] for s in ph_series]
+    for i in range(1, len(rels) - 1):
+        a, b, c = rels[i - 1], rels[i], rels[i + 1]
+        if abs(b - a) > 0.12 and abs(b - c) > 0.12 and abs(c - a) < 0.08:
+            rels[i] = 0.5 * (a + c)
+            ph_series[i]["rel"] = round(rels[i], 4)
+
     for sample in ph_series:
-        notes = patterns.get(sample["hash"]) or last_notes
-        if notes:
-            last_notes = notes
-        rel = sample["rel"]
-        t = sample["t"]
-        crossed: list[dict] = []
-        if rel + 0.12 < last_rel:
-            crossed = [n for n in last_notes if n["rel"] > last_rel - 0.02] + [n for n in notes if n["rel"] <= rel + 0.01]
-        else:
-            crossed = [n for n in notes if last_rel - 0.005 < n["rel"] <= rel + 0.01]
-        for n in crossed:
-            for piece in n.get("chord") or [n["piece"]]:
-                timed.append({"t": round(t, 3), "piece": piece, "rel": n["rel"]})
-        last_rel = rel
+        t, rel = sample["t"], sample["rel"]
+        parsed = patterns.get(sample["hash"]) or notes
+        if parsed and len(parsed) >= max(4, int(0.7 * len(notes) if notes else 4)):
+            notes = parsed
+        if last_t is None:
+            last_t, last_rel = t, rel
+            continue
+        dt = max(1e-3, t - last_t)
+        drel = rel - last_rel
+        wrap = drel < -0.18 and last_rel > 0.62
+        if wrap:
+            if speed > 0.04:
+                t_end = last_t + min(1.5, max(0.0, (1.0 - last_rel) / speed))
+                timed.extend(_emit_slice(notes, last_rel, 1.0, last_t, t_end))
+            t_start = t - min(1.5, rel / max(speed, 0.05))
+            timed.extend(_emit_slice(notes, 0.0, rel, max(last_t, t_start), t))
+            speed = 0.85 * speed + 0.15 * max(0.08, (1.0 - last_rel + rel) / dt)
+            last_t, last_rel = t, rel
+            continue
+        if drel > 0.14:
+            # Playhead jumped forward (cut / bad detect): skip, don't dump the bar.
+            last_t, last_rel = t, rel
+            continue
+        if drel > 0.001:
+            timed.extend(_emit_slice(notes, last_rel, rel, last_t, t))
+            inst = drel / dt
+            if 0.05 < inst < 0.6:
+                speed = 0.7 * speed + 0.3 * inst
+        last_t, last_rel = t, rel
+
     timed.sort(key=lambda e: (e["t"], e["piece"]))
-    # must-play = pieces that appear
+    # Drop exact dupes from wrap/jitter.
+    deduped = []
+    seen = set()
+    for e in timed:
+        key = (round(e["t"], 2), e["piece"])
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(e)
+    timed = deduped
     must = sorted({e["piece"] for e in timed})
     return {
         "fps": fps,
@@ -405,7 +468,7 @@ def _merge_windows(wins: list[list[float]], gap: float = 1.5) -> list[list[float
     return out
 
 
-def analyze_video(src: str, vimeo_id: str, fps: float = 5.0, work: str | None = None) -> dict:
+def analyze_video(src: str, vimeo_id: str, fps: float = 10.0, work: str | None = None) -> dict:
     tmp = work or tempfile.mkdtemp(prefix="drumeo-score-")
     frames_dir = os.path.join(tmp, "frames")
     try:
@@ -473,7 +536,7 @@ def main() -> int:
     p.add_argument("--vimeo", help="Vimeo id")
     p.add_argument("--media", default=os.environ.get("MEDIA_DIR", "/media/nas"))
     p.add_argument("--out", default=os.environ.get("SCORES_DIR", "/media/coach/scores"))
-    p.add_argument("--fps", type=float, default=5.0)
+    p.add_argument("--fps", type=float, default=10.0)
     p.add_argument("--force", action="store_true", help="Re-analyze even if a score already exists")
     p.add_argument("--batch", help="JSON list of {vimeo,id,n,title} lessons")
     args = p.parse_args()
