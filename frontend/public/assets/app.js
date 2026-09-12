@@ -19,7 +19,12 @@
     hadFullscreenThisClip: false,
     fsListener: null,
     keepWatchStage: false,
+    lessonsShown: 0,
+    lessonsObserver: null,
+    lessonsLoading: false,
   };
+
+  const LESSONS_PAGE_SIZE = 12;
 
   const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter" };
   const LANGS = [
@@ -144,6 +149,7 @@
     const p = pathOf();
     if (p === "/" || p === "/profiles") return { name: "profiles", params: {} };
     if (p === "/home") return { name: "home", params: {} };
+    if (p === "/lessons") return { name: "lessons", params: {} };
     if (p === "/history") return { name: "history", params: {} };
     if (p === "/stats") return { name: "stats", params: {} };
     if (p === "/practice") return { name: "practice", params: {} };
@@ -607,8 +613,9 @@
           </a>
           <nav class="flex items-center gap-1 text-sm min-w-0 flex-nowrap">
             ${navLink("/home", "Home", { cls: "hidden lg:flex items-center" })}
+            ${navLink("/lessons", "Lessen", { cls: "hidden lg:flex items-center" })}
             ${methodNav()}
-            ${navLink("/practice", "Oefenen", { cls: "hidden lg:flex items-center" })}
+            ${navLink("/practice", "Opnieuw oefenen", { cls: "hidden lg:flex items-center" })}
             ${navLink("/history", "Geschiedenis", { cls: "hidden lg:flex items-center" })}
             ${navLink("/stats", "Statistieken", { cls: "hidden lg:flex items-center" })}
           </nav>
@@ -624,8 +631,9 @@
       <nav class="nav-dock lg:hidden fixed bottom-0 inset-x-0 bg-panel/95 border-t border-line z-30">
         <div class="nav-mobile">
           ${navLink("/home", "Home", { mobile: true })}
-          ${navLink("/practice", "Oefenen", { mobile: true })}
-          ${navLink("/history", "Geschiedenis", { mobile: true })}
+          ${navLink("/lessons", "Lessen", { mobile: true })}
+          ${navLink("/practice", "Opnieuw", { mobile: true })}
+          ${navLink("/history", "Historie", { mobile: true })}
           ${navLink("/stats", "Stats", { mobile: true })}
           <button data-action="switch-profile" class="py-3 tap text-muted">Profiel</button>
         </div>
@@ -801,28 +809,138 @@
       </div>`, { nav: false });
   }
 
-  function renderHome() {
-    const b = state.bootstrap;
-    const resume = b.resume;
-    const resumeLesson = resume ? lessonById(resume.lessonId) : null;
-    const practice = b.practice || [];
-    const hero = resumeLesson ? `
-      <section class="relative overflow-hidden rounded-3xl bg-card border border-line mb-10">
+  function resumeLesson() {
+    const resume = state.bootstrap?.resume;
+    return resume ? lessonById(resume.lessonId) : null;
+  }
+
+  function previousLessons(next) {
+    const seq = methodSequence();
+    const idx = next ? seq.findIndex((l) => sameId(l.id, next.id)) : -1;
+    if (idx <= 0) return [];
+    return seq.slice(0, idx).reverse();
+  }
+
+  function featuredNextHero(lesson, { complete = false } = {}) {
+    if (!lesson) return "";
+    const watched = !!progressOf(lesson.id)?.watched;
+    const kicker = complete ? "Opnieuw spelen" : "Volgende les";
+    const cta = complete ? "Speel opnieuw" : "Start volgende les";
+    return `
+      <section class="relative overflow-hidden rounded-3xl bg-card border ${watched ? "card-watched" : "border-line"} mb-10">
         <div class="grid lg:grid-cols-2">
-          <div class="relative aspect-video lg:aspect-auto lg:min-h-[280px] thumb overflow-hidden">
-            ${thumbPic(resumeLesson.vimeoId, { sizes: "(min-width: 1024px) 50vw, 100vw", alt: disp(resumeLesson), eager: true })}
-            <div class="absolute inset-0 bg-gradient-to-r from-card via-card/40 to-transparent hidden lg:block"></div>
+          <div class="relative aspect-video lg:aspect-auto lg:min-h-[280px] thumb overflow-hidden${watched ? " thumb-watched" : ""}">
+            ${thumbPic(lesson.vimeoId, { sizes: "(min-width: 1024px) 50vw, 100vw", alt: disp(lesson), eager: true })}
+            ${thumbBadges(lesson.id, { watched })}
+            ${!available(lesson.vimeoId) ? `<span class="absolute top-2 left-2 text-[11px] bg-black/70 px-2 py-1 rounded-full">Nog geen video</span>` : ""}
+            <div class="absolute inset-0 bg-gradient-to-r from-card via-card/40 to-transparent hidden lg:block pointer-events-none"></div>
           </div>
           <div class="p-5 sm:p-8 flex flex-col justify-center">
-            <p class="text-accent text-sm font-semibold uppercase tracking-wide">Volgende les${lessonNo(resumeLesson) ? ` · les ${lessonNo(resumeLesson)} van ${lessonTotal()}` : ""}</p>
-            <h2 class="text-2xl sm:text-3xl font-black mt-2">${lessonNumHtml(resumeLesson)}${esc(disp(resumeLesson))}</h2>
-            <p class="text-muted mt-2">${esc(disp(resumeLesson, "pathTitle"))} · ${esc(langMeta().label)}</p>
-            <a href="/watch/${resumeLesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-5 sm:px-6 py-3 tap w-fit whitespace-nowrap">
-              Start volgende les
+            <p class="text-accent text-sm font-semibold uppercase tracking-wide">${esc(kicker)}${lessonNo(lesson) ? ` · les ${lessonNo(lesson)} van ${lessonTotal()}` : ""}</p>
+            <h2 class="text-2xl sm:text-3xl font-black mt-2">${lessonNumHtml(lesson)}${esc(disp(lesson))}</h2>
+            <p class="text-muted mt-2">${esc(disp(lesson, "pathTitle"))} · ${esc(langMeta().label)}</p>
+            <a href="/watch/${lesson.id}" data-link class="mt-6 inline-flex items-center justify-center rounded-full bg-white text-ink font-bold px-5 sm:px-6 py-3 tap w-fit whitespace-nowrap">
+              ${esc(cta)}
             </a>
           </div>
         </div>
-      </section>` : "";
+      </section>`;
+  }
+
+  function unwireLessonsScroll() {
+    if (state.lessonsObserver) {
+      state.lessonsObserver.disconnect();
+      state.lessonsObserver = null;
+    }
+  }
+
+  function loadMoreLessons() {
+    if (state.route.name !== "lessons" || state.lessonsLoading) return;
+    const all = previousLessons(resumeLesson());
+    const from = state.lessonsShown || 0;
+    if (from >= all.length) {
+      unwireLessonsScroll();
+      $("#lessons-more")?.remove();
+      return;
+    }
+    state.lessonsLoading = true;
+    const to = Math.min(from + LESSONS_PAGE_SIZE, all.length);
+    const extra = all.slice(from, to);
+    state.lessonsShown = to;
+    const grid = $("#lessons-prev-grid");
+    if (grid) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = extra.map((l) => card(l).trim()).join("");
+      while (tmp.firstChild) {
+        const node = tmp.firstChild;
+        if (node.nodeType === 1 && node.matches("[data-link]")) {
+          node.addEventListener("click", onLinkClick);
+        }
+        grid.appendChild(node);
+      }
+    }
+    state.lessonsLoading = false;
+    if (to >= all.length) {
+      unwireLessonsScroll();
+      $("#lessons-more")?.remove();
+    }
+  }
+
+  function wireLessonsScroll() {
+    unwireLessonsScroll();
+    const sentinel = $("#lessons-more");
+    if (!sentinel) return;
+    if (typeof IntersectionObserver === "undefined") {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tap rounded-full bg-card px-5 py-3 border border-line text-sm";
+      btn.textContent = "Meer lessen";
+      btn.addEventListener("click", loadMoreLessons);
+      sentinel.replaceChildren(btn);
+      sentinel.removeAttribute("aria-hidden");
+      sentinel.className = "py-6 text-center";
+      return;
+    }
+    state.lessonsObserver = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMoreLessons();
+    }, { root: null, rootMargin: "600px 0px", threshold: 0 });
+    state.lessonsObserver.observe(sentinel);
+  }
+
+  function renderLessons() {
+    const next = resumeLesson();
+    const complete = state.bootstrap?.resume?.reason === "complete";
+    const previous = previousLessons(next);
+    if (!state.lessonsShown || state.lessonsShown < LESSONS_PAGE_SIZE) {
+      state.lessonsShown = LESSONS_PAGE_SIZE;
+    }
+    const shown = previous.slice(0, state.lessonsShown);
+    state.lessonsShown = shown.length;
+    const hasMore = shown.length < previous.length;
+
+    $("#app").innerHTML = layout(`
+      <div class="max-w-7xl mx-auto px-4 pt-6">
+        <h1 class="text-3xl sm:text-4xl font-black">Lessen</h1>
+        <p class="text-muted mt-2 mb-8">${complete
+          ? "Je hebt alle lessen gespeeld. Speel er een opnieuw — steeds vanaf het begin."
+          : "De volgende les staat bovenaan. Daaronder alles wat je al kunt naspelen."}</p>
+        ${next ? featuredNextHero(next, { complete }) : `<div class="rounded-2xl bg-card border border-line p-8 text-muted mb-10">Nog geen lessen.</div>`}
+        ${previous.length ? `
+          <section class="mb-10">
+            <h2 class="text-2xl font-bold mb-4">Vorige lessen</h2>
+            <div id="lessons-prev-grid" class="lesson-grid">
+              ${shown.map((l) => card(l)).join("")}
+            </div>
+            ${hasMore ? `<div id="lessons-more" class="h-10" aria-hidden="true"></div>` : ""}
+          </section>` : ""}
+      </div>`);
+  }
+
+  function renderHome() {
+    const b = state.bootstrap;
+    const next = resumeLesson();
+    const practice = practiceOrdered();
+    const hero = featuredNextHero(next);
 
     const practiceRow = practice.length ? `
       <section class="mb-10">
@@ -1176,16 +1294,68 @@
       </div>`);
   }
 
+  const PRACTICE_LABEL = { 1: "Moeilijk", 2: "Matig", 3: "Goed" };
+
+  function practiceScoreOf(lesson) {
+    const n = Number(lesson?.latestScore ?? latestScoreOf(lesson?.id));
+    return n >= 1 && n <= 3 ? n : 0;
+  }
+
+  function lastPlayedAt(lesson) {
+    const p = progressOf(lesson?.id);
+    const fromProgress = Number(p?.updated) || 0;
+    if (fromProgress) return fromProgress;
+    let latest = 0;
+    for (const r of lesson?.ratings || []) {
+      const t = Number(r.at) || 0;
+      if (t > latest) latest = t;
+    }
+    return latest;
+  }
+
+  function practiceGroups() {
+    const buckets = { 1: [], 2: [], 3: [] };
+    for (const lesson of state.bootstrap?.practice || []) {
+      const score = practiceScoreOf(lesson);
+      if (!buckets[score]) continue;
+      buckets[score].push(lesson);
+    }
+    const byOldest = (a, b) => {
+      const d = lastPlayedAt(a) - lastPlayedAt(b);
+      if (d !== 0) return d;
+      return (lessonNo(a) || 0) - (lessonNo(b) || 0);
+    };
+    return [1, 2, 3]
+      .map((score) => ({
+        score,
+        emoji: SCORE_EMOJI[score],
+        label: PRACTICE_LABEL[score],
+        lessons: buckets[score].slice().sort(byOldest),
+      }))
+      .filter((g) => g.lessons.length);
+  }
+
+  function practiceOrdered() {
+    return practiceGroups().flatMap((g) => g.lessons);
+  }
+
   function renderPractice() {
-    const items = state.bootstrap?.practice || [];
+    const groups = practiceGroups();
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
         <h1 class="text-3xl sm:text-4xl font-black">Opnieuw oefenen</h1>
-        <p class="text-muted mt-2 mb-8">Alles wat nog geen top-score kreeg. Oefenen mag altijd opnieuw — we bewaren elke score.</p>
-        ${items.length === 0 ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog niks hier. Speel een les en geef een score!</div>` : `
-          <div class="lesson-grid">
-            ${items.map((l) => card(l)).join("")}
-          </div>`}
+        <p class="text-muted mt-2 mb-8">Nog geen top-score? Die staan hier, van moeilijk naar goed. Binnen elke groep eerst de les die het langst geleden is.</p>
+        ${groups.length === 0 ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog niks hier. Speel een les en geef een score!</div>` : groups.map((g) => `
+          <section class="mb-10">
+            <h2 class="text-2xl font-bold mb-4 flex items-baseline gap-2">
+              <span aria-hidden="true">${g.emoji}</span>
+              <span>${esc(g.label)}</span>
+              <span class="text-muted text-base font-semibold">${g.lessons.length}</span>
+            </h2>
+            <div class="lesson-grid">
+              ${g.lessons.map((l) => card(l)).join("")}
+            </div>
+          </section>`).join("")}
       </div>`);
   }
 
@@ -1741,13 +1911,15 @@
     if (methodBtn) methodBtn.setAttribute("aria-label", isNl() ? "Hoofdstukken" : "The Method");
   }
 
+  function onLinkClick(e) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    go(e.currentTarget.getAttribute("href"));
+  }
+
   function bind() {
     $$("[data-link]").forEach((a) => {
-      a.addEventListener("click", (e) => {
-        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-        e.preventDefault();
-        go(a.getAttribute("href"));
-      });
+      a.addEventListener("click", onLinkClick);
     });
     $$("[data-action]").forEach((el) => {
       el.addEventListener("click", onAction);
@@ -1930,16 +2102,22 @@
       go("/home", true);
       return;
     }
+    if (route.name !== "lessons") {
+      state.lessonsShown = 0;
+      unwireLessonsScroll();
+    }
     if (route.name === "profiles") renderProfiles();
     else if (route.name === "home") renderHome();
     else if (route.name === "path") renderPath();
     else if (route.name === "history") renderHistory();
     else if (route.name === "stats") await renderStats();
     else if (route.name === "practice") renderPractice();
+    else if (route.name === "lessons") renderLessons();
     else if (route.name === "watch") await renderWatch();
     else renderHome();
     bind();
     wireHScroll();
+    if (route.name === "lessons") wireLessonsScroll();
     const hash = location.hash.replace(/^#/, "");
     if (hash) {
       requestAnimationFrame(() => {
