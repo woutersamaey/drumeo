@@ -28,7 +28,7 @@
 
   const LESSONS_PAGE_SIZE = 12;
 
-  const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter" };
+  const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter", arthur: "bg-arthur" };
   const LANGS = [
     { index: 0, code: "en", short: "EN", label: "English" },
     { index: 1, code: "nl", short: "NL", label: "Nederlands" },
@@ -800,10 +800,10 @@
     const root = $("#app");
     root.innerHTML = layout(`
       <div class="min-h-[80vh] grid place-items-center px-4 py-10">
-        <div class="w-full max-w-4xl text-center">
+        <div class="w-full max-w-6xl text-center">
           <p class="text-muted uppercase tracking-[0.2em] text-sm">Drumeo</p>
           <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black mt-2 mb-8 sm:mb-10">Wie gaat er drummen?</h1>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             ${profiles.map((p) => {
               const total = Number(p.lessonCount) || 0;
               const done = Number(p.watchedCount) || 0;

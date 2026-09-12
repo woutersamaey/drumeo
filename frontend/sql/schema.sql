@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS profiles (
 INSERT INTO profiles (id, slug, name, coach_enabled) VALUES
   (1, 'vic', 'Vic', 0),
   (2, 'lenn', 'Lenn', 0),
-  (3, 'wouter', 'Wouter', 1)
+  (3, 'wouter', 'Wouter', 1),
+  (4, 'arthur', 'Arthur', 0)
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 CREATE TABLE IF NOT EXISTS watch_progress (

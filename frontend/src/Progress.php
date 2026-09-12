@@ -93,6 +93,34 @@ final class Progress
              ) ENGINE=InnoDB'
         );
         $this->backfillPlayedSec();
+        $this->ensureArthurProfile();
+    }
+
+    private function ensureArthurProfile(): void
+    {
+        $pdo = $this->db->pdo();
+        $pdo->prepare(
+            'INSERT INTO profiles (id, slug, name, hide_future, coach_enabled)
+             VALUES (4, ?, ?, 1, 0)
+             ON DUPLICATE KEY UPDATE name = VALUES(name)'
+        )->execute(['arthur', 'Arthur']);
+        $watched = $pdo->prepare('SELECT COUNT(*) FROM watch_progress WHERE profile_id = 4 AND watched = 1');
+        $watched->execute();
+        if ((int) $watched->fetchColumn() > 0) {
+            return;
+        }
+        $first = $this->catalog->orderedLessons()[0] ?? null;
+        if (!is_array($first) || (int) ($first['id'] ?? 0) <= 0) {
+            return;
+        }
+        $lid = (int) $first['id'];
+        $vimeo = (string) ($first['vimeoId'] ?? '');
+        $dur = max(1.0, (float) ($first['seconds'] ?? 0));
+        $pdo->prepare(
+            'INSERT INTO watch_progress (profile_id, lesson_id, vimeo_id, position_sec, duration_sec, watched, played_sec)
+             VALUES (4, ?, ?, ?, ?, 1, ?)
+             ON DUPLICATE KEY UPDATE watched = 1, position_sec = VALUES(position_sec), duration_sec = VALUES(duration_sec)'
+        )->execute([$lid, $vimeo, $dur, $dur, $dur]);
     }
 
     /** @return array<string,mixed> */
