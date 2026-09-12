@@ -292,6 +292,15 @@ final class Http
 
         if ($path === '/app/coach/calibration/session' && $method === 'POST') {
             $file = $_FILES['audio'] ?? null;
+            $ctype = (string) ($_SERVER['CONTENT_TYPE'] ?? '');
+            if ((!is_array($file) || (int) ($file['error'] ?? 1) !== UPLOAD_ERR_OK) && str_contains($ctype, 'application/json')) {
+                $body = $this->body();
+                $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($body['id'] ?? '')) ?: ('cal' . (string) time());
+                $meta = is_array($body['meta'] ?? null) ? $body['meta'] : $body;
+                $row = $this->coach->saveCalSession($pid, $id, '', (string) ($body['mime'] ?? 'audio/mp4'), (float) ($body['duration'] ?? 0), is_array($meta) ? $meta : []);
+                $this->json(200, $row);
+                return;
+            }
             $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_POST['id'] ?? '')) ?: ('cal' . (string) time());
             $mime = (string) ($file['type'] ?? $_POST['mime'] ?? 'audio/mp4');
             if ($mime === '' || $mime === 'application/octet-stream') {

@@ -368,10 +368,12 @@ final class Coach
         $ext = str_contains($mime, 'webm') ? 'webm' : (str_contains($mime, 'wav') ? 'wav' : 'm4a');
         $audio = $dir . '/' . $id . '.' . $ext;
         $json = $dir . '/' . $id . '.json';
-        if (is_file($tmp)) {
+        if ($tmp !== '' && is_file($tmp)) {
             if (!move_uploaded_file($tmp, $audio) && !@rename($tmp, $audio) && !@copy($tmp, $audio)) {
                 throw new \RuntimeException('could not store cal audio');
             }
+        } else {
+            $audio = '';
         }
         @chmod($audio, 0664);
         $meta['id'] = $id;

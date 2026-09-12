@@ -1700,7 +1700,7 @@
     }
     const chunks = [];
     rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-    rec.start(2000);
+    try { rec.start(1000); } catch { rec.start(); }
     state.cal = {
       ...(state.cal || {}),
       stream,
@@ -1758,23 +1758,54 @@
       fd.append("duration", String(((performance.now() - (cal.t0 || performance.now())) / 1000).toFixed(2)));
       fd.append("meta", JSON.stringify(calMetaPayload({ kitReady, grooveHeard, feedback: feedback || ($("#cal-feedback")?.value || "").trim() })));
       try {
-        const row = await fetch("/app/coach/calibration/session", { method: "POST", credentials: "same-origin", body: fd }).then((r) => r.json());
+        let row = await fetch("/app/coach/calibration/session", { method: "POST", credentials: "same-origin", body: fd }).then((r) => r.json());
+        if (!row || row.error) {
+          row = await fetch("/app/coach/calibration/session", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: cal.sessionId,
+              mime: cal.mime || "audio/mp4",
+              duration: Number(fd.get("duration") || 0),
+              meta: JSON.parse(String(fd.get("meta") || "{}")),
+            }),
+          }).then((r) => r.json());
+        }
         cal.uploaded = true;
         cal.lastFlush = row;
         return row;
       } catch (e) {
         calLog("flush_error", { message: String(e && e.message || e) });
+        try {
+          await fetch("/app/coach/calibration/session", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            keepalive: true,
+            body: JSON.stringify({ id: cal.sessionId, meta: calMetaPayload({ kitReady, grooveHeard, feedback }) }),
+          });
+        } catch {}
         return null;
       } finally {
         cal.flushing = false;
       }
     };
+    const blobOf = () => new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" });
     if (!rec || rec.state === "inactive") {
-      return finish(new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" }));
+      return finish(blobOf());
     }
     return new Promise((resolve) => {
-      rec.onstop = () => resolve(finish(new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" })));
-      try { rec.stop(); } catch { resolve(finish(new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" }))); }
+      let done = false;
+      const once = () => {
+        if (done) return;
+        done = true;
+        resolve(finish(blobOf()));
+      };
+      rec.addEventListener("stop", once, { once: true });
+      try { rec.requestData(); } catch {}
+      try { rec.stop(); } catch { once(); }
+      setTimeout(once, 800);
     });
   }
 
@@ -2320,8 +2351,10 @@
       if (p.id === "crash_extra") continue;
       const src = p.id === "crash" ? crashHits : (captures[p.id] || []);
       const m = meanHits(src);
-      if (m && m.n >= 4) templates[p.id] = m;
+      const sane = m && m.n >= 4 && m.n <= 12 && m.decay < 4 && m.decay > 0.01;
+      if (sane) templates[p.id] = m;
       else if (starter[p.id]) templates[p.id] = { ...starter[p.id], source: "macbook-starter" };
+      else if (m && m.n >= 4) templates[p.id] = m;
     }
     const aliases = {};
     if (skipped.includes("tom_mid") || !(templates.tom_mid && templates.tom_mid.n >= 4)) {
