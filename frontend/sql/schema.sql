@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS profiles (
 INSERT INTO profiles (id, slug, name) VALUES
   (1, 'vic', 'Vic'),
   (2, 'lenn', 'Lenn'),
-  (3, 'wouter', 'Wouter')
+  (3, 'wouter', 'Wouter'),
+  (4, 'arthur', 'Arthur')
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 CREATE TABLE IF NOT EXISTS watch_progress (

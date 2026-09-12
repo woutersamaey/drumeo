@@ -13,6 +13,7 @@
   --color-vic: #fb7185;
   --color-lenn: #2dd4bf;
   --color-wouter: #a78bfa;
+  --color-arthur: #fb923c;
 }
 
 html {
@@ -645,6 +646,7 @@ button.tap {
 .battle-fill.is-vic { background: #fb7185; }
 .battle-fill.is-lenn { background: #2dd4bf; }
 .battle-fill.is-wouter { background: #a78bfa; }
+.battle-fill.is-arthur { background: #fb923c; }
 .battle-name {
   font-size: 0.95rem;
   font-weight: 700;
