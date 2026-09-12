@@ -1423,16 +1423,16 @@
   }
 
   const KIT_PIECES = [
-    { id: "kick", label: "Bassdrum", how: "8 keer met je rechtervoet" },
-    { id: "snare", label: "Snare", how: "8 keer, stevig in het midden" },
-    { id: "hat_closed", label: "Hi-hat dicht", how: "8 keer, pedaal dicht" },
-    { id: "hat_open", label: "Hi-hat open", how: "8 keer, pedaal open" },
-    { id: "crash", label: "Crash", how: "8 keer. Twee crashes? Wissel gerust, of sla ze samen. Welke crash telt als crash." },
-    { id: "crash_extra", label: "Tweede crash", how: "8 extra tikken op je andere crash. Overslaan als je er maar één hebt — we houden het als ‘crash’.", skip: true },
-    { id: "ride", label: "Ride", how: "8 keer op de ride" },
-    { id: "tom_high", label: "1e tom (hoog)", how: "8 keer. Die heeft iedereen." },
+    { id: "kick", label: "Bassdrum", how: "8 keer, rechtervoet, ±1 s tussen de tikken." },
+    { id: "snare", label: "Snare", how: "8 keer, stevig in het midden, ±1 s ertussen." },
+    { id: "hat_closed", label: "Hi-hat dicht", how: "8 keer, pedaal dicht. Kort, ±1 s ertussen." },
+    { id: "hat_open", label: "Hi-hat open", how: "8 keer, pedaal open. Kort, ±1 s ertussen." },
+    { id: "crash", label: "Crash", how: "8 keer. Laat elke tik UITKLINKEN — niet dempen. Wacht tot het bijna stil is (~2 s) voor de volgende. Twee crashes? Wissel of sla ze samen; het telt allebei als crash." },
+    { id: "crash_extra", label: "Tweede crash", how: "Optioneel extra 8 tikken op de andere crash. Overslaan als je er maar één hebt. Ook laten uitklinken.", skip: true },
+    { id: "ride", label: "Ride", how: "8 keer. Laat meeklinken, niet dempen, ~2 s tussen de tikken." },
+    { id: "tom_high", label: "1e tom (hoog)", how: "8 keer, ±1 s ertussen. Die heeft iedereen." },
     { id: "tom_mid", label: "2e tom (midden)", how: "8 keer. Geen 2e tom? Overslaan — in de les speel je daar floor tom.", skip: true },
-    { id: "tom_floor", label: "Floor tom", how: "8 keer. Vervangt ook de 2e tom als je die niet hebt." },
+    { id: "tom_floor", label: "Floor tom", how: "8 keer, ±1 s ertussen. Vervangt ook de 2e tom als je die niet hebt." },
   ];
   const KIT_HITS = 8;
   const STAFF_Y = { crash: 12, crash_extra: 12, ride: 18, hat_closed: 20, hat_open: 22, tom_high: 30, tom_mid: 36, snare: 42, tom_floor: 54, kick: 66 };
@@ -1577,8 +1577,8 @@
     if (!svg) return;
     const g = svg.querySelector(".staff-notes");
     if (!g) return;
-    const winL = 2.2, winR = 5.0;
-    const xAt = (tt) => 280 + ((tt - t) / (winL + winR)) * 1000 * ((winL + winR) / winR) * 0.72;
+    const ahead = 6;
+    const xAt = (tt) => 280 + (tt - t) * (720 / ahead);
     const bits = [];
     for (const ev of events) {
       const x = xAt(ev.t);
@@ -1714,6 +1714,88 @@
       uploaded: false,
     };
     calLog("recorder_start", { mime: state.cal.mime, sessionId: state.cal.sessionId, ua: navigator.userAgent, lang: navigator.language });
+  }
+
+  function revokeClip(pieceId) {
+    const c = state.cal?.clips?.[pieceId];
+    if (c?.url) try { URL.revokeObjectURL(c.url); } catch {}
+    if (state.cal?.clips) delete state.cal.clips[pieceId];
+  }
+
+  function startPieceClip(stream) {
+    stopPieceClip(false);
+    const mime = recorderMime();
+    let rec;
+    try { rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream); }
+    catch { rec = new MediaRecorder(stream); }
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    try { rec.start(500); } catch { rec.start(); }
+    state.cal.pieceRec = rec;
+    state.cal.pieceChunks = chunks;
+    state.cal.pieceMime = rec.mimeType || mime || "audio/mp4";
+  }
+
+  function stopPieceClip(save) {
+    const rec = state.cal?.pieceRec;
+    const pieceId = state.cal?.pieceId;
+    const chunks = state.cal?.pieceChunks || [];
+    const mime = state.cal?.pieceMime || "audio/mp4";
+    const finish = () => {
+      state.cal.pieceRec = null;
+      state.cal.pieceChunks = [];
+      if (!save || !pieceId) return null;
+      const blob = new Blob(chunks, { type: mime });
+      if (blob.size < 200) return null;
+      revokeClip(pieceId);
+      const url = URL.createObjectURL(blob);
+      state.cal.clips = state.cal.clips || {};
+      state.cal.clips[pieceId] = { url, blob, mime };
+      uploadCalClip(pieceId, blob, mime);
+      return blob;
+    };
+    if (!rec || rec.state === "inactive") return Promise.resolve(finish());
+    return new Promise((resolve) => {
+      rec.onstop = () => resolve(finish());
+      try { rec.requestData(); } catch {}
+      try { rec.stop(); } catch { resolve(finish()); }
+      setTimeout(() => resolve(finish()), 600);
+    });
+  }
+
+  function uploadCalClip(pieceId, blob, mime) {
+    const id = state.cal?.sessionId;
+    if (!id || !blob) return;
+    const fd = new FormData();
+    const ext = (mime || "").includes("webm") ? "webm" : "m4a";
+    fd.append("audio", blob, pieceId + "." + ext);
+    fd.append("id", id);
+    fd.append("piece", pieceId);
+    fd.append("mime", mime || "audio/mp4");
+    fetch("/app/coach/calibration/clip", { method: "POST", credentials: "same-origin", body: fd }).catch(() => {});
+  }
+
+  function calPieceDone(p) {
+    if ((state.cal?.skipped || []).includes(p.id)) return true;
+    return !!(state.cal?.clips && state.cal.clips[p.id]);
+  }
+
+  function calRequiredReady() {
+    return KIT_PIECES.filter((p) => !p.skip).every(calPieceDone);
+  }
+
+  function goCalHub() {
+    state.cal.view = "hub";
+    state.cal.pieceId = null;
+    state.cal._loggedPiece = null;
+    render();
+  }
+
+  function goCalPiece(id) {
+    state.cal.view = "piece";
+    state.cal.pieceId = id;
+    state.cal._loggedPiece = null;
+    render();
   }
 
   function calMetaPayload(extra = {}) {
@@ -2128,75 +2210,102 @@
   }
 
   function renderCalibrate() {
-    const step = state.cal?.step || 0;
     loadKitStarter();
-    const total = 2 + KIT_PIECES.length + 2; // headphones, noise, pieces, groove, done
-    if (step === 0) {
+    const view = state.cal?.view || (state.cal?.step === 1 ? "noise" : (!state.cal?.step ? "intro" : "hub"));
+    if (view === "intro" || !state.cal?.step) {
       $("#app").innerHTML = layout(`
         <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
           <p class="text-accent text-sm font-semibold uppercase tracking-wide">Kit-kalibratie · Wouter</p>
           <h1 class="text-3xl font-black mt-2">Jouw kit in kaart</h1>
-          <p class="text-muted mt-3 text-lg">Per stuk: speel <b>8 keer</b>, ±1 s ertussen, daarna <b>Ik heb 8× gespeeld</b>. De teller is debug — die mag liegen. Wij knippen de opname later.</p>
-          <p class="text-muted mt-2 text-sm">Geen 2e tom? Overslaan. Twee crashes? Tik ze door elkaar; tweede crash-stap overslaan. Geen live-score — alles wordt achteraf bekeken.</p>
+          <p class="text-muted mt-3 text-lg">Per stuk 8 tikken. Jij kiest de volgorde, kunt terug, en elk stuk beluisteren of overdoen.</p>
+          <p class="text-muted mt-2"><b>Crash en ride:</b> laten <b>uitklinken</b>, niet dempen. Wacht tot het bijna stil is (~2 s) voor de volgende tik. Hats, snare, toms, kick: ±1 s ertussen is genoeg.</p>
           <button data-action="cal-next" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-6">Koptelefoon zit op</button>
         </div>`);
       return;
     }
-    if (step === 1) {
+    if (view === "noise" || state.cal?.step === 1) {
       $("#app").innerHTML = layout(`
         <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
-          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stap 2 / ${total}</p>
+          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Kamer</p>
           <h1 class="text-3xl font-black mt-2">Stil zijn</h1>
           <p class="text-muted mt-3" id="cal-status">Even de kamer meten…</p>
         </div>`);
       runCalNoise();
       return;
     }
-    const pi = step - 2;
-    if (pi >= 0 && pi < KIT_PIECES.length) {
-      const piece = KIT_PIECES[pi];
-      const n = (state.cal?.captures?.[piece.id] || []).length;
-      if (state.cal && state.cal._loggedPiece !== piece.id) {
+    if (view === "piece" && state.cal?.pieceId) {
+      const piece = KIT_PIECES.find((p) => p.id === state.cal.pieceId);
+      if (!piece) { goCalHub(); return; }
+      if (state.cal._loggedPiece !== piece.id) {
         state.cal._loggedPiece = piece.id;
         calLog("piece_start", { piece: piece.id, label: piece.label, skippable: !!piece.skip });
+        const stream = state.cal.stream;
+        if (stream) startPieceClip(stream);
       }
+      const idx = KIT_PIECES.findIndex((p) => p.id === piece.id);
       $("#app").innerHTML = layout(`
         <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
-          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stuk ${pi + 1} / ${KIT_PIECES.length}</p>
-          <h1 class="text-3xl font-black mt-2">${esc(piece.label)}</h1>
+          <button data-action="cal-hub" class="text-accent text-sm mb-4">← Overzicht</button>
+          <div class="flex flex-wrap gap-1 mb-4">
+            ${KIT_PIECES.map((p) => {
+              const on = p.id === piece.id;
+              const done = calPieceDone(p);
+              return `<button type="button" data-action="cal-open-piece" data-piece="${esc(p.id)}" class="tap rounded-full px-2.5 py-1 text-xs border ${on ? "bg-white text-ink font-bold border-transparent" : done ? "bg-card border-line" : "border-line text-muted"}">${esc(p.label)}</button>`;
+            }).join("")}
+          </div>
+          <p class="text-muted text-sm">Stuk ${idx + 1} / ${KIT_PIECES.length}</p>
+          <h1 class="text-3xl font-black mt-1">${esc(piece.label)}</h1>
           <p class="text-muted mt-3 text-lg">${esc(piece.how)}</p>
-          <p class="text-muted" id="cal-status">Speel <b>8 keer</b>, rustig, ~1 seconde tussen. De teller is alleen debug — jij klikt als je klaar bent. We knippen de opname later.</p>
-          <p id="cal-live" class="font-mono text-xs text-muted mt-2">rms — · low — · high — · flux —</p>
-          <p class="text-muted text-sm mt-1">Gehoord (debug): <span id="cal-drum">${n}</span></p>
-          <button data-action="cal-played-eight" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-4">Ik heb 8× gespeeld</button>
-          <button data-action="cal-redo-piece" class="tap rounded-full bg-card border border-line px-5 py-3 mt-3">Deze stap opnieuw</button>
-          ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3 mt-3">Ik heb dit stuk niet — overslaan</button>` : ""}
-          <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug>wacht op tikken…</pre>
+          <p class="text-muted mt-2" id="cal-status">Speel <b>8 keer</b>, daarna de groene knop. Geen live-telling.</p>
+          <p id="cal-live" class="font-mono text-xs text-muted mt-2">mic…</p>
+          <div class="flex flex-wrap gap-2 mt-6">
+            <button data-action="cal-played-eight" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Ik heb 8× gespeeld</button>
+            <button data-action="cal-redo-piece" class="tap rounded-full bg-card border border-line px-5 py-3">Opname opnieuw</button>
+            ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3">Overslaan</button>` : ""}
+          </div>
+          <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug></pre>
           <div class="mt-4">${debugToggleBtn()}</div>
         </div>`);
       runCalPiece(piece.id);
       return;
     }
-    if (step === 2 + KIT_PIECES.length) {
+    if (view === "hub") {
+      const ready = calRequiredReady();
+      const sid = state.cal?.sessionId;
       $("#app").innerHTML = layout(`
         <div class="max-w-2xl mx-auto px-4 pt-8 pb-16">
-          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Testgroove</p>
-          <h1 class="text-3xl font-black mt-2">Speel een groove</h1>
-          <p class="text-muted mt-3">Geen live-balk. Speel ±20 seconden iets dat je kent. Wij beoordelen de opname later (mag tot een uur duren). Schrijf kort wat je speelde.</p>
-          <p id="coach-tally" class="font-bold mt-3">Opname loopt mee vanaf het begin van de kalibratie.</p>
-          <div class="coach-meter mt-3" aria-hidden="true"><span id="coach-meter-bar"></span></div>
-          <label class="block mt-6 font-bold" for="cal-feedback">Jouw feedback</label>
-          <p class="text-muted text-sm mt-1">Wat speelde je? Iets dat we moeten weten?</p>
-          <textarea id="cal-feedback" class="mt-2 w-full min-h-[8rem] rounded-2xl bg-card border border-line p-3 text-base" placeholder="Bv. money beat, crash op de 1, open hats in de chorus.">${esc(state.cal?.feedback || "")}</textarea>
-          <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug></pre>
-          <div class="flex flex-wrap gap-3 mt-6">
-            <button data-action="cal-groove-ok" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Opslaan en klaar</button>
+          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Overzicht</p>
+          <h1 class="text-3xl font-black mt-2">Jouw kit</h1>
+          <p class="text-muted mt-3">Tik een stuk om op te nemen of over te doen. Crash/ride: <b>laten klinken</b>, ~2 s wachten. Hats en vellen: ±1 s.</p>
+          <div class="mt-6 space-y-2">
+            ${KIT_PIECES.map((p) => {
+              const skipped = (state.cal?.skipped || []).includes(p.id);
+              const clip = state.cal?.clips?.[p.id];
+              const st = skipped ? "overgeslagen" : clip ? "opgenomen" : (p.skip ? "optioneel" : "nog doen");
+              const src = clip?.url || (sid && clip ? `/app/coach/calibration/session/${esc(sid)}/clip/${esc(p.id)}` : "");
+              const audio = src ? `<audio class="w-full mt-2" controls src="${src}" preload="metadata"></audio>` : "";
+              return `<div class="rounded-2xl bg-card border border-line p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div class="font-bold">${esc(p.label)}${p.skip ? ` <span class="text-muted font-normal text-sm">optioneel</span>` : ""}</div>
+                    <div class="text-muted text-sm">${esc(st)}</div>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <button data-action="cal-open-piece" data-piece="${esc(p.id)}" class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm">${clip || skipped ? "Opnieuw" : "Opnemen"}</button>
+                    ${p.skip && !skipped ? `<button data-action="cal-skip" data-piece="${esc(p.id)}" class="tap rounded-full bg-card border border-line px-4 py-2 text-sm">Overslaan</button>` : ""}
+                  </div>
+                </div>
+                ${audio}
+              </div>`;
+            }).join("")}
           </div>
-          <p class="text-muted text-sm mt-8 mb-2">Een stuk opnieuw (de rest blijft staan):</p>
-          <div class="flex flex-wrap gap-2">
-            ${KIT_PIECES.map((p) => `<button type="button" data-action="cal-redo-piece" data-piece="${esc(p.id)}" class="tap rounded-full bg-card border border-line px-3 py-2 text-sm">${esc(p.label)}</button>`).join("")}
+          <label class="block mt-8 font-bold" for="cal-feedback">Groove + notitie (optioneel)</label>
+          <p class="text-muted text-sm mt-1">Speel gerust een groove; de hele sessie wordt meegenomen. Schrijf wat je speelde.</p>
+          <textarea id="cal-feedback" class="mt-2 w-full min-h-[7rem] rounded-2xl bg-card border border-line p-3 text-base" placeholder="Bv. money beat, crash op de 1.">${esc(state.cal?.feedback || "")}</textarea>
+          <div class="mt-6">
+            <button data-action="cal-groove-ok" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 ${ready ? "" : "opacity-40"}" ${ready ? "" : "disabled"}>${ready ? "Opslaan en klaar" : "Nog stukken open"}</button>
           </div>
-          <div class="mt-3">${debugToggleBtn()}</div>
+          <div class="mt-4">${debugToggleBtn()}</div>
         </div>`);
       return;
     }
@@ -2259,7 +2368,7 @@
         else {
           samples.sort((a, b) => a - b);
           const noise = samples[Math.floor(samples.length * 0.5)] || 0.02;
-          state.cal = { ...(state.cal || {}), step: 2, noiseRms: noise, stream, sampleRate: ctx.sampleRate, captures: state.cal?.captures || {} };
+          state.cal = { ...(state.cal || {}), step: 2, view: "hub", noiseRms: noise, stream, sampleRate: ctx.sampleRate, captures: state.cal?.captures || {}, clips: state.cal?.clips || {} };
           calLog("noise_done", { noiseRms: noise, sampleRate: ctx.sampleRate, n: samples.length });
           try { ctx.close(); } catch {}
           render();
@@ -2290,9 +2399,9 @@
       let pending = null;
       const quiet = { rms: noise, flux: 0, low: 0.02, high: 0.02 };
       const peak = { rms: 0, flux: 0, low: 0, high: 0 };
-      const wantStep = state.cal?.step;
+      const wantId = pieceId;
       const loop = () => {
-        if (state.cal?.step !== wantStep) {
+        if (state.cal?.view !== "piece" || state.cal?.pieceId !== wantId) {
           try { ctx.close(); } catch {}
           return;
         }
@@ -3271,53 +3380,45 @@
     const el = e.currentTarget;
     const action = el.getAttribute("data-action");
     if (action === "cal-next") {
-      const grooveStep = 2 + KIT_PIECES.length;
-      const cur = state.cal?.step || 0;
-      calLog("click", { button: "cal-next", fromStep: cur });
-      if (cur === 0) {
-        state.cal = { ...state.cal, step: 1, captures: state.cal?.captures || {}, skipped: state.cal?.skipped || [], log: state.cal?.log || [], t0: state.cal?.t0 || performance.now() };
-        calLog("headphones_ok", {});
-        render();
-        return;
-      }
-      state.cal = { ...(state.cal || {}), step: cur + 1, hits: 0 };
+      calLog("click", { button: "cal-next", fromStep: state.cal?.step });
+      state.cal = { ...state.cal, step: 1, view: "noise", captures: state.cal?.captures || {}, skipped: state.cal?.skipped || [], log: state.cal?.log || [], t0: state.cal?.t0 || performance.now(), clips: state.cal?.clips || {} };
+      calLog("headphones_ok", {});
       render();
       return;
     }
-    if (action === "cal-groove-start") {
-      startCalGroove();
+    if (action === "cal-hub") {
+      stopPieceClip(false);
+      calLog("click", { button: "cal-hub" });
+      goCalHub();
       return;
     }
-    if (action === "cal-groove-retry") {
-      calLog("click", { button: "cal-groove-retry" });
-      retryCalGroove();
+    if (action === "cal-open-piece") {
+      const id = el.dataset.piece;
+      stopPieceClip(false);
+      calLog("click", { button: "cal-open-piece", piece: id });
+      goCalPiece(id);
       return;
     }
     if (action === "cal-played-eight") {
-      const pi = (state.cal?.step || 0) - 2;
-      const piece = KIT_PIECES[pi];
-      calLog("played_eight", { button: "cal-played-eight", piece: piece?.id, heard: (state.cal?.captures?.[piece?.id] || []).length });
-      if (state.cal.returnToGroove) {
-        state.cal.returnToGroove = false;
-        state.cal.step = 2 + KIT_PIECES.length;
-      } else {
-        try { state.cal.step = (state.cal.step || 0) + 1; } catch {}
-      }
-      finishKitCalibration(false).then(() => render());
+      const id = state.cal?.pieceId;
+      calLog("played_eight", { button: "cal-played-eight", piece: id });
+      stopPieceClip(true).then(() => {
+        state.cal.skipped = (state.cal.skipped || []).filter((x) => x !== id);
+        goCalHub();
+        finishKitCalibration(false);
+      });
       return;
     }
     if (action === "cal-redo-piece") {
-      const id = el.dataset.piece || KIT_PIECES[(state.cal?.step || 0) - 2]?.id;
-      const idx = KIT_PIECES.findIndex((p) => p.id === id);
-      if (idx < 0) return;
+      const id = el.dataset.piece || state.cal?.pieceId;
+      if (!id) return;
+      calLog("redo_piece", { button: "cal-redo-piece", piece: id });
+      stopPieceClip(false);
+      revokeClip(id);
       if (state.cal.captures) delete state.cal.captures[id];
       state.cal.skipped = (state.cal.skipped || []).filter((x) => x !== id);
-      const grooveStep = 2 + KIT_PIECES.length;
-      state.cal.returnToGroove = (state.cal.step === grooveStep);
       state.cal._loggedPiece = null;
-      calLog("redo_piece", { button: "cal-redo-piece", piece: id, returnToGroove: !!state.cal.returnToGroove });
-      state.cal.step = 2 + idx;
-      finishKitCalibration(false).then(() => render());
+      goCalPiece(id);
       return;
     }
     if (action === "cal-detect-failed") {
@@ -3325,18 +3426,15 @@
       return;
     }
     if (action === "cal-skip") {
-      const pi = (state.cal?.step || 0) - 2;
-      const piece = KIT_PIECES[pi];
+      const id = el.dataset.piece || state.cal?.pieceId;
+      const piece = KIT_PIECES.find((p) => p.id === id);
       if (piece?.skip) {
         calLog("click", { button: "cal-skip", piece: piece.id });
+        stopPieceClip(false);
+        revokeClip(piece.id);
         state.cal.skipped = [...new Set([...(state.cal.skipped || []), piece.id])];
-        if (state.cal.returnToGroove) {
-          state.cal.returnToGroove = false;
-          state.cal.step = 2 + KIT_PIECES.length;
-        } else {
-          state.cal.step = (state.cal.step || 0) + 1;
-        }
-        finishKitCalibration(false).then(() => render());
+        goCalHub();
+        finishKitCalibration(false);
       }
       return;
     }

@@ -317,6 +317,33 @@ final class Http
             return;
         }
 
+        if ($path === '/app/coach/calibration/clip' && $method === 'POST') {
+            $file = $_FILES['audio'] ?? null;
+            $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_POST['id'] ?? ''));
+            $piece = preg_replace('/[^a-z0-9_]/', '', strtolower((string) ($_POST['piece'] ?? '')));
+            if ($id === '' || $piece === '' || !is_array($file) || (int) ($file['error'] ?? 1) !== UPLOAD_ERR_OK) {
+                $this->json(400, ['error' => 'missing clip']);
+                return;
+            }
+            $mime = (string) ($file['type'] ?? $_POST['mime'] ?? 'audio/mp4');
+            $row = $this->coach->saveCalClip($pid, $id, $piece, (string) $file['tmp_name'], $mime);
+            $this->json(200, $row);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/calibration/session/([a-zA-Z0-9_-]+)/clip/([a-z0-9_]+)$#', $path, $m) && $method === 'GET') {
+            $file = $this->coach->calClipFile($pid, $m[1], $m[2]);
+            if ($file === null) {
+                http_response_code(404);
+                return;
+            }
+            header('Content-Type: ' . $file['mime']);
+            header('Content-Length: ' . (string) filesize($file['path']));
+            header('Cache-Control: private, max-age=3600');
+            readfile($file['path']);
+            return;
+        }
+
         if ($path === '/app/coach/calibration/sessions' && $method === 'GET') {
             $this->json(200, ['sessions' => $this->coach->calSessions($pid)]);
             return;

@@ -393,6 +393,41 @@ final class Coach
         return $this->calSession($profileId, $id) ?? ['id' => $id];
     }
 
+    public function saveCalClip(int $profileId, string $sessionId, string $piece, string $tmp, string $mime): array
+    {
+        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', $sessionId) ?: ('cal' . (string) time());
+        $piece = preg_replace('/[^a-z0-9_]/', '', strtolower($piece)) ?: 'clip';
+        $dir = rtrim($this->config->recordingsDir, '/') . '/cal/' . $profileId;
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new \RuntimeException('could not create cal dir');
+        }
+        $ext = str_contains($mime, 'webm') ? 'webm' : (str_contains($mime, 'wav') ? 'wav' : 'm4a');
+        $dest = $dir . '/' . $sessionId . '-' . $piece . '.' . $ext;
+        if ($tmp !== '' && is_file($tmp)) {
+            if (!move_uploaded_file($tmp, $dest) && !@rename($tmp, $dest) && !@copy($tmp, $dest)) {
+                throw new \RuntimeException('could not store cal clip');
+            }
+            @chmod($dest, 0664);
+        }
+        return ['ok' => true, 'piece' => $piece, 'bytes' => is_file($dest) ? (int) filesize($dest) : 0];
+    }
+
+    /** @return array{path:string,mime:string}|null */
+    public function calClipFile(int $profileId, string $sessionId, string $piece): ?array
+    {
+        $sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', $sessionId);
+        $piece = preg_replace('/[^a-z0-9_]/', '', strtolower($piece));
+        $dir = rtrim($this->config->recordingsDir, '/') . '/cal/' . $profileId;
+        foreach (['m4a', 'webm', 'wav'] as $ext) {
+            $path = $dir . '/' . $sessionId . '-' . $piece . '.' . $ext;
+            if (is_file($path)) {
+                $mime = $ext === 'webm' ? 'audio/webm' : ($ext === 'wav' ? 'audio/wav' : 'audio/mp4');
+                return ['path' => $path, 'mime' => $mime];
+            }
+        }
+        return null;
+    }
+
     /** @return list<array<string,mixed>> */
     public function calSessions(int $profileId, int $limit = 20): array
     {
