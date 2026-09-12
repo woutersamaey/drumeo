@@ -1418,10 +1418,7 @@
   }
 
   function coachCalibrated() {
-    const c = state.bootstrap?.coach?.calibration;
-    if (!c || !c.kitReady) return false;
-    const t = c.templates || {};
-    return ["kick", "snare", "hat_closed", "crash", "tom_high", "tom_floor"].every((p) => (t[p]?.n || 0) >= 6);
+    return !!(state.bootstrap?.coach?.calibration?.kitReady);
   }
 
   const KIT_PIECES = [
@@ -2032,16 +2029,26 @@
     </article>`;
   }
 
+  function loadKitStarter() {
+    if (state._kitStarter) return state._kitStarter;
+    state._kitStarter = fetch("/assets/kit-starter-wouter.json", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => j.templates || {})
+      .catch(() => ({}));
+    return state._kitStarter;
+  }
+
   function renderCalibrate() {
     const step = state.cal?.step || 0;
+    loadKitStarter();
     const total = 2 + KIT_PIECES.length + 2; // headphones, noise, pieces, groove, done
     if (step === 0) {
       $("#app").innerHTML = layout(`
         <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
           <p class="text-accent text-sm font-semibold uppercase tracking-wide">Kit-kalibratie · Wouter</p>
           <h1 class="text-3xl font-black mt-2">Jouw kit in kaart</h1>
-          <p class="text-muted mt-3 text-lg">We nemen per stuk <b>8 tikken</b> zodat we een gemiddelde hebben. Koptelefoon op — de iPad hoort alleen jouw drums.</p>
-          <p class="text-muted mt-2 text-sm">Per profiel (andere kit, andere aanslag). Geen 2e tom? Sla over — in de les telt floor tom daarvoor. Twee crashes? Tik ze door elkaar of kalibreer de tweede; welke crash je slaat maakt niet uit.</p>
+          <p class="text-muted mt-3 text-lg">Per stuk: speel <b>8 keer</b>, ±1 s ertussen, daarna <b>Ik heb 8× gespeeld</b>. De teller is debug — die mag liegen. Wij knippen de opname later.</p>
+          <p class="text-muted mt-2 text-sm">Geen 2e tom? Overslaan. Twee crashes? Tik ze door elkaar; tweede crash-stap overslaan. Groove-balk gebruikt al Mac-startwaarden tot de iPad-opname geanalyseerd is.</p>
           <button data-action="cal-next" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-6">Koptelefoon zit op</button>
         </div>`);
       return;
@@ -2069,10 +2076,10 @@
           <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stuk ${pi + 1} / ${KIT_PIECES.length}</p>
           <h1 class="text-3xl font-black mt-2">${esc(piece.label)}</h1>
           <p class="text-muted mt-3 text-lg">${esc(piece.how)}</p>
-          <div class="cal-drum${n ? " is-hit" : ""}" id="cal-drum">${n} / ${KIT_HITS}</div>
-          <p class="text-muted" id="cal-status">Sla maar. Kick = laag dreunen; hats = kort en hoog. De meter hieronder moet meebewegen.</p>
+          <p class="text-muted" id="cal-status">Speel <b>8 keer</b>, rustig, ~1 seconde tussen. De teller is alleen debug — jij klikt als je klaar bent. We knippen de opname later.</p>
           <p id="cal-live" class="font-mono text-xs text-muted mt-2">rms — · low — · high — · flux —</p>
-          <button data-action="cal-detect-failed" class="tap rounded-full bg-card border border-line px-5 py-3 mt-4">Ik heb 8× gespeeld, maar de detectie lukte niet</button>
+          <p class="text-muted text-sm mt-1">Gehoord (debug): <span id="cal-drum">${n}</span></p>
+          <button data-action="cal-played-eight" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-4">Ik heb 8× gespeeld</button>
           ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3 mt-3">Ik heb dit stuk niet — overslaan</button>` : ""}
           <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug>wacht op tikken…</pre>
           <div class="mt-4">${debugToggleBtn()}</div>
@@ -2231,17 +2238,7 @@
             const dbg = $("#cal-debug");
             if (dbg) dbg.textContent = JSON.stringify({ n, rms: feat.rms.toFixed(3), centroid: feat.centroid.toFixed(2), low: feat.low.toFixed(2), high: feat.high.toFixed(2), decay: feat.decay.toFixed(2) }, null, 0);
             pending = null;
-            if (n >= KIT_HITS) {
-              try { ctx.close(); } catch {}
-              state.cal.step = (state.cal.step || 0) + 1;
-              const grooveStep = 2 + KIT_PIECES.length;
-              if (state.cal.step === grooveStep) {
-                finishKitCalibration(false).then(() => render());
-                return;
-              }
-              render();
-              return;
-            }
+            // Live hits are debug only — Wouter klikt zelf "8× gespeeld".
           }
         } else {
           quiet.rms = quiet.rms * 0.94 + s.rms * 0.06;
@@ -2286,12 +2283,14 @@
     const captures = state.cal?.captures || {};
     const skipped = [...(state.cal?.skipped || [])];
     const crashHits = [...(captures.crash || []), ...(captures.crash_extra || [])];
+    const starter = await loadKitStarter();
     const templates = {};
     for (const p of KIT_PIECES) {
       if (p.id === "crash_extra") continue;
       const src = p.id === "crash" ? crashHits : (captures[p.id] || []);
       const m = meanHits(src);
-      if (m) templates[p.id] = m;
+      if (m && m.n >= 4) templates[p.id] = m;
+      else if (starter[p.id]) templates[p.id] = { ...starter[p.id], source: "macbook-starter" };
     }
     const aliases = {};
     if (skipped.includes("tom_mid") || !(templates.tom_mid && templates.tom_mid.n >= 4)) {
@@ -3185,6 +3184,19 @@
     }
     if (action === "cal-groove-start") {
       startCalGroove();
+      return;
+    }
+    if (action === "cal-played-eight") {
+      const pi = (state.cal?.step || 0) - 2;
+      const piece = KIT_PIECES[pi];
+      calLog("played_eight", { button: "cal-played-eight", piece: piece?.id, heard: (state.cal?.captures?.[piece?.id] || []).length });
+      try { state.cal.step = (state.cal.step || 0) + 1; } catch {}
+      const grooveStep = 2 + KIT_PIECES.length;
+      if (state.cal.step === grooveStep) {
+        finishKitCalibration(false).then(() => render());
+        return;
+      }
+      render();
       return;
     }
     if (action === "cal-detect-failed") {
