@@ -2,3 +2,4 @@ numpy>=2.0
 scipy>=1.14
 soundfile>=0.12
 PyMySQL>=1.1
+Pillow>=10.0

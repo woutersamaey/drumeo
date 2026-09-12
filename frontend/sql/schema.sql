@@ -112,3 +112,17 @@ CREATE TABLE IF NOT EXISTS coach_evaluations (
   KEY idx_coach_eval_rec (recording_id),
   CONSTRAINT fk_coach_eval_rec FOREIGN KEY (recording_id) REFERENCES coach_recordings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS coach_cal_sessions (
+  id VARCHAR(40) NOT NULL PRIMARY KEY,
+  profile_id TINYINT UNSIGNED NOT NULL,
+  path VARCHAR(512) NOT NULL DEFAULT '',
+  meta_path VARCHAR(512) NOT NULL DEFAULT '',
+  mime VARCHAR(64) NOT NULL DEFAULT 'audio/mp4',
+  bytes INT NOT NULL DEFAULT 0,
+  duration_sec DOUBLE NOT NULL DEFAULT 0,
+  feedback TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_coach_cal_sess (profile_id, created_at),
+  CONSTRAINT fk_coach_cal_sess_profile FOREIGN KEY (profile_id) REFERENCES profiles(id)
+) ENGINE=InnoDB;

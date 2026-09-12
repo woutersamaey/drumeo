@@ -815,3 +815,23 @@ button.tap {
   font: inherit;
   color: #d7e4f7;
 }
+
+.drum-staff {
+  width: 100%;
+  height: 4.4rem;
+  display: block;
+  background: #0b1220;
+  border-radius: 0.5rem;
+}
+.drum-staff .staff-lines line {
+  stroke: #2a3a55;
+  stroke-width: 1;
+}
+.drum-staff .staff-playhead {
+  stroke: #3b9bff;
+  stroke-width: 2;
+}
+.drum-staff .n.exp { fill: #3b9bff; stroke: #3b9bff; }
+.drum-staff .n.heard { fill: #2dd4bf; stroke: #2dd4bf; }
+.drum-staff .n.is-miss { fill: #fb7185; stroke: #fb7185; }
+.drum-staff .n path { stroke-width: 2; fill: none; }

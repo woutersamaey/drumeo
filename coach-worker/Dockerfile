@@ -8,6 +8,6 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY analyze.py extract_ref.py worker.py /app/
+COPY analyze.py extract_ref.py worker.py score_from_video.py /app/
 ENV PYTHONUNBUFFERED=1
 CMD ["python", "-u", "/app/worker.py"]

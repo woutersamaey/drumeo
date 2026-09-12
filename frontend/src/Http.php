@@ -246,6 +246,18 @@ final class Http
 
         if ($path === '/app/coach/calibration' && $method === 'POST') {
             $body = $this->body();
+            $templates = $body['templates'] ?? [];
+            if (!is_array($templates)) {
+                $templates = [];
+            }
+            $skipped = $body['skipped'] ?? [];
+            if (!is_array($skipped)) {
+                $skipped = [];
+            }
+            $aliases = $body['aliases'] ?? [];
+            if (!is_array($aliases)) {
+                $aliases = [];
+            }
             $saved = $this->coach->saveCalibration(
                 $pid,
                 (float) ($body['noiseRms'] ?? 0),
@@ -253,8 +265,74 @@ final class Http
                 (int) ($body['hits'] ?? 0),
                 (int) ($body['sampleRate'] ?? 48000),
                 isset($body['latencyMs']) ? (float) $body['latencyMs'] : null,
+                $templates,
+                !empty($body['kitReady']),
+                $skipped,
+                $aliases,
+                isset($body['lastSessionId']) ? (string) $body['lastSessionId'] : null,
             );
             $this->json(200, ['ok' => true, 'calibration' => $saved]);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/score/(\d+)$#', $path, $m) && $method === 'GET') {
+            $lesson = $this->visibleLesson($profile, (int) $m[1]);
+            if ($lesson === null) {
+                $this->json(404, ['error' => 'unknown lesson']);
+                return;
+            }
+            $score = $this->coach->lessonScore((string) $lesson['vimeoId']);
+            if ($score === null) {
+                $this->json(200, ['ready' => false, 'vimeoId' => $lesson['vimeoId'], 'events' => []]);
+                return;
+            }
+            $this->json(200, ['ready' => true] + $score);
+            return;
+        }
+
+        if ($path === '/app/coach/calibration/session' && $method === 'POST') {
+            $file = $_FILES['audio'] ?? null;
+            $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_POST['id'] ?? '')) ?: ('cal' . (string) time());
+            $mime = (string) ($file['type'] ?? $_POST['mime'] ?? 'audio/mp4');
+            if ($mime === '' || $mime === 'application/octet-stream') {
+                $mime = (string) ($_POST['mime'] ?? 'audio/mp4');
+            }
+            $metaRaw = (string) ($_POST['meta'] ?? '{}');
+            $meta = json_decode($metaRaw, true);
+            if (!is_array($meta)) {
+                $meta = [];
+            }
+            $tmp = is_array($file) && (int) ($file['error'] ?? 1) === UPLOAD_ERR_OK ? (string) $file['tmp_name'] : '';
+            $row = $this->coach->saveCalSession($pid, $id, $tmp, $mime, (float) ($_POST['duration'] ?? 0), $meta);
+            $this->json(200, $row);
+            return;
+        }
+
+        if ($path === '/app/coach/calibration/sessions' && $method === 'GET') {
+            $this->json(200, ['sessions' => $this->coach->calSessions($pid)]);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/calibration/session/([a-zA-Z0-9_-]+)/audio$#', $path, $m) && $method === 'GET') {
+            $file = $this->coach->calSessionFile($pid, $m[1]);
+            if ($file === null) {
+                http_response_code(404);
+                return;
+            }
+            header('Content-Type: ' . $file['mime']);
+            header('Content-Length: ' . (string) filesize($file['path']));
+            header('Cache-Control: private, max-age=3600');
+            readfile($file['path']);
+            return;
+        }
+
+        if (preg_match('#^/app/coach/calibration/session/([a-zA-Z0-9_-]+)$#', $path, $m) && $method === 'GET') {
+            $row = $this->coach->calSession($pid, $m[1]);
+            if ($row === null) {
+                $this->json(404, ['error' => 'not found']);
+                return;
+            }
+            $this->json(200, $row);
             return;
         }
 

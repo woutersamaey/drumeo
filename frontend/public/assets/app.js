@@ -1418,7 +1418,141 @@
   }
 
   function coachCalibrated() {
-    return !!state.bootstrap?.coach?.calibration;
+    const c = state.bootstrap?.coach?.calibration;
+    if (!c || !c.kitReady) return false;
+    const t = c.templates || {};
+    return ["kick", "snare", "hat_closed", "crash", "tom_high", "tom_floor"].every((p) => (t[p]?.n || 0) >= 6);
+  }
+
+  const KIT_PIECES = [
+    { id: "kick", label: "Bassdrum", how: "8 keer met je rechtervoet" },
+    { id: "snare", label: "Snare", how: "8 keer, stevig in het midden" },
+    { id: "hat_closed", label: "Hi-hat dicht", how: "8 keer, pedaal dicht" },
+    { id: "hat_open", label: "Hi-hat open", how: "8 keer, pedaal open" },
+    { id: "crash", label: "Crash", how: "8 keer. Twee crashes? Wissel gerust, of sla ze samen. Welke crash telt als crash." },
+    { id: "crash_extra", label: "Tweede crash", how: "8 extra tikken op je andere crash. Overslaan als je er maar één hebt — we houden het als ‘crash’.", skip: true },
+    { id: "ride", label: "Ride", how: "8 keer op de ride" },
+    { id: "tom_high", label: "1e tom (hoog)", how: "8 keer. Die heeft iedereen." },
+    { id: "tom_mid", label: "2e tom (midden)", how: "8 keer. Geen 2e tom? Overslaan — in de les speel je daar floor tom.", skip: true },
+    { id: "tom_floor", label: "Floor tom", how: "8 keer. Vervangt ook de 2e tom als je die niet hebt." },
+  ];
+  const KIT_HITS = 8;
+  const STAFF_Y = { crash: 12, crash_extra: 12, ride: 18, hat_closed: 20, hat_open: 22, tom_high: 30, tom_mid: 36, snare: 42, tom_floor: 54, kick: 66 };
+  const STAFF_LABEL = { crash: "C", crash_extra: "C", ride: "R", hat_closed: "H", hat_open: "Ho", tom_high: "T", tom_mid: "T2", snare: "S", tom_floor: "F", kick: "K" };
+
+  function kitTemplates() {
+    return state.bootstrap?.coach?.calibration?.templates || {};
+  }
+
+  function canonPiece(p) {
+    if (p === "crash_extra") return "crash";
+    const t = kitTemplates();
+    const skipped = state.bootstrap?.coach?.calibration?.skipped || [];
+    if (p === "tom_mid" && (skipped.includes("tom_mid") || !(t.tom_mid && t.tom_mid.n >= 4))) return "tom_floor";
+    return p;
+  }
+
+  function piecesEqual(a, b) {
+    return canonPiece(a) === canonPiece(b);
+  }
+
+  function downsampleSpec(fd) {
+    const n = 32;
+    const out = new Array(n).fill(0);
+    const step = fd.length / n;
+    for (let i = 0; i < n; i++) {
+      let s = 0, c = 0;
+      const a = Math.floor(i * step), b = Math.floor((i + 1) * step);
+      for (let j = a; j < b; j++) { s += fd[j]; c++; }
+      out[i] = c ? s / c / 255 : 0;
+    }
+    return out;
+  }
+
+  function specFeatures(spec, rms, highNow, highLater) {
+    let sum = 0, wsum = 0;
+    for (let i = 0; i < spec.length; i++) { sum += spec[i]; wsum += spec[i] * i; }
+    const centroid = sum > 1e-6 ? wsum / sum : 0;
+    let low = 0, high = 0;
+    for (let i = 0; i < 6; i++) low += spec[i];
+    for (let i = 22; i < spec.length; i++) high += spec[i];
+    const decay = highNow > 1e-6 ? highLater / highNow : 0;
+    return { spec, rms, centroid, low, high, decay };
+  }
+
+  function cosine(a, b) {
+    let d = 0, na = 0, nb = 0;
+    const n = Math.min(a.length, b.length);
+    for (let i = 0; i < n; i++) { d += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+    return d / (Math.sqrt(na) * Math.sqrt(nb) + 1e-9);
+  }
+
+  function meanHits(hits) {
+    if (!hits.length) return null;
+    const spec = hits[0].spec.map((_, i) => hits.reduce((s, h) => s + h.spec[i], 0) / hits.length);
+    const avg = (k) => hits.reduce((s, h) => s + h[k], 0) / hits.length;
+    return { n: hits.length, spec, rms: avg("rms"), centroid: avg("centroid"), low: avg("low"), high: avg("high"), decay: avg("decay") };
+  }
+
+  function classifyHit(feat, templates) {
+    const rows = [];
+    for (const p of KIT_PIECES) {
+      if (p.id === "crash_extra") continue;
+      const t = templates[p.id];
+      if (!t || !t.spec) continue;
+      const cos = cosine(feat.spec, t.spec);
+      const dLow = 1 - Math.min(1, Math.abs(feat.low - t.low) / (t.low + 0.15));
+      const dHigh = 1 - Math.min(1, Math.abs(feat.high - t.high) / (t.high + 0.15));
+      const dDec = 1 - Math.min(1, Math.abs(feat.decay - t.decay) / 0.8);
+      const score = 0.62 * cos + 0.14 * dLow + 0.12 * dHigh + 0.12 * dDec;
+      rows.push({ piece: canonPiece(p.id), score, cos, dLow, dHigh, dDec, raw: p.id });
+    }
+    rows.sort((a, b) => b.score - a.score);
+    return rows;
+  }
+
+  function staffSvg(id) {
+    return `<svg id="${id}" class="drum-staff" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true">
+      <g class="staff-lines">${[16,28,40,52,64].map((y) => `<line x1="0" y1="${y}" x2="1000" y2="${y}" />`).join("")}</g>
+      <line class="staff-playhead" x1="280" y1="4" x2="280" y2="76" />
+      <g class="staff-notes"></g>
+    </svg>`;
+  }
+
+  function drawStaffNotes(svg, events, t, cls) {
+    if (!svg) return;
+    const g = svg.querySelector(".staff-notes");
+    if (!g) return;
+    const winL = 2.2, winR = 5.0;
+    const xAt = (tt) => 280 + ((tt - t) / (winL + winR)) * 1000 * ((winL + winR) / winR) * 0.72;
+    const bits = [];
+    for (const ev of events) {
+      const x = xAt(ev.t);
+      if (x < -20 || x > 1020) continue;
+      const y = STAFF_Y[ev.piece] || 42;
+      const mark = ev.piece === "hat_closed" || ev.piece === "hat_open" || ev.piece === "crash" || ev.piece === "ride" ? "x" : "o";
+      const extra = ev.ok === false ? " is-miss" : ev.ok === true ? " is-hit" : "";
+      if (mark === "x") {
+        bits.push(`<g class="n ${cls}${extra}" transform="translate(${x.toFixed(1)},${y})"><path d="M-5-5L5 5M5-5L-5 5" /></g>`);
+      } else {
+        bits.push(`<circle class="n ${cls}${extra}" cx="${x.toFixed(1)}" cy="${y}" r="5" />`);
+      }
+    }
+    g.innerHTML = bits.join("");
+  }
+
+  function matchWindow(expected, heard, t, w = 0.09) {
+    const exp = expected.filter((e) => Math.abs(e.t - t) <= w);
+    const hrd = heard.filter((e) => Math.abs(e.t - t) <= w);
+    let hit = 0, miss = 0, extra = 0;
+    const used = new Set();
+    for (const e of exp) {
+      const j = hrd.findIndex((h, i) => !used.has(i) && piecesEqual(h.piece, e.piece));
+      if (j >= 0) { used.add(j); hit++; }
+      else miss++;
+    }
+    extra = hrd.length - used.size;
+    return { hit, miss, extra, exp: exp.length, heard: hrd.length };
   }
 
   function coachDebugOn() {
@@ -1454,21 +1588,24 @@
   function paintCoachDebug() {
     const root = $("#coach-debug-live");
     if (!root) return;
-    const d = state.coach?.debug || {};
+    const c = state.coach || {};
+    const d = c.debug || {};
+    const hit = c.lastHit;
+    const ranks = (hit?.ranks || []).slice(0, 5).map((r) => `${r.piece}:${r.score.toFixed(2)}`).join("  ");
     const rows = [
       ["video t", d.t ?? "—"],
-      ["feedback", d.msg || "—"],
-      ["RMS", d.rms != null ? d.rms.toFixed(4) : "—"],
-      ["flux", d.flux != null ? d.flux.toFixed(4) : "—"],
-      ["slagen jij / les", (d.studentN ?? 0) + " / " + (d.teacherN ?? 0)],
-      ["venster 2.4s", (d.winStudent ?? 0) + " vs " + (d.winTeacher ?? 0) + " leraar"],
-      ["lag", d.lagMs == null ? "—" : d.lagMs + " ms"],
-      ["live BPM", d.liveBpm ?? "—"],
-      ["ref ready", d.refReady ? "ja" : "nee"],
-      ["recording", d.recId || "—"],
-      ["recorder", (d.recState || "—") + " " + (d.mime || "")],
+      ["score klaar", c.scoreReady ? `ja (${(c.scoreEvents || []).length} events)` : "nee"],
+      ["mustPlay", (c.mustPlay || []).join(", ") || "—"],
+      ["RMS / flux", `${(d.rms ?? 0).toFixed(4)} / ${(d.flux ?? 0).toFixed(4)}`],
+      ["last hit", hit ? `${hit.piece} @ ${hit.t.toFixed(2)}s  p=${hit.score.toFixed(2)}` : "—"],
+      ["ranks", ranks || "—"],
+      ["match 90ms", d.match || "—"],
+      ["heard / expected", `${(c.heard || []).length} / ${(c.scoreEvents || []).length}`],
+      ["templates", Object.keys(state.bootstrap?.coach?.calibration?.templates || {}).join(", ") || "—"],
+      ["recording", `${c.recordingId || "—"} ${c.recorder?.state || ""}`],
     ];
-    root.innerHTML = `<table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join("")}</table>`;
+    root.innerHTML = `<table>${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(String(v))}</td></tr>`).join("")}</table>
+      <div class="mt-2 text-[11px] text-muted">Speelkop in de lesvideo is de tijd-as. Praten van de leraar telt niet — alleen de balk.</div>`;
   }
 
   function coachMeter(rms) {
@@ -1481,6 +1618,111 @@
     const types = ["audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"];
     if (!window.MediaRecorder) return "";
     return types.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+  }
+
+  function calNow() {
+    const t0 = state.cal?.t0 || performance.now();
+    return Math.round((performance.now() - t0) / 10) / 100;
+  }
+
+  function calLog(type, data = {}) {
+    if (!state.cal) state.cal = {};
+    state.cal.log = state.cal.log || [];
+    const row = { t: calNow(), type, step: state.cal.step ?? null, ...data };
+    state.cal.log.push(row);
+    const dbg = $("#cal-debug");
+    if (dbg && type !== "hit") {
+      dbg.textContent = (dbg.textContent ? dbg.textContent + "\n" : "") + JSON.stringify(row);
+    }
+  }
+
+  function startCalRecorder(stream) {
+    if (state.cal?.recorder && state.cal.recorder.state !== "inactive") return;
+    const mime = recorderMime();
+    let rec;
+    try {
+      rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch {
+      rec = new MediaRecorder(stream);
+    }
+    const chunks = [];
+    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+    rec.start(2000);
+    state.cal = {
+      ...(state.cal || {}),
+      stream,
+      recorder: rec,
+      chunks,
+      mime: rec.mimeType || mime || "audio/mp4",
+      sessionId: state.cal?.sessionId || ("cal" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)),
+      t0: state.cal?.t0 || performance.now(),
+      log: state.cal?.log || [],
+      uploaded: false,
+    };
+    calLog("recorder_start", { mime: state.cal.mime, sessionId: state.cal.sessionId, ua: navigator.userAgent, lang: navigator.language });
+  }
+
+  function calMetaPayload(extra = {}) {
+    const captures = state.cal?.captures || {};
+    const hitLog = {};
+    for (const [k, arr] of Object.entries(captures)) {
+      hitLog[k] = (arr || []).map((h) => ({
+        rms: +h.rms.toFixed(4),
+        centroid: +h.centroid.toFixed(3),
+        low: +h.low.toFixed(3),
+        high: +h.high.toFixed(3),
+        decay: +h.decay.toFixed(3),
+        spec: (h.spec || []).map((x) => +x.toFixed(4)),
+      }));
+    }
+    return {
+      sessionId: state.cal?.sessionId,
+      startedAt: state.cal?.t0 ? new Date(Date.now() - (performance.now() - state.cal.t0)).toISOString() : null,
+      events: state.cal?.log || [],
+      skipped: state.cal?.skipped || [],
+      captures: hitLog,
+      noiseRms: state.cal?.noiseRms,
+      sampleRate: state.cal?.sampleRate,
+      grooveHeard: extra.grooveHeard || null,
+      feedback: extra.feedback || state.cal?.feedback || ($("#cal-feedback")?.value || "").trim(),
+      ...extra,
+    };
+  }
+
+  function flushCalSession({ stop = false, kitReady = false, grooveHeard = null, feedback = "" } = {}) {
+    const cal = state.cal;
+    if (!cal?.sessionId || cal.flushing) return Promise.resolve(null);
+    cal.flushing = true;
+    const rec = cal.recorder;
+    const finish = async (blob) => {
+      const fd = new FormData();
+      const ext = (cal.mime || "").includes("webm") ? "webm" : "m4a";
+      if (blob && blob.size > 200) {
+        fd.append("audio", blob, cal.sessionId + "." + ext);
+      }
+      fd.append("id", cal.sessionId);
+      fd.append("mime", cal.mime || "audio/mp4");
+      fd.append("duration", String(((performance.now() - (cal.t0 || performance.now())) / 1000).toFixed(2)));
+      fd.append("meta", JSON.stringify(calMetaPayload({ kitReady, grooveHeard, feedback: feedback || ($("#cal-feedback")?.value || "").trim() })));
+      try {
+        const row = await fetch("/app/coach/calibration/session", { method: "POST", credentials: "same-origin", body: fd }).then((r) => r.json());
+        cal.uploaded = true;
+        cal.lastFlush = row;
+        return row;
+      } catch (e) {
+        calLog("flush_error", { message: String(e && e.message || e) });
+        return null;
+      } finally {
+        cal.flushing = false;
+      }
+    };
+    if (!rec || rec.state === "inactive") {
+      return finish(new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" }));
+    }
+    return new Promise((resolve) => {
+      rec.onstop = () => resolve(finish(new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" })));
+      try { rec.stop(); } catch { resolve(finish(new Blob(cal.chunks || [], { type: cal.mime || "audio/mp4" }))); }
+    });
   }
 
   async function ensureCoachStream() {
@@ -1516,57 +1758,19 @@
   function coachRealtime(t) {
     const c = state.coach;
     if (!c) return;
-    const ref = c.refOnsets || [];
-    const win = 2.4;
-    const tOn = ref.filter((x) => x >= t - win && x <= t + 0.05);
-    const sOn = c.onsets.filter((x) => x >= t - win && x <= t + 0.05);
-    let msg = "Speel mee met de leraar";
-    let kind = "";
-    let med = null;
-    if (!ref.length) {
-      msg = c.onsets.length ? "We horen je!" : "Speel mee met de leraar";
-      kind = c.onsets.length ? "ok" : "";
-    } else if (tOn.length >= 4 && sOn.length === 0) {
-      msg = "Sla mee!";
-      kind = "warn";
-    } else if (sOn.length >= 2) {
-      const lags = sOn.map((s) => {
-        let best = 9, bestAbs = 9;
-        for (const te of tOn) {
-          const d = s - te;
-          if (Math.abs(d) < bestAbs) { bestAbs = Math.abs(d); best = d; }
-        }
-        return best;
-      }).filter((v) => Math.abs(v) < 9);
-      if (lags.length) {
-        lags.sort((a, b) => a - b);
-        med = lags[Math.floor(lags.length / 2)];
-        if (med < -0.055) { msg = "Je speelt te snel"; kind = "warn"; }
-        else if (med > 0.055) { msg = "Je speelt te traag"; kind = "warn"; }
-        else { msg = "Goed zo!"; kind = "ok"; }
-      }
-    } else {
-      msg = "Goed zo — speel mee";
-      kind = "ok";
-    }
-    paintCoach(msg, kind);
+    const expected = c.scoreEvents || [];
+    const heard = (c.heard || []).map((h) => ({ t: h.t, piece: h.piece, ok: true }));
+    const mw = matchWindow(expected, heard, t, 0.1);
     c.debug = {
       t: Math.round(t * 100) / 100,
-      msg,
-      kind,
       rms: c.lastRms,
       flux: c.lastFlux,
-      studentN: c.onsets.length,
-      teacherN: ref.length,
-      winStudent: sOn.length,
-      winTeacher: tOn.length,
-      lagMs: med == null ? null : Math.round(med * 1000),
-      liveBpm: liveBpm(c.onsets.slice(-16)),
-      refReady: !!c.refReady,
-      recId: c.recordingId || null,
-      mime: c.mime || "",
-      recState: c.recorder?.state || "",
+      match: `hit ${mw.hit}  miss ${mw.miss}  extra ${mw.extra}`,
     };
+    drawStaffNotes($("#staff-exp"), expected, t, "exp");
+    drawStaffNotes($("#staff-heard"), heard, t, "heard");
+    const tally = $("#coach-tally");
+    if (tally) tally.textContent = expected.length ? `${mw.hit} raak · ${mw.miss} mis · ${mw.extra} extra` : (c.heard?.length ? "We horen je — geen lespartituur geladen" : "Speel mee");
     paintCoachDebug();
   }
 
@@ -1580,35 +1784,61 @@
     analyser.smoothingTimeConstant = 0.2;
     src.connect(analyser);
     const td = new Uint8Array(analyser.fftSize);
+    const fd = new Uint8Array(analyser.frequencyBinCount);
     const c = state.coach;
     c.ctx = ctx;
     c.analyser = analyser;
     c.td = td;
+    c.fd = fd;
+    c.heard = c.heard || [];
+    c.pending = null;
     const noise = Number(state.bootstrap?.coach?.calibration?.noiseRms) || 0.02;
+    const templates = state.bootstrap?.coach?.calibration?.templates || {};
     const loop = () => {
       if (!state.coach || state.coach.stream !== stream) return;
       analyser.getByteTimeDomainData(td);
-      let sum = 0, diff = 0;
+      analyser.getByteFrequencyData(fd);
+      let sum = 0, diff = 0, high = 0;
       for (let i = 0; i < td.length; i++) {
         const v = (td[i] - 128) / 128;
         sum += v * v;
         if (i) diff += Math.abs(td[i] - td[i - 1]);
       }
+      for (let i = fd.length - 80; i < fd.length; i++) high += fd[i];
       const rms = Math.sqrt(sum / td.length);
       diff = diff / (td.length * 128);
       c.lastRms = rms;
       c.lastFlux = diff;
       coachMeter(rms);
-      const t = video && !video.paused ? video.currentTime : 0;
+      const t = video && !video.paused ? video.currentTime : (c.grooveT0 ? (performance.now() - c.grooveT0) / 1000 : 0);
+      if (c.pending && c.pending.frames > 0) {
+        c.pending.frames -= 1;
+        c.pending.highLater = high;
+        if (c.pending.frames === 0) {
+          const feat = specFeatures(c.pending.spec, c.pending.rms, c.pending.highNow, c.pending.highLater);
+          const ranks = classifyHit(feat, templates);
+          const top = ranks[0];
+          const hit = {
+            t: c.pending.t,
+            piece: top?.piece || "?",
+            score: top?.score || 0,
+            ranks,
+            feat,
+          };
+          c.heard.push(hit);
+          if (c.heard.length > 2000) c.heard.splice(0, c.heard.length - 1500);
+          c.lastHit = hit;
+          if (typeof c.onHit === "function") c.onHit(hit);
+          c.pending = null;
+        }
+      }
       const thresh = Math.max(noise * 5.5, 0.035);
-      if (diff > thresh && rms > noise * 2.2 && t - (c.lastOnset || 0) > 0.05) {
+      if (!c.pending && diff > thresh && rms > noise * 2.2 && t - (c.lastOnset || 0) > 0.07) {
         c.lastOnset = t;
         c.onsets.push(Math.round(t * 1000) / 1000);
-        if (c.onsets.length > 4000) c.onsets.splice(0, c.onsets.length - 3000);
-        coachRealtime(t);
-      } else if (video && !video.paused && (c.tick || 0) % 12 === 0) {
-        coachRealtime(t);
+        c.pending = { t, spec: downsampleSpec(fd), rms, highNow: high, highLater: high, frames: 5 };
       }
+      if ((c.tick || 0) % 2 === 0) coachRealtime(t);
       c.tick = (c.tick || 0) + 1;
       c.raf = requestAnimationFrame(loop);
     };
@@ -1622,6 +1852,15 @@
       if (ref?.ready && Array.isArray(ref.onsets) && state.coach) {
         state.coach.refOnsets = ref.onsets.map(Number).filter((n) => n >= 0);
         state.coach.refReady = true;
+      }
+    } catch {}
+    try {
+      const score = await api("/app/coach/score/" + lesson.id);
+      if (state.coach && score?.ready && Array.isArray(score.events)) {
+        state.coach.scoreEvents = score.events;
+        state.coach.scoreReady = true;
+        state.coach.mustPlay = score.mustPlay || [];
+        state.coach.playWindows = score.playWindows || [];
       }
     } catch {}
   }
@@ -1652,13 +1891,14 @@
         mime: rec.mimeType || mime || "audio/mp4",
         recordingId: row?.id || null,
         onsets: [],
+        heard: [],
+        scoreEvents: [],
         refOnsets: [],
         lastOnset: 0,
         tick: 0,
         lesson,
       };
       if (gate) gate.classList.add("hidden");
-      paintCoach("Speel mee met de leraar", "");
       attachCoachAnalyser(stream, video);
       loadCoachRef(lesson);
     } catch (err) {
@@ -1752,32 +1992,96 @@
 
   function renderCalibrate() {
     const step = state.cal?.step || 0;
-    const hits = state.cal?.hits || 0;
-    const steps = [
-      { title: "Koptelefoon op", body: "Zet je koptelefoon op. De iPad mag alleen jóuw drums horen — niet de les." },
-      { title: "Stil zijn", body: "Blijf even stil. We meten de kamer, daarna mag je slaan." },
-      { title: "Sla op de snare", body: "Sla 4 keer stevig op de snare, niet te snel achter elkaar." },
-      { title: "Klaar!", body: "We horen je. Vanaf nu luisteren we mee tijdens elke les en geven we tips." },
-    ];
-    const s = steps[Math.min(step, steps.length - 1)];
+    const total = 2 + KIT_PIECES.length + 2; // headphones, noise, pieces, groove, done
+    if (step === 0) {
+      $("#app").innerHTML = layout(`
+        <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
+          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Kit-kalibratie · Wouter</p>
+          <h1 class="text-3xl font-black mt-2">Jouw kit in kaart</h1>
+          <p class="text-muted mt-3 text-lg">We nemen per stuk <b>8 tikken</b> zodat we een gemiddelde hebben. Koptelefoon op — de iPad hoort alleen jouw drums.</p>
+          <p class="text-muted mt-2 text-sm">Per profiel (andere kit, andere aanslag). Geen 2e tom? Sla over — in de les telt floor tom daarvoor. Twee crashes? Tik ze door elkaar of kalibreer de tweede; welke crash je slaat maakt niet uit.</p>
+          <button data-action="cal-next" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-6">Koptelefoon zit op</button>
+        </div>`);
+      return;
+    }
+    if (step === 1) {
+      $("#app").innerHTML = layout(`
+        <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
+          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stap 2 / ${total}</p>
+          <h1 class="text-3xl font-black mt-2">Stil zijn</h1>
+          <p class="text-muted mt-3" id="cal-status">Even de kamer meten…</p>
+        </div>`);
+      runCalNoise();
+      return;
+    }
+    const pi = step - 2;
+    if (pi >= 0 && pi < KIT_PIECES.length) {
+      const piece = KIT_PIECES[pi];
+      const n = (state.cal?.captures?.[piece.id] || []).length;
+      if (state.cal && state.cal._loggedPiece !== piece.id) {
+        state.cal._loggedPiece = piece.id;
+        calLog("piece_start", { piece: piece.id, label: piece.label, skippable: !!piece.skip });
+      }
+      $("#app").innerHTML = layout(`
+        <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
+          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stuk ${pi + 1} / ${KIT_PIECES.length}</p>
+          <h1 class="text-3xl font-black mt-2">${esc(piece.label)}</h1>
+          <p class="text-muted mt-3 text-lg">${esc(piece.how)}</p>
+          <div class="cal-drum${n ? " is-hit" : ""}" id="cal-drum">${n} / ${KIT_HITS}</div>
+          <p class="text-muted" id="cal-status">Sla maar. Te zachte tikken negeren we.</p>
+          ${piece.skip ? `<button data-action="cal-skip" class="tap rounded-full bg-card border border-line px-5 py-3 mt-4">Ik heb dit stuk niet — overslaan</button>` : ""}
+          <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug>wacht op tikken…</pre>
+          <div class="mt-4">${debugToggleBtn()}</div>
+        </div>`);
+      runCalPiece(piece.id);
+      return;
+    }
+    if (step === 2 + KIT_PIECES.length) {
+      $("#app").innerHTML = layout(`
+        <div class="max-w-2xl mx-auto px-4 pt-8 pb-16">
+          <p class="text-accent text-sm font-semibold uppercase tracking-wide">Testgroove</p>
+          <h1 class="text-3xl font-black mt-2">Speel — de balk moet kloppen</h1>
+          <p class="text-muted mt-3">Speel een groove die je kent. De notenbalk hieronder moet tonen wat je slaat. Daarna schrijf je of dat klopte.</p>
+          <p id="coach-tally" class="font-bold mt-3">Klaar om te luisteren…</p>
+          <div class="mt-4 rounded-2xl bg-card border border-line p-3">
+            <div class="text-xs text-muted mb-1">Wat we horen</div>
+            ${staffSvg("staff-heard")}
+          </div>
+          <label class="block mt-6 font-bold" for="cal-feedback">Jouw feedback</label>
+          <p class="text-muted text-sm mt-1">Wat klopte? Wat niet? (snare werd kick, crash ontbrak, timing, …)</p>
+          <textarea id="cal-feedback" class="mt-2 w-full min-h-[8rem] rounded-2xl bg-card border border-line p-3 text-base" placeholder="Bv. hi-hat klopt, maar crash wordt als ride getekend.">${esc(state.cal?.feedback || "")}</textarea>
+          <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug></pre>
+          <div class="flex flex-wrap gap-3 mt-6">
+            <button data-action="cal-groove-start" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Start 20s test</button>
+            <button data-action="cal-groove-ok" class="tap rounded-full bg-card border border-line px-6 py-3">Opslaan en klaar</button>
+            <button data-action="cal-next" class="tap rounded-full bg-card border border-line px-6 py-3">Opnieuw een stuk</button>
+          </div>
+          <div class="mt-3">${debugToggleBtn()}</div>
+        </div>`);
+      return;
+    }
     $("#app").innerHTML = layout(`
       <div class="max-w-xl mx-auto px-4 pt-8 pb-16">
-        <p class="text-accent text-sm font-semibold uppercase tracking-wide">Stap ${Math.min(step, 3) + 1} van 4</p>
-        <h1 class="text-3xl font-black mt-2">${esc(s.title)}</h1>
-        <p class="text-muted mt-3 text-lg">${esc(s.body)}</p>
-        <div class="cal-drum${hits && step === 2 ? " is-hit" : ""}" id="cal-drum">${step === 2 ? hits + " / 4" : "🥁"}</div>
-        ${step === 0 ? `<button data-action="cal-next" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Koptelefoon zit op</button>` : ""}
-        ${step === 1 ? `<p class="text-muted" id="cal-status">Even luisteren…</p>` : ""}
-        ${step === 2 ? `<p class="text-muted" id="cal-status">Sla maar!</p>` : ""}
-        ${step === 3 ? `<a href="${esc(sessionStorage.getItem("coach_next") || "/home")}" data-link class="tap rounded-full bg-white text-ink font-bold px-6 py-3 inline-block">Start de les</a>` : ""}
+        <h1 class="text-3xl font-black">Kit staat</h1>
+        <p class="text-muted mt-3">Vanaf nu tekenen we twee notenbalken tijdens de les: wat de video vraagt, en wat we bij jou horen.</p>
+        <a href="${esc(sessionStorage.getItem("coach_next") || "/home")}" data-link class="tap rounded-full bg-white text-ink font-bold px-6 py-3 inline-block mt-6">Start de les</a>
+        ${(() => {
+          const sid = state.cal?.sessionId || state.bootstrap?.coach?.calibration?.lastSessionId;
+          if (!sid) return "";
+          return `<div class="mt-6 rounded-2xl bg-card border border-line p-4 text-left">
+            <p class="font-bold">Debug-sessie</p>
+            <p class="text-muted text-sm mt-1">Audio + kliklog opgeslagen als <code>${esc(sid)}</code></p>
+            <audio class="w-full mt-3" controls src="/app/coach/calibration/session/${esc(sid)}/audio" preload="none"></audio>
+          </div>`;
+        })()}
+        <p class="mt-4"><a href="/calibratie" data-link class="text-accent text-sm">Opnieuw kalibreren</a></p>
       </div>`);
-    if (step === 1) runCalNoise();
-    if (step === 2) runCalHits();
   }
 
   async function runCalNoise() {
     try {
       const stream = await ensureCoachStream();
+      startCalRecorder(stream);
       const AC = window.AudioContext || window.webkitAudioContext;
       const ctx = new AC();
       const src = ctx.createMediaStreamSource(stream);
@@ -1799,7 +2103,8 @@
         else {
           samples.sort((a, b) => a - b);
           const noise = samples[Math.floor(samples.length * 0.5)] || 0.02;
-          state.cal = { ...(state.cal || {}), step: 2, noiseRms: noise, stream, ctx, analyser, sampleRate: ctx.sampleRate };
+          state.cal = { ...(state.cal || {}), step: 2, noiseRms: noise, stream, sampleRate: ctx.sampleRate, captures: state.cal?.captures || {} };
+          calLog("noise_done", { noiseRms: noise, sampleRate: ctx.sampleRate, n: samples.length });
           try { ctx.close(); } catch {}
           render();
         }
@@ -1812,9 +2117,10 @@
     }
   }
 
-  async function runCalHits() {
+  async function runCalPiece(pieceId) {
     try {
       const stream = state.cal?.stream || await ensureCoachStream();
+      startCalRecorder(stream);
       const AC = window.AudioContext || window.webkitAudioContext;
       const ctx = new AC();
       const src = ctx.createMediaStreamSource(stream);
@@ -1822,62 +2128,153 @@
       analyser.fftSize = 2048;
       src.connect(analyser);
       const td = new Uint8Array(analyser.fftSize);
+      const fd = new Uint8Array(analyser.frequencyBinCount);
       const noise = Number(state.cal?.noiseRms) || 0.02;
       let last = 0;
-      const peaks = [];
+      let pending = null;
+      const wantStep = state.cal?.step;
       const loop = () => {
-        if ((state.cal?.step || 0) !== 2) {
+        if (state.cal?.step !== wantStep) {
           try { ctx.close(); } catch {}
           return;
         }
         analyser.getByteTimeDomainData(td);
-        let sum = 0, diff = 0;
+        analyser.getByteFrequencyData(fd);
+        let sum = 0, diff = 0, high = 0;
         for (let i = 0; i < td.length; i++) {
           const v = (td[i] - 128) / 128;
           sum += v * v;
           if (i) diff += Math.abs(td[i] - td[i - 1]);
         }
+        for (let i = fd.length - 80; i < fd.length; i++) high += fd[i];
         const rms = Math.sqrt(sum / td.length);
         diff = diff / (td.length * 128);
+        if (pending && pending.frames > 0) {
+          pending.frames -= 1;
+          pending.highLater = high;
+          if (pending.frames === 0) {
+            const feat = specFeatures(pending.spec, pending.rms, pending.highNow, pending.highLater);
+            state.cal.captures = state.cal.captures || {};
+            state.cal.captures[pieceId] = state.cal.captures[pieceId] || [];
+            state.cal.captures[pieceId].push(feat);
+            const n = state.cal.captures[pieceId].length;
+            calLog("hit", { piece: pieceId, n, rms: feat.rms, centroid: feat.centroid, low: feat.low, high: feat.high, decay: feat.decay });
+            const drum = $("#cal-drum");
+            if (drum) {
+              drum.textContent = n + " / " + KIT_HITS;
+              drum.classList.add("is-hit");
+              setTimeout(() => drum.classList.remove("is-hit"), 160);
+            }
+            const dbg = $("#cal-debug");
+            if (dbg) dbg.textContent = JSON.stringify({ n, rms: feat.rms.toFixed(3), centroid: feat.centroid.toFixed(2), low: feat.low.toFixed(2), high: feat.high.toFixed(2), decay: feat.decay.toFixed(2) }, null, 0);
+            pending = null;
+            if (n >= KIT_HITS) {
+              try { ctx.close(); } catch {}
+              state.cal.step = (state.cal.step || 0) + 1;
+              const grooveStep = 2 + KIT_PIECES.length;
+              if (state.cal.step === grooveStep) {
+                finishKitCalibration(false).then(() => render());
+                return;
+              }
+              render();
+              return;
+            }
+          }
+        }
         const now = performance.now();
-        if (diff > Math.max(noise * 6, 0.04) && rms > noise * 3 && now - last > 180) {
+        if (!pending && diff > Math.max(noise * 6, 0.04) && rms > noise * 3 && now - last > 220) {
           last = now;
-          peaks.push(rms);
-          state.cal.hits = peaks.length;
-          const drum = $("#cal-drum");
-          if (drum) {
-            drum.textContent = peaks.length + " / 4";
-            drum.classList.add("is-hit");
-            setTimeout(() => drum.classList.remove("is-hit"), 180);
-          }
-          if (peaks.length >= 4) {
-            const hit = peaks.reduce((a, b) => a + b, 0) / peaks.length;
-            finishCalibration(noise, hit, peaks.length, ctx.sampleRate, stream);
-            try { ctx.close(); } catch {}
-            return;
-          }
+          pending = { spec: downsampleSpec(fd), rms, highNow: high, highLater: high, frames: 5 };
         }
         requestAnimationFrame(loop);
       };
       ctx.resume?.();
       loop();
-    } catch {}
+    } catch {
+      const st = $("#cal-status");
+      if (st) st.textContent = "Microfoon mag niet.";
+    }
   }
 
-  async function finishCalibration(noise, hit, hits, sampleRate, stream) {
+  async function finishKitCalibration(kitReady) {
+    const captures = state.cal?.captures || {};
+    const skipped = [...(state.cal?.skipped || [])];
+    const crashHits = [...(captures.crash || []), ...(captures.crash_extra || [])];
+    const templates = {};
+    for (const p of KIT_PIECES) {
+      if (p.id === "crash_extra") continue;
+      const src = p.id === "crash" ? crashHits : (captures[p.id] || []);
+      const m = meanHits(src);
+      if (m) templates[p.id] = m;
+    }
+    const aliases = {};
+    if (skipped.includes("tom_mid") || !(templates.tom_mid && templates.tom_mid.n >= 4)) {
+      aliases.tom_mid = "tom_floor";
+    }
+    const hitRms = templates.snare?.rms || templates.kick?.rms || 0.1;
+    const n = Object.values(captures).reduce((s, a) => s + a.length, 0);
     try {
       const res = await api("/app/coach/calibration", {
         method: "POST",
-        body: JSON.stringify({ noiseRms: noise, hitRms: hit, hits, sampleRate }),
+        body: JSON.stringify({
+          noiseRms: state.cal?.noiseRms || 0.02,
+          hitRms,
+          hits: n,
+          sampleRate: state.cal?.sampleRate || 48000,
+          templates,
+          kitReady: !!kitReady,
+          skipped,
+          aliases,
+          lastSessionId: state.cal?.sessionId || null,
+        }),
       });
       if (state.bootstrap) {
         state.bootstrap.coach = state.bootstrap.coach || {};
         state.bootstrap.coach.calibration = res.calibration;
       }
     } catch {}
-    try { stream?.getTracks?.().forEach((t) => t.stop()); } catch {}
-    state.cal = { step: 3, hits };
-    render();
+    const grooveHeard = (state.coach?.heard || []).map((h) => ({ t: h.t, piece: h.piece, score: h.score }));
+    const feedback = ($("#cal-feedback")?.value || state.cal?.feedback || "").trim();
+    if (state.cal) state.cal.feedback = feedback;
+    calLog(kitReady ? "save_done" : "save_draft", { kitReady, skipped, aliases, pieces: Object.keys(templates), feedback: feedback.slice(0, 200) });
+    if (kitReady) {
+      await flushCalSession({ stop: true, kitReady: true, grooveHeard, feedback });
+      try { state.cal?.stream?.getTracks?.().forEach((t) => t.stop()); } catch {}
+      const sessionId = state.cal?.sessionId;
+      state.cal = { step: 2 + KIT_PIECES.length + 1, captures, sessionId, lastFlush: state.cal?.lastFlush };
+      render();
+    }
+  }
+
+  async function startCalGroove() {
+    const stream = state.cal?.stream || await ensureCoachStream();
+    startCalRecorder(stream);
+    calLog("groove_start", { button: "cal-groove-start" });
+    state.coach = {
+      active: true,
+      stream,
+      heard: [],
+      scoreEvents: [],
+      onsets: [],
+      grooveT0: performance.now(),
+      lastOnset: 0,
+      tick: 0,
+    };
+    attachCoachAnalyser(stream, null);
+    const tally = $("#coach-tally");
+    if (tally) tally.textContent = "20 seconden — speel maar";
+    setTimeout(() => {
+      if (state.route.name !== "calibratie") return;
+      const c = state.coach;
+      if (c?.raf) cancelAnimationFrame(c.raf);
+      try { c.ctx?.close(); } catch {}
+      const counts = {};
+      for (const h of c?.heard || []) counts[h.piece] = (counts[h.piece] || 0) + 1;
+      if (tally) tally.textContent = "Klaar. Gehoord: " + (Object.entries(counts).map(([k, v]) => k + "×" + v).join(", ") || "niets");
+      const dbg = $("#cal-debug");
+      if (dbg) dbg.textContent = JSON.stringify({ n: (c?.heard || []).length, counts, last: c?.lastHit }, null, 2);
+      calLog("groove_end", { n: (c?.heard || []).length, counts });
+    }, 20000);
   }
 
   async function renderEvaluaties() {
@@ -1911,6 +2308,20 @@
               </a>`;
             }).join("")}
           </div>`}
+        ${(() => {
+          const sess = state.bootstrap?.coach?.calSessions || [];
+          if (!sess.length) return "";
+          return `<h2 class="text-2xl font-bold mt-10 mb-3">Kalibratie-sessies</h2>
+            <p class="text-muted text-sm mb-3">Audio + kliklog, om te debuggen.</p>
+            <div class="space-y-2">
+              ${sess.map((s) => `<div class="rounded-2xl bg-card border border-line p-4">
+                <div class="font-semibold">${esc(s.id)}</div>
+                <div class="text-muted text-sm">${esc(s.created ? relativePlayed(s.created) : "")} · ${Math.round((s.bytes || 0) / 1024)} kB · ${Math.round(s.duration || 0)}s</div>
+                ${s.feedback ? `<p class="mt-2 text-sm whitespace-pre-wrap">${esc(s.feedback)}</p>` : `<p class="mt-2 text-muted text-sm">Geen tekstfeedback.</p>`}
+                <audio class="w-full mt-2" controls src="/app/coach/calibration/session/${esc(s.id)}/audio" preload="none"></audio>
+              </div>`).join("")}
+            </div>`;
+        })()}
       </div>`);
   }
 
@@ -2029,10 +2440,6 @@
                 </div>
               </div>
               ${coachOn(lesson) ? `
-              <div id="coach-hud" class="coach-hud">
-                <div class="coach-meter" aria-hidden="true"><span id="coach-meter-bar"></span></div>
-                <div id="coach-msg" class="coach-msg">Speel mee met de leraar</div>
-              </div>
               <div id="coach-gate" class="coach-gate hidden">
                 <div>
                   <p class="text-lg font-bold mb-4">Tik om de microfoon aan te zetten</p>
@@ -2049,9 +2456,20 @@
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">Volgende ${skipNextIcon()}</span>`}
             </div>
             ${coachOn(lesson) ? `
+            <div class="mt-3 rounded-2xl bg-card border border-line p-3">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="text-xs text-muted">Les (verwacht)</span>
+                <span id="coach-tally" class="text-xs font-semibold">—</span>
+              </div>
+              ${staffSvg("staff-exp")}
+              <div class="text-xs text-muted mt-2 mb-1">Jij (gehoord)</div>
+              ${staffSvg("staff-heard")}
+              <div class="coach-meter mt-2" aria-hidden="true"><span id="coach-meter-bar"></span></div>
+            </div>
             <div class="mt-3 flex items-center gap-2">
               ${debugToggleBtn()}
-              <span class="text-xs text-muted">Live: slagen, lag, engines</span>
+              <a href="/calibratie" data-link class="text-xs text-accent">Herkalibreren</a>
+              <span class="text-xs text-muted">Speelkop = tijd. Leraar mag praten.</span>
             </div>
             <div data-coach-debug id="coach-debug-live" class="debug-panel mt-2${coachDebugOn() ? "" : " hidden"}">Wachten op microfoon…</div>` : ""}
           </section>
@@ -2659,8 +3077,49 @@
     const el = e.currentTarget;
     const action = el.getAttribute("data-action");
     if (action === "cal-next") {
-      state.cal = { ...(state.cal || {}), step: 1, hits: 0 };
+      const grooveStep = 2 + KIT_PIECES.length;
+      const cur = state.cal?.step || 0;
+      calLog("click", { button: "cal-next", fromStep: cur });
+      if (cur === 0) {
+        state.cal = { step: 1, captures: {}, skipped: [], log: state.cal?.log || [], t0: performance.now() };
+        calLog("headphones_ok", {});
+        render();
+        return;
+      }
+      if (cur === grooveStep) {
+        calLog("redo_pieces", {});
+        state.cal.step = 2;
+        state.cal.captures = {};
+        render();
+        return;
+      }
+      state.cal = { ...(state.cal || {}), step: cur + 1, hits: 0 };
       render();
+      return;
+    }
+    if (action === "cal-groove-start") {
+      startCalGroove();
+      return;
+    }
+    if (action === "cal-skip") {
+      const pi = (state.cal?.step || 0) - 2;
+      const piece = KIT_PIECES[pi];
+      if (piece?.skip) {
+        calLog("click", { button: "cal-skip", piece: piece.id });
+        state.cal.skipped = [...new Set([...(state.cal.skipped || []), piece.id])];
+        state.cal.step = (state.cal.step || 0) + 1;
+        const grooveStep = 2 + KIT_PIECES.length;
+        if (state.cal.step === grooveStep) {
+          finishKitCalibration(false).then(() => render());
+          return;
+        }
+        render();
+      }
+      return;
+    }
+    if (action === "cal-groove-ok") {
+      calLog("click", { button: "cal-groove-ok" });
+      finishKitCalibration(true);
       return;
     }
     if (action === "coach-debug") {
@@ -2807,6 +3266,9 @@
       state.savedStage = null;
     }
     const route = state.route;
+    if (route.name !== "calibratie" && state.cal?.sessionId && !state.cal.uploaded && state.cal.recorder) {
+      flushCalSession({ stop: true });
+    }
     if (route.name !== "watch") {
       state.pendingFullscreen = false;
       state.hadFullscreenThisClip = false;
@@ -2901,6 +3363,9 @@
     lockIfIdle();
   });
 
+  window.addEventListener("pagehide", () => {
+    if (state.cal?.sessionId && !state.cal.uploaded) flushCalSession({ stop: true });
+  });
   window.addEventListener("pageshow", () => { lockIfIdle(); });
   window.addEventListener("focus", () => { lockIfIdle(); });
   setInterval(() => {

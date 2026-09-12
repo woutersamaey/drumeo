@@ -104,6 +104,7 @@ services:
       - ./frontend/public/assets:/app/public/assets:ro
       - image-cache:/media/img-cache
       - coach-data:/media/coach
+      - ./coach-worker/scores:/media/coach/scores:ro
     depends_on:
       mysql:
         condition: service_healthy
