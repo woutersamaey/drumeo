@@ -76,6 +76,8 @@ if [[ -e /dev/dri || -e /dev/nvidia0 ]]; then
 fi
 
 docker compose "${files[@]}" up --build -d --remove-orphans
+# Nginx caches upstream IPs at start; recreate so it sees a new frontend.
+docker compose "${files[@]}" up -d --force-recreate --no-deps nginx
 
 echo "Wachten op nginx health…"
 ok=0
