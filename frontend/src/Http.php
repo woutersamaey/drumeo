@@ -239,6 +239,11 @@ final class Http
             return;
         }
 
+        if (str_starts_with($path, '/app/coach/') && empty($profile['coachEnabled'])) {
+            $this->json(404, ['error' => 'unknown endpoint']);
+            return;
+        }
+
         if ($path === '/app/coach/calibration' && $method === 'POST') {
             $body = $this->body();
             $saved = $this->coach->saveCalibration(
@@ -360,7 +365,7 @@ final class Http
             'language' => 'nl',
             'pathView' => 'order',
             'notes' => new \stdClass(),
-            'coach' => ['fromLesson' => Coach::FROM_LESSON, 'calibration' => null, 'recent' => [], 'pending' => 0],
+            'coach' => ['enabled' => false, 'fromLesson' => Coach::FROM_LESSON, 'calibration' => null, 'recent' => [], 'pending' => 0],
         ];
         if ($profile) {
             $snap = $this->progress->snapshot((int) $profile['id']);
@@ -393,12 +398,14 @@ final class Http
             }
             $payload['practice'] = $practice;
             $payload['week'] = $this->progress->week((int) $profile['id'], $snap);
-            $payload['coach'] = $this->coach->bootstrap((int) $profile['id']);
+            if (!empty($profile['coachEnabled'])) {
+                $payload['coach'] = $this->coach->bootstrap((int) $profile['id']);
+            }
         } else {
             $payload['intro'] = null;
             $payload['paths'] = [];
             $payload['order'] = [];
-            $payload['coach'] = ['fromLesson' => Coach::FROM_LESSON, 'calibration' => null, 'recent' => [], 'pending' => 0];
+            $payload['coach'] = ['enabled' => false, 'fromLesson' => Coach::FROM_LESSON, 'calibration' => null, 'recent' => [], 'pending' => 0];
         }
         return $payload;
     }

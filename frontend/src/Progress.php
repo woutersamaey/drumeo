@@ -22,7 +22,7 @@ final class Progress
     /** @return array<string,mixed>|null */
     public function profileBySlug(string $slug): ?array
     {
-        $stmt = $this->db->pdo()->prepare('SELECT id, slug, name, hide_future FROM profiles WHERE slug = ?');
+        $stmt = $this->db->pdo()->prepare('SELECT id, slug, name, hide_future, coach_enabled FROM profiles WHERE slug = ?');
         $stmt->execute([$slug]);
         $row = $stmt->fetch();
         if (!is_array($row)) {
@@ -30,7 +30,8 @@ final class Progress
         }
         $row['id'] = (int) $row['id'];
         $row['hideFuture'] = ((int) ($row['hide_future'] ?? 1)) !== 0;
-        unset($row['hide_future']);
+        $row['coachEnabled'] = ((int) ($row['coach_enabled'] ?? 0)) !== 0;
+        unset($row['hide_future'], $row['coach_enabled']);
         return $row;
     }
 
@@ -39,7 +40,7 @@ final class Progress
     {
         $total = count($this->catalog->orderedLessons());
         $rows = $this->db->pdo()->query(
-            'SELECT p.id, p.slug, p.name, p.hide_future, COALESCE(s.last_audio_index, 1) AS last_audio_index,
+            'SELECT p.id, p.slug, p.name, p.hide_future, p.coach_enabled, COALESCE(s.last_audio_index, 1) AS last_audio_index,
                     (SELECT COUNT(*) FROM watch_progress w WHERE w.profile_id = p.id AND w.watched = 1) AS watched_count,
                     (SELECT UNIX_TIMESTAMP(MAX(w.updated_at)) FROM watch_progress w WHERE w.profile_id = p.id) AS last_played
              FROM profiles p
@@ -49,11 +50,12 @@ final class Progress
         foreach ($rows as &$row) {
             $row['id'] = (int) $row['id'];
             $row['hideFuture'] = ((int) ($row['hide_future'] ?? 1)) !== 0;
+            $row['coachEnabled'] = ((int) ($row['coach_enabled'] ?? 0)) !== 0;
             $row['lastAudioIndex'] = ((int) $row['last_audio_index'] === 1) ? 1 : 0;
             $row['watchedCount'] = (int) ($row['watched_count'] ?? 0);
             $row['lessonCount'] = $total;
             $row['lastPlayed'] = $row['last_played'] !== null ? (int) $row['last_played'] : null;
-            unset($row['last_audio_index'], $row['watched_count'], $row['last_played'], $row['hide_future']);
+            unset($row['last_audio_index'], $row['watched_count'], $row['last_played'], $row['hide_future'], $row['coach_enabled']);
         }
         unset($row);
         return $rows;
@@ -78,6 +80,9 @@ final class Progress
         $this->ensureColumn('play_events', 'played_sec', 'played_sec DOUBLE NOT NULL DEFAULT 0');
         $this->ensureColumn('profile_state', 'path_view', "path_view VARCHAR(16) NOT NULL DEFAULT 'order'");
         $this->ensureColumn('profiles', 'hide_future', 'hide_future TINYINT(1) NOT NULL DEFAULT 1');
+        if ($this->ensureColumn('profiles', 'coach_enabled', 'coach_enabled TINYINT(1) NOT NULL DEFAULT 0')) {
+            $pdo->exec("UPDATE profiles SET coach_enabled = 1 WHERE slug = 'wouter'");
+        }
         $pdo->exec(
             'CREATE TABLE IF NOT EXISTS lesson_notes (
                 profile_id TINYINT UNSIGNED NOT NULL,
@@ -790,7 +795,7 @@ final class Progress
         }
     }
 
-    private function ensureColumn(string $table, string $column, string $ddl): void
+    private function ensureColumn(string $table, string $column, string $ddl): bool
     {
         $stmt = $this->db->pdo()->prepare(
             'SELECT COUNT(*) FROM information_schema.COLUMNS
@@ -799,7 +804,9 @@ final class Progress
         $stmt->execute([$table, $column]);
         if ((int) $stmt->fetchColumn() === 0) {
             $this->db->pdo()->exec('ALTER TABLE `' . str_replace('`', '', $table) . '` ADD COLUMN ' . $ddl);
+            return true;
         }
+        return false;
     }
 
     private function backfillPlayedSec(): void

@@ -628,7 +628,7 @@
             ${navLink("/lessons", "Lessen", { cls: "hidden lg:flex items-center" })}
             ${methodNav()}
             ${navLink("/practice", "Opnieuw oefenen", { cls: "hidden lg:flex items-center" })}
-            ${navLink("/evaluaties", "Evaluaties", { cls: "hidden lg:flex items-center" })}
+            ${coachEnabled() ? navLink("/evaluaties", "Evaluaties", { cls: "hidden lg:flex items-center" }) : ""}
             ${navLink("/history", "Geschiedenis", { cls: "hidden lg:flex items-center" })}
             ${navLink("/stats", "Statistieken", { cls: "hidden lg:flex items-center" })}
           </nav>
@@ -964,7 +964,7 @@
         ${hscroll(practice.slice(0, 12).map((l) => card(l, { wide: true })).join(""))}
       </section>` : "";
 
-    const coachRecent = (b.coach?.recent || []).filter((r) => r.status !== "uploading").slice(0, 6);
+    const coachRecent = coachEnabled() ? (b.coach?.recent || []).filter((r) => r.status !== "uploading").slice(0, 6) : [];
     const evalsRow = coachRecent.length ? `
       <section class="mb-10">
         <div class="flex items-end justify-between mb-3">
@@ -1409,8 +1409,12 @@
     return Number(state.bootstrap?.coach?.fromLesson) || COACH_FROM;
   }
 
+  function coachEnabled() {
+    return !!(state.bootstrap?.profile?.coachEnabled || state.bootstrap?.coach?.enabled);
+  }
+
   function coachOn(lesson) {
-    return (lessonNo(lesson) || 0) >= coachFrom();
+    return coachEnabled() && (lessonNo(lesson) || 0) >= coachFrom();
   }
 
   function coachCalibrated() {
@@ -2830,6 +2834,10 @@
     if (route.name !== "lessons") {
       state.lessonsShown = 0;
       unwireLessonsScroll();
+    }
+    if (!coachEnabled() && (route.name === "evaluaties" || route.name === "evaluatie" || route.name === "calibratie")) {
+      go("/home", true);
+      return;
     }
     if (route.name === "profiles") renderProfiles();
     else if (route.name === "home") renderHome();

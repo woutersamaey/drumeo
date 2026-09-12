@@ -281,6 +281,7 @@ final class Coach
             }
         }
         return [
+            'enabled' => true,
             'fromLesson' => self::FROM_LESSON,
             'calibration' => $this->calibration($profileId),
             'recent' => $recent,

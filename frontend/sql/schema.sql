@@ -5,13 +5,14 @@ CREATE TABLE IF NOT EXISTS profiles (
   id TINYINT UNSIGNED PRIMARY KEY,
   slug VARCHAR(32) NOT NULL UNIQUE,
   name VARCHAR(64) NOT NULL,
-  hide_future TINYINT(1) NOT NULL DEFAULT 1
+  hide_future TINYINT(1) NOT NULL DEFAULT 1,
+  coach_enabled TINYINT(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB;
 
-INSERT INTO profiles (id, slug, name) VALUES
-  (1, 'vic', 'Vic'),
-  (2, 'lenn', 'Lenn'),
-  (3, 'wouter', 'Wouter')
+INSERT INTO profiles (id, slug, name, coach_enabled) VALUES
+  (1, 'vic', 'Vic', 0),
+  (2, 'lenn', 'Lenn', 0),
+  (3, 'wouter', 'Wouter', 1)
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 CREATE TABLE IF NOT EXISTS watch_progress (
