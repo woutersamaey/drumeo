@@ -1397,6 +1397,7 @@
   const COACH_FROM = 1;
   const ENGINE_META = {
     hybrid: { label: "Totaal", hint: "Gewogen mix van alle technieken." },
+    staff_match: { label: "Notenbalk", hint: "Offline: jouw slagen vs. de lesbalk. Geen live-score." },
     onset_match: { label: "Slag-timing", hint: "Elke slag van de leraar, dichtstbijzijnde slag van jou (±160 ms)." },
     onset_dtw: { label: "Ritme-patroon", hint: "Lijkt jouw patroon op dat van de leraar, ongeacht tempo?" },
     tempo: { label: "Tempo", hint: "Speel je te snel of te traag t.o.v. de les?" },
@@ -1858,6 +1859,33 @@
     paintCoachDebug();
   }
 
+  function attachCoachMeter(stream) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const src = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    src.connect(analyser);
+    const td = new Uint8Array(analyser.fftSize);
+    const c = state.coach;
+    if (!c) return;
+    c.ctx = ctx;
+    const loop = () => {
+      if (!state.coach || state.coach.stream !== stream) return;
+      analyser.getByteTimeDomainData(td);
+      let sum = 0;
+      for (let i = 0; i < td.length; i++) {
+        const v = (td[i] - 128) / 128;
+        sum += v * v;
+      }
+      coachMeter(Math.sqrt(sum / td.length));
+      c.raf = requestAnimationFrame(loop);
+    };
+    c.raf = requestAnimationFrame(loop);
+    ctx.resume?.();
+  }
+
   function attachCoachAnalyser(stream, video) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
@@ -2000,8 +2028,7 @@
         lesson,
       };
       if (gate) gate.classList.add("hidden");
-      attachCoachAnalyser(stream, video);
-      loadCoachRef(lesson);
+      attachCoachMeter(stream);
     } catch (err) {
       console.warn("coach mic", err);
       if (gate) {
@@ -2110,7 +2137,7 @@
           <p class="text-accent text-sm font-semibold uppercase tracking-wide">Kit-kalibratie · Wouter</p>
           <h1 class="text-3xl font-black mt-2">Jouw kit in kaart</h1>
           <p class="text-muted mt-3 text-lg">Per stuk: speel <b>8 keer</b>, ±1 s ertussen, daarna <b>Ik heb 8× gespeeld</b>. De teller is debug — die mag liegen. Wij knippen de opname later.</p>
-          <p class="text-muted mt-2 text-sm">Geen 2e tom? Overslaan. Twee crashes? Tik ze door elkaar; tweede crash-stap overslaan. Groove-balk gebruikt al Mac-startwaarden tot de iPad-opname geanalyseerd is.</p>
+          <p class="text-muted mt-2 text-sm">Geen 2e tom? Overslaan. Twee crashes? Tik ze door elkaar; tweede crash-stap overslaan. Geen live-score — alles wordt achteraf bekeken.</p>
           <button data-action="cal-next" class="tap rounded-full bg-white text-ink font-bold px-6 py-3 mt-6">Koptelefoon zit op</button>
         </div>`);
       return;
@@ -2153,21 +2180,16 @@
       $("#app").innerHTML = layout(`
         <div class="max-w-2xl mx-auto px-4 pt-8 pb-16">
           <p class="text-accent text-sm font-semibold uppercase tracking-wide">Testgroove</p>
-          <h1 class="text-3xl font-black mt-2">Speel — de balk moet kloppen</h1>
-          <p class="text-muted mt-3">Speel een groove die je kent. De notenbalk hieronder moet tonen wat je slaat. Daarna schrijf je of dat klopte.</p>
-          <p id="coach-tally" class="font-bold mt-3">Klaar om te luisteren…</p>
-          <div class="mt-4 rounded-2xl bg-card border border-line p-3">
-            <div class="text-xs text-muted mb-1">Wat we horen</div>
-            ${staffSvg("staff-heard")}
-          </div>
+          <h1 class="text-3xl font-black mt-2">Speel een groove</h1>
+          <p class="text-muted mt-3">Geen live-balk. Speel ±20 seconden iets dat je kent. Wij beoordelen de opname later (mag tot een uur duren). Schrijf kort wat je speelde.</p>
+          <p id="coach-tally" class="font-bold mt-3">Opname loopt mee vanaf het begin van de kalibratie.</p>
+          <div class="coach-meter mt-3" aria-hidden="true"><span id="coach-meter-bar"></span></div>
           <label class="block mt-6 font-bold" for="cal-feedback">Jouw feedback</label>
-          <p class="text-muted text-sm mt-1">Wat klopte? Wat niet? (snare werd kick, crash ontbrak, timing, …)</p>
-          <textarea id="cal-feedback" class="mt-2 w-full min-h-[8rem] rounded-2xl bg-card border border-line p-3 text-base" placeholder="Bv. hi-hat klopt, maar crash wordt als ride getekend.">${esc(state.cal?.feedback || "")}</textarea>
+          <p class="text-muted text-sm mt-1">Wat speelde je? Iets dat we moeten weten?</p>
+          <textarea id="cal-feedback" class="mt-2 w-full min-h-[8rem] rounded-2xl bg-card border border-line p-3 text-base" placeholder="Bv. money beat, crash op de 1, open hats in de chorus.">${esc(state.cal?.feedback || "")}</textarea>
           <pre id="cal-debug" class="debug-panel mt-4${coachDebugOn() ? "" : " hidden"}" data-coach-debug></pre>
           <div class="flex flex-wrap gap-3 mt-6">
-            <button data-action="cal-groove-start" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Start 20s test</button>
-            <button data-action="cal-groove-retry" class="tap rounded-full bg-card border border-line px-6 py-3">Nog een keer de test</button>
-            <button data-action="cal-groove-ok" class="tap rounded-full bg-card border border-line px-6 py-3">Opslaan en klaar</button>
+            <button data-action="cal-groove-ok" class="tap rounded-full bg-white text-ink font-bold px-6 py-3">Opslaan en klaar</button>
           </div>
           <div class="mt-3">${debugToggleBtn()}</div>
         </div>`);
@@ -2423,9 +2445,9 @@
       lastOnset: 0,
       tick: 0,
     };
-    attachCoachAnalyser(stream, null);
+    attachCoachMeter(stream);
     const tally = $("#coach-tally");
-    if (tally) tally.textContent = "20 seconden — speel maar";
+    if (tally) tally.textContent = "Opname loopt — speel maar, we scoren later.";
     setTimeout(() => {
       if (state.route.name !== "calibratie") return;
       const c = state.coach;
@@ -2516,7 +2538,7 @@
         <div class="max-w-3xl mx-auto px-4 pt-8">
           <p class="text-muted"><a href="/evaluaties" data-link class="text-accent">← Evaluaties</a></p>
           <h1 class="text-3xl font-black mt-3">${row.n ? row.n + ". " : ""}${esc(disp(row))}</h1>
-          <p class="text-muted mt-3">We luisteren nog. Dit mag een minuut duren — ververs straks.</p>
+          <p class="text-muted mt-3">We luisteren nog. Dit mag tot een uur duren — kijk later op Evaluaties.</p>
         </div>`);
       setTimeout(() => { if (state.route.name === "evaluatie") render(); }, 2500);
       return;
@@ -2537,6 +2559,16 @@
           </div>
         </div>
         ${comments.length ? `<ul class="mt-6 rounded-2xl bg-card border border-line p-5 space-y-2">${comments.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>` : ""}
+        ${(() => {
+          const sm = (row.evaluations || []).find((e) => e.engine === "staff_match");
+          const d = sm?.summary || {};
+          const heard = d.heard || [];
+          const exp = d.expected || [];
+          if (!exp.length && !heard.length) return "";
+          return `<h2 class="text-2xl font-bold mt-10 mb-3">Notenbalk (offline)</h2>
+            <p class="text-muted mb-3">Verwacht ${exp.length} slagen · gehoord ${heard.length} · raak ${d.matched ?? "—"}</p>
+            ${onsetLanes(exp.map((e) => e.t), heard.map((e) => e.t), row.duration || 1)}`;
+        })()}
         <h2 class="text-2xl font-bold mt-10 mb-3">Technieken</h2>
         <p class="text-muted mb-4">We bewaren ze allemaal, zodat we later de beste mix kunnen kiezen.</p>
         <div class="engine-grid">${(row.evaluations || []).map(evalCard).join("")}</div>
@@ -2619,22 +2651,16 @@
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">Volgende ${skipNextIcon()}</span>`}
             </div>
             ${coachOn(lesson) ? `
-            <div class="mt-3 rounded-2xl bg-card border border-line p-3">
-              <div class="flex items-center justify-between gap-2 mb-1">
-                <span class="text-xs text-muted">Les (verwacht)</span>
-                <span id="coach-tally" class="text-xs font-semibold">—</span>
-              </div>
-              ${staffSvg("staff-exp")}
-              <div class="text-xs text-muted mt-2 mb-1">Jij (gehoord)</div>
-              ${staffSvg("staff-heard")}
-              <div class="coach-meter mt-2" aria-hidden="true"><span id="coach-meter-bar"></span></div>
+            <div class="mt-3 rounded-2xl bg-card border border-line p-4">
+              <p class="font-bold">Opname loopt</p>
+              <p class="text-muted text-sm mt-1">Geen live-score. Na de les volgt de evaluatie — dat mag tot een uur duren. Zie <a href="/evaluaties" data-link class="text-accent">Evaluaties</a>.</p>
+              <div class="coach-meter mt-3" aria-hidden="true"><span id="coach-meter-bar"></span></div>
             </div>
             <div class="mt-3 flex items-center gap-2">
               ${debugToggleBtn()}
               <a href="/calibratie" data-link class="text-xs text-accent">Herkalibreren</a>
-              <span class="text-xs text-muted">Speelkop = tijd. Leraar mag praten.</span>
             </div>
-            <div data-coach-debug id="coach-debug-live" class="debug-panel mt-2${coachDebugOn() ? "" : " hidden"}">Wachten op microfoon…</div>` : ""}
+            <div data-coach-debug id="coach-debug-live" class="debug-panel mt-2${coachDebugOn() ? "" : " hidden"}">recorder…</div>` : ""}
           </section>
           <aside class="rounded-2xl bg-card border border-line overflow-hidden">
             <div class="p-4 border-b border-line">
@@ -2698,7 +2724,7 @@
                 </button>`).join("")}
             </div>
             <div id="coach-eval" class="hidden mt-4 text-left rounded-2xl bg-card border border-line p-4">
-              <p class="font-bold" id="coach-eval-title">We luisteren naar je spel…</p>
+              <p class="font-bold" id="coach-eval-title">Opname binnen. Evaluatie volgt…</p>
               <p class="text-muted text-sm mt-1" id="coach-eval-body"></p>
               <p class="mt-2 hidden" id="coach-eval-link"><a href="#" data-link class="text-accent text-sm">Bekijk de volledige evaluatie →</a></p>
               <p class="mt-2 text-xs text-muted font-mono${coachDebugOn() ? "" : " hidden"}" data-coach-debug id="coach-eval-debug"></p>
@@ -3064,8 +3090,8 @@
     const body = $("#coach-eval-body");
     const link = $("#coach-eval-link");
     if (!row || row.status === "queued" || row.status === "analyzing") {
-      if (title) title.textContent = "We luisteren naar je spel…";
-      if (body) body.textContent = "De grondige score volgt. Je mag al verder.";
+      if (title) title.textContent = "Opname binnen. Evaluatie volgt…";
+      if (body) body.textContent = "Geen live-score. Het resultaat komt op Evaluaties — dat mag tot een uur duren.";
       return;
     }
     if (row.status === "failed") {

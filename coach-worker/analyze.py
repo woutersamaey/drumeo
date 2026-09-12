@@ -392,5 +392,128 @@ def teacher_ref_payload(y: np.ndarray, sr: int = SR, vimeo_id: str = "") -> dict
     }
 
 
+def _spec32(seg: np.ndarray, sr: int) -> np.ndarray:
+    n = 2048
+    if seg.size < n:
+        seg = np.pad(seg, (0, n - seg.size))
+    mag = np.abs(np.fft.rfft(seg[:n] * np.hanning(n)))
+    freqs = np.fft.rfftfreq(n, 1 / sr)
+    edges = np.linspace(0, min(12000, sr / 2), 33)
+    out = []
+    for a, b in zip(edges[:-1], edges[1:]):
+        m = (freqs >= a) & (freqs < b)
+        out.append(float(mag[m].mean()) if m.any() else 0.0)
+    s = np.array(out, dtype=np.float64)
+    return s / (s.sum() + 1e-9)
+
+
+def _cosine(a: np.ndarray, b: np.ndarray) -> float:
+    d = float(np.dot(a, b))
+    na = float(np.linalg.norm(a))
+    nb = float(np.linalg.norm(b))
+    return d / (na * nb + 1e-9)
+
+
+def _canon(piece: str, aliases: dict | None) -> str:
+    if piece == "crash_extra":
+        return "crash"
+    if aliases and piece in aliases:
+        return str(aliases[piece])
+    return piece
+
+
+def classify_hits(
+    y: np.ndarray,
+    sr: int,
+    templates: dict,
+    aliases: dict | None = None,
+) -> list[dict]:
+    """Offline: one label per onset, merge strokes closer than 140 ms."""
+    y = _to_mono(y)
+    onsets = detect_onsets(y, sr)
+    merged: list[float] = []
+    for t in onsets.tolist():
+        if merged and t - merged[-1] < 0.14:
+            continue
+        merged.append(float(t))
+    heard = []
+    for t in merged:
+        i = int(t * sr)
+        seg = y[i : i + int(0.18 * sr)]
+        if seg.size < 64:
+            continue
+        spec = _spec32(seg, sr)
+        best, best_s = None, -1.0
+        for name, tpl in (templates or {}).items():
+            ts = np.array(tpl.get("spec") or [], dtype=np.float64)
+            if ts.size != spec.size:
+                continue
+            sc = _cosine(spec, ts)
+            if sc > best_s:
+                best_s, best = sc, _canon(name, aliases)
+        if best and best_s >= 0.25:
+            heard.append({"t": round(t, 3), "piece": best, "score": round(float(best_s), 3)})
+    return heard
+
+
+def staff_match(
+    heard: list[dict],
+    expected: list[dict],
+    aliases: dict | None = None,
+    window: float = 0.14,
+) -> dict[str, Any]:
+    exp = [{"t": float(e["t"]), "piece": _canon(str(e["piece"]), aliases)} for e in expected]
+    hrd = list(heard)
+    used = set()
+    matched = 0
+    misses: list[dict] = []
+    for e in exp:
+        j = None
+        best = window + 1
+        for i, h in enumerate(hrd):
+            if i in used:
+                continue
+            d = abs(h["t"] - e["t"])
+            if h["piece"] == e["piece"] and d < best:
+                best, j = d, i
+        if j is not None:
+            used.add(j)
+            matched += 1
+        else:
+            misses.append(e)
+    extra = [h for i, h in enumerate(hrd) if i not in used]
+    n_exp = max(1, len(exp))
+    hit_rate = matched / n_exp
+    prec = matched / max(1, len(hrd))
+    score = 100.0 * (0.65 * hit_rate + 0.35 * prec)
+    must = {e["piece"] for e in exp}
+    comments = []
+    if "crash" in must:
+        exp_c = sum(1 for e in exp if e["piece"] == "crash")
+        got_c = sum(1 for h in hrd if h["piece"] == "crash")
+        if exp_c and got_c / exp_c < 0.4:
+            comments.append("De crash ontbreekt te vaak — in deze les moet die er wél staan.")
+    if hit_rate < 0.4:
+        comments.append("We konden je slagen nog niet goed op de lesbalk leggen. De opname is bewaard.")
+    elif score >= 80:
+        comments.append("Je speelde het patroon herkenbaar mee.")
+    return {
+        "score": round(score, 1),
+        "detail": {
+            "matched": matched,
+            "expected_n": len(exp),
+            "heard_n": len(hrd),
+            "hit_rate": round(hit_rate, 3),
+            "precision": round(prec, 3),
+            "misses": misses[:80],
+            "extra": extra[:80],
+            "heard": hrd[:800],
+            "expected": exp[:800],
+            "comments": comments,
+            "mustPlay": sorted(must),
+        },
+    }
+
+
 def dumps(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pymysql
 
-from analyze import comments_for, run_engines
+from analyze import SR, classify_hits, comments_for, run_engines, staff_match
 from extract_ref import build_ref, decode_upload, find_source
 
 DB = dict(
@@ -58,6 +58,28 @@ def ensure_ref(cur, vimeo_id: str) -> dict | None:
     except Exception:
         traceback.print_exc()
         return None
+
+
+def load_templates(cur, profile_id: int) -> tuple[dict, dict]:
+    cur.execute("SELECT body FROM coach_calibration WHERE profile_id = %s", (profile_id,))
+    row = cur.fetchone()
+    if not row or not row.get("body"):
+        return {}, {}
+    body = row["body"]
+    if isinstance(body, str):
+        try:
+            body = json.loads(body)
+        except Exception:
+            return {}, {}
+    if not isinstance(body, dict):
+        return {}, {}
+    templates = body.get("templates") or {}
+    aliases = body.get("aliases") or {}
+    if not isinstance(templates, dict):
+        templates = {}
+    if not isinstance(aliases, dict):
+        aliases = {}
+    return templates, aliases
 
 
 def load_teacher_wav(vimeo_id: str):
@@ -123,7 +145,26 @@ def process_one(conn) -> bool:
         ref = ensure_ref(cur, vimeo_id)
         teacher = load_teacher_wav(vimeo_id) if ref else None
         engines = run_engines(student, teacher)
+        score_path = Path(RECORDINGS_DIR) / "scores" / f"{vimeo_id}.json"
+        expected = []
+        if score_path.is_file():
+            try:
+                expected = (json.loads(score_path.read_text(encoding="utf-8")).get("events") or [])
+            except Exception:
+                expected = []
+        templates, aliases = load_templates(cur, int(row["profile_id"]))
+        if templates:
+            heard = classify_hits(student, SR, templates, aliases)
+            sm = staff_match(heard, expected, aliases)
+            engines["staff_match"] = sm
+            if engines.get("hybrid"):
+                hs = float(engines["hybrid"]["score"])
+                engines["hybrid"]["score"] = round(0.45 * hs + 0.55 * float(sm["score"]), 1)
+                det = engines["hybrid"].setdefault("detail", {})
+                det["staff_match"] = sm["score"]
         comments = comments_for(engines)
+        staff_c = ((engines.get("staff_match") or {}).get("detail") or {}).get("comments") or []
+        comments = list(staff_c) + [c for c in comments if c not in staff_c]
         save_evals(cur, rid, engines, comments)
         cur.execute("UPDATE coach_recordings SET status = 'ready' WHERE id = %s", (rid,))
         conn.commit()
