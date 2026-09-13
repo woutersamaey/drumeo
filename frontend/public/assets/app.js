@@ -13,6 +13,7 @@
     lastSave: 0,
     overlay: null,
     countdown: null,
+    pendingNext: null,
     playGen: 0,
     weekDay: null,
     pendingFullscreen: false,
@@ -22,6 +23,7 @@
     lessonsShown: 0,
     lessonsObserver: null,
     lessonsLoading: false,
+    ratePicked: {},
   };
 
   const LESSONS_PAGE_SIZE = 12;
@@ -62,7 +64,7 @@
 
   function closePopMenus() {
     $$("[data-menu-panel]").forEach((menu) => menu.classList.add("hidden"));
-    $$("[data-action=lang-menu], [data-action=method-menu]").forEach((btn) => {
+    $$("[data-action=lang-menu], [data-action=method-menu], [data-action=mate-menu]").forEach((btn) => {
       btn.setAttribute("aria-expanded", "false");
     });
   }
@@ -452,6 +454,81 @@
   }
 
   const SCORE_EMOJI = { 4: "🤩", 3: "😊", 2: "😕", 1: "😢" };
+  const SCORE_CHOICES = [["1", "😢", "Moeilijk"], ["2", "😕", "Matig"], ["3", "😊", "Goed"], ["4", "🤩", "Top"]];
+
+  function mateOf() {
+    return state.bootstrap?.mate || null;
+  }
+
+  function playersOf() {
+    const profile = state.bootstrap?.profile;
+    const mate = mateOf();
+    return [profile, mate].filter(Boolean);
+  }
+
+  function keepWatchIfPlaying() {
+    if (state.route.name === "watch" && $("#stage") && state.player.video) {
+      state.keepWatchStage = true;
+    }
+  }
+
+  function headerFace(p, action, label) {
+    return `<button type="button" data-action="${action}" data-slug="${esc(p.slug)}" class="header-face tap ${COLORS[p.slug] || "bg-accent"}" aria-label="${esc(label)}" title="${esc(label)}">${esc(p.name[0])}</button>`;
+  }
+
+  function headerPlayers() {
+    const profile = state.bootstrap?.profile;
+    if (!profile) return "";
+    const mate = mateOf();
+    if (mate) {
+      return `<div class="header-players">
+        ${headerFace(profile, "drop-player", `${profile.name} weghalen`)}
+        ${headerFace(mate, "drop-player", `${mate.name} weghalen`)}
+      </div>`;
+    }
+    const others = (state.bootstrap?.profiles || []).filter((p) => p.slug !== profile.slug);
+    return `
+      <div class="header-players">
+        <div class="relative" data-menu="mate">
+          <button type="button" data-action="mate-menu" class="header-add tap" aria-haspopup="menu" aria-expanded="false" aria-label="Medespeler toevoegen" title="Medespeler toevoegen">+</button>
+          <div id="mate-menu" data-menu-panel class="mate-menu hidden" role="menu">
+            <p class="mate-menu-title">Medespeler toevoegen</p>
+            ${others.map((p) => `
+              <button type="button" data-action="add-mate" data-slug="${esc(p.slug)}" role="menuitem" class="mate-menu-item tap">
+                <span class="mate-menu-face ${COLORS[p.slug] || "bg-accent"}">${esc(p.name[0])}</span>
+                <span class="mate-menu-name">${esc(p.name)}</span>
+              </button>`).join("")}
+          </div>
+        </div>
+        ${headerFace(profile, "switch-profile", "Profiel wisselen")}
+      </div>`;
+  }
+
+  function rateRow(player, { named }) {
+    const prompt = named ? `${esc(player.name)}, hoe ging deze les?` : "Hoe ging deze les?";
+    return `<div data-rate-player="${esc(player.slug)}">
+      <p class="text-muted">${prompt}</p>
+      <div class="grid grid-cols-4 gap-3 my-4">
+        ${SCORE_CHOICES.map(([s, e, l]) => `
+          <button type="button" data-action="rate" data-score="${s}" data-slug="${esc(player.slug)}" class="tap rounded-2xl bg-card border border-line py-5 text-4xl">
+            <div>${e}</div><div class="text-xs mt-2 text-muted">${l}</div>
+          </button>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  function nextModalRates() {
+    const players = playersOf();
+    if (players.length <= 1) {
+      const p = players[0] || state.bootstrap?.profile;
+      return p ? rateRow(p, { named: false }) : "";
+    }
+    return players.map((p) => rateRow(p, { named: true })).join("");
+  }
+
+  function everyoneRated() {
+    return playersOf().every((p) => Number(state.ratePicked?.[p.slug]) >= 1);
+  }
 
   function latestScoreOf(id) {
     const raw = state.bootstrap?.latestScore?.[String(id)];
@@ -532,24 +609,82 @@
     return name === "NotAllowedError" || /not allowed|user didn't interact|autoplay/i.test(msg);
   }
 
+  const HLS_JS_CONFIG = {
+    enableWorker: false,
+    lowLatencyMode: false,
+    liveDurationInfinity: false,
+    startPosition: 0,
+    maxBufferLength: 90,
+    maxMaxBufferLength: 240,
+    maxBufferSize: 120 * 1000 * 1000,
+    startFragPrefetch: true,
+    manifestLoadingMaxRetry: 6,
+    manifestLoadingRetryDelay: 1000,
+    levelLoadingMaxRetry: 6,
+  };
+
+  function stopNativePrefetch(video) {
+    if (!video?._vbPrefetch) return;
+    try { video._vbPrefetch.abort(); } catch {}
+    video._vbPrefetch = null;
+  }
+
+  function startNativePrefetch(video, playlistUrl, signal) {
+    stopNativePrefetch(video);
+    if (!video || !playlistUrl || !usesNativeHls()) return;
+    const ac = new AbortController();
+    video._vbPrefetch = ac;
+    if (signal) {
+      if (signal.aborted) {
+        ac.abort();
+        return;
+      }
+      signal.addEventListener("abort", () => ac.abort(), { once: true });
+    }
+    const run = async () => {
+      const masterUrl = new URL(playlistUrl, location.href).href;
+      const masterTxt = await fetch(masterUrl, { signal: ac.signal, cache: "force-cache" }).then((r) => r.text());
+      const mediaRel = masterTxt.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("#"));
+      if (!mediaRel) return;
+      const mediaUrl = new URL(mediaRel, masterUrl).href;
+      const mediaTxt = await fetch(mediaUrl, { signal: ac.signal, cache: "force-cache" }).then((r) => r.text());
+      const segs = mediaTxt.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#")).map((l) => new URL(l, mediaUrl).href);
+      // Player already pulls the first seconds; warm the HTTP cache for the rest.
+      for (let i = 3; i < segs.length; i += 1) {
+        if (ac.signal.aborted) return;
+        const res = await fetch(segs[i], { signal: ac.signal, cache: "force-cache", credentials: "same-origin" });
+        if (res.body) {
+          const reader = res.body.getReader();
+          while (true) {
+            const { done } = await reader.read();
+            if (done) break;
+          }
+        } else {
+          await res.arrayBuffer();
+        }
+      }
+    };
+    const kick = () => { run().catch(() => {}); };
+    if (!video.paused && video.readyState >= 2) kick();
+    else video.addEventListener("playing", kick, { once: true, signal: ac.signal });
+  }
+
   function attachPlaylist(video, url) {
     if (!video || !url) return;
+    stopNativePrefetch(video);
     if (video._vbHls) {
       try { video._vbHls.destroy(); } catch {}
       video._vbHls = null;
     }
+    video.preload = "auto";
     if (usesNativeHls()) {
       video.src = url;
+      video.setAttribute("data-playlist", url);
       return;
     }
     const HlsClass = window.Hls;
     if (HlsClass && HlsClass.isSupported()) {
-      const hls = new HlsClass({
-        enableWorker: false,
-        lowLatencyMode: false,
-        liveDurationInfinity: false,
-        startPosition: 0,
-      });
+      const hls = new HlsClass(HLS_JS_CONFIG);
       video._vbHls = hls;
       hls.loadSource(url);
       hls.attachMedia(video);
@@ -577,7 +712,9 @@
 
   function capabilities(safe) {
     const apple = isApple();
-    const hevc = !safe && !wantsSafeProfile() && hevcOk();
+    // Phones/tablets (including the 2017 iPad Pro) get 1080p AVC: 4K remux is
+    // 15–25 Mbps with 20 MB segments, which stalls Wi-Fi and breaks AirPlay TVs.
+    const hevc = !safe && !wantsSafeProfile() && hevcOk() && !isHandheld();
     if (hevc) {
       return {
         protocols: ["hls"],
@@ -627,9 +764,7 @@
           </nav>
           <div class="ml-auto flex items-center gap-2">
             ${profile ? langToggle() : ""}
-            ${profile ? `<button data-action="switch-profile" class="tap rounded-full nav-hover" aria-label="Profiel wisselen">
-              <span class="w-9 h-9 rounded-full ${COLORS[profile.slug] || "bg-accent"} grid place-items-center font-bold">${profile.name[0]}</span>
-            </button>` : ""}
+            ${profile ? headerPlayers() : ""}
           </div>
         </div>
       </header>` : "";
@@ -724,7 +859,7 @@
     state.player.lastTickPos = pos;
     if (prev == null || Number.isNaN(prev)) return;
     const delta = pos - prev;
-    if (delta <= 0 || delta > 4) return;
+    if (delta <= 0 || delta > 30) return;
     if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
     const end = (isFinite(duration) && duration > 0) ? duration : pos;
     const from = Math.floor(Math.min(prev, end) / WATCH_BUCKET_SEC);
@@ -736,15 +871,24 @@
 
   function takePlayedDelta(video) {
     const pos = Number(video?.currentTime) || 0;
+    const now = Date.now();
     if (state.player && (state.player.lastSavedPos == null || Number.isNaN(state.player.lastSavedPos))) {
       state.player.lastSavedPos = pos;
+      state.player.lastSavedWall = now;
       return 0;
     }
     const prev = Number(state.player?.lastSavedPos) || 0;
     let delta = pos - prev;
     if (delta < 0) delta = 0;
-    if (delta > 4) delta = 0;
-    if (state.player) state.player.lastSavedPos = pos;
+    const wall = Math.max(0, (now - (Number(state.player?.lastSavedWall) || now)) / 1000);
+    // A jump bigger than the wall clock is a seek, not playback. iPad fullscreen
+    // often delivers 5–15s timeupdates; those must still count.
+    if (delta > wall + 2.5) delta = 0;
+    else delta = Math.min(delta, wall + 0.75);
+    if (state.player) {
+      state.player.lastSavedPos = pos;
+      state.player.lastSavedWall = now;
+    }
     return Math.round(delta * 1000) / 1000;
   }
 
@@ -942,6 +1086,78 @@
       </div>`);
   }
 
+  function weekDays() {
+    return state.bootstrap?.week?.days || [];
+  }
+
+  function weekDayByDate(date) {
+    return weekDays().find((d) => d.date === date) || null;
+  }
+
+  function selectedWeekDate() {
+    const days = weekDays();
+    const inWeek = (date) => days.some((d) => d.date === date);
+    if (state.weekDay && inWeek(state.weekDay)) return state.weekDay;
+    return days.find((d) => d.isToday)?.date || days[days.length - 1]?.date || null;
+  }
+
+  function weekDayPanelHtml(selectedDay) {
+    if (!selectedDay) return "";
+    const dayFollowed = (selectedDay.lessonIds || []).filter((id) => {
+      const l = lessonById(id);
+      return l && isFollowed(progressOf(id), l);
+    });
+    return `
+      <div id="week-day-panel" class="week-panel mt-5 pt-5 border-t border-line">
+        <p class="font-semibold">${esc(selectedDay.label.charAt(0).toUpperCase() + selectedDay.label.slice(1))} · ${dayFollowed.length ? "dit speelde je" : "nog niks gespeeld"}</p>
+        ${dayFollowed.length
+          ? `<div class="mt-3 lesson-grid">${dayFollowed.map((id) => {
+              const l = lessonById(id);
+              return l ? card(l) : "";
+            }).join("")}</div>`
+          : `<p class="text-muted text-sm mt-2">${selectedDay.isToday ? "Zet ’m op — één les is al een overwinning." : "Deze dag nog geen les."}</p>`}
+      </div>`;
+  }
+
+  let weekPaintGen = 0;
+
+  function paintWeekDay(date) {
+    const day = weekDayByDate(date);
+    if (!day) return;
+    if (selectedWeekDate() === date) {
+      state.weekDay = date;
+      return;
+    }
+    state.weekDay = date;
+    $$("[data-action=week-day]").forEach((btn) => {
+      btn.classList.toggle("is-on", btn.dataset.date === date);
+    });
+    const panel = $("#week-day-panel");
+    if (!panel) return;
+    const gen = ++weekPaintGen;
+    const swap = () => {
+      if (gen !== weekPaintGen) return;
+      const wrap = document.createElement("div");
+      wrap.innerHTML = weekDayPanelHtml(day);
+      const next = wrap.firstElementChild;
+      if (!next) return;
+      next.classList.add("is-in");
+      panel.replaceWith(next);
+      $$("[data-link]", next).forEach((a) => a.addEventListener("click", onLinkClick));
+    };
+    let done = false;
+    const finish = (e) => {
+      if (e && e.target !== panel) return;
+      if (done) return;
+      done = true;
+      panel.removeEventListener("transitionend", finish);
+      swap();
+    };
+    panel.classList.add("is-out");
+    panel.addEventListener("transitionend", finish);
+    setTimeout(finish, 220);
+  }
+
   function renderHome() {
     const b = state.bootstrap;
     const next = resumeLesson();
@@ -958,15 +1174,8 @@
       </section>` : "";
 
     const week = b.week || { days: [], streak: 0, playedToday: false };
-    const inWeek = (date) => (week.days || []).some((d) => d.date === date);
-    const selectedDate = (state.weekDay && inWeek(state.weekDay))
-      ? state.weekDay
-      : (week.days.find((d) => d.isToday)?.date || week.days[week.days.length - 1]?.date || null);
-    const selectedDay = week.days.find((d) => d.date === selectedDate) || null;
-    const dayFollowed = (selectedDay?.lessonIds || []).filter((id) => {
-      const l = lessonById(id);
-      return l && isFollowed(progressOf(id), l);
-    });
+    const selectedDate = selectedWeekDate();
+    const selectedDay = weekDayByDate(selectedDate);
     const nudge = !week.playedToday && week.streak > 0
       ? `Je reeks van ${week.streak} dagen wacht op vandaag.`
       : week.playedToday && week.streak > 1
@@ -995,18 +1204,7 @@
             </button>`;
           }).join("")}
         </div>
-        ${selectedDay ? `
-          <div class="mt-5 pt-5 border-t border-line">
-            <p class="font-semibold">${esc(selectedDay.label.charAt(0).toUpperCase() + selectedDay.label.slice(1))} · ${dayFollowed.length ? "dit speelde je" : "nog niks gespeeld"}</p>
-            ${dayFollowed.length
-              ? `<div class="mt-3 lesson-grid">
-                  ${dayFollowed.map((id) => {
-                    const l = lessonById(id);
-                    return l ? card(l) : "";
-                  }).join("")}
-                </div>`
-              : `<p class="text-muted text-sm mt-2">${selectedDay.isToday ? "Zet ’m op — één les is al een overwinning." : "Deze dag nog geen les."}</p>`}
-          </div>` : ""}
+        ${weekDayPanelHtml(selectedDay)}
       </section>` : "";
 
     const shows = `
@@ -1116,12 +1314,39 @@
       </div>`);
   }
 
+  function historyRateBtns(lessonId) {
+    const current = latestScoreOf(lessonId);
+    const slug = state.bootstrap?.profile?.slug || "";
+    return `<div class="history-rates" role="group" aria-label="Emoji">
+      ${SCORE_CHOICES.map(([s, e, l]) => {
+        const on = current === Number(s);
+        return `<button type="button" data-action="rate" data-score="${s}" data-lesson="${lessonId}" data-slug="${esc(slug)}" class="history-rate tap${on ? " is-on" : ""}" title="${esc(l)}" aria-label="${esc(l)}" aria-pressed="${on ? "true" : "false"}">${e}</button>`;
+      }).join("")}
+    </div>`;
+  }
+
+  function paintHistoryRate(row, lessonId, score) {
+    $$("[data-action=rate]", row).forEach((btn) => {
+      const on = Number(btn.dataset.score) === score;
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const thumb = row.querySelector(".history-thumb");
+    if (!thumb) return;
+    const watched = thumb.classList.contains("thumb-watched");
+    const next = thumbBadges(lessonId, { watched, compact: true });
+    const old = thumb.querySelector(".thumb-badges");
+    if (old && next) old.outerHTML = next;
+    else if (old && !next) old.remove();
+    else if (!old && next) thumb.insertAdjacentHTML("afterbegin", next);
+  }
+
   function renderHistory() {
     const items = historyItems();
     $("#app").innerHTML = layout(`
       <div class="max-w-3xl mx-auto px-4 pt-6">
         <h1 class="text-3xl sm:text-4xl font-black">Afspeelgeschiedenis</h1>
-        <p class="text-muted mt-2 mb-8">Alles wat je minstens een derde hebt bekeken, meest recent eerst.</p>
+        <p class="text-muted mt-2 mb-8">Alles wat je minstens een derde hebt bekeken. Tik op een emoji om je score te zetten of te wijzigen.</p>
         ${items.length === 0
           ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog geen geschiedenis. Speel een les tot minstens een derde om hem hier te zien.</div>`
           : `<div class="flex flex-col gap-3">
@@ -1130,23 +1355,24 @@
                 const series = disp(lesson, "pathTitle") || "The Method";
                 const skill = disp(lesson, "skillPackTitle");
                 return `
-                <a href="/watch/${lesson.id}" data-link class="flex gap-3 rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} tap">
-                  <div class="relative history-thumb shrink-0 aspect-video thumb overflow-hidden${watched ? " thumb-watched" : ""}">
+                <article data-history-id="${lesson.id}" class="flex gap-3 rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"}">
+                  <a href="/watch/${lesson.id}" data-link class="relative history-thumb shrink-0 aspect-video thumb overflow-hidden tap${watched ? " thumb-watched" : ""}">
                     ${thumbPic(lesson.vimeoId, { sizes: "176px", alt: disp(lesson) })}
                     ${thumbBadges(lesson.id, { watched, compact: true })}
                     <span class="absolute bottom-1 right-1 text-[11px] bg-black/70 px-2 py-0.5 rounded">${esc(lesson.length || fmt(lesson.seconds))}</span>
                     <div class="absolute bottom-0 inset-x-0 progress-bar rounded-none"><span style="width:${Math.round(ratio * 100)}%"></span></div>
-                  </div>
+                  </a>
                   <div class="min-w-0 py-3 pr-3 flex-1">
-                    <div class="font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${lessonNumHtml(lesson)}${esc(disp(lesson))}</div>
+                    <a href="/watch/${lesson.id}" data-link class="tap font-semibold leading-snug line-clamp-2${watched ? " watched-title" : ""}">${lessonNumHtml(lesson)}${esc(disp(lesson))}</a>
                     <div class="mt-1 text-sm leading-snug">
                       <div><span class="text-muted">Reeks</span> · ${esc(series)}</div>
                       ${skill ? `<div><span class="text-muted">Skill</span> · ${esc(skill)}</div>` : ""}
                     </div>
                     ${noteOf(lesson.id) ? `<div class="history-note">${esc(noteOf(lesson.id))}</div>` : ""}
+                    ${historyRateBtns(lesson.id)}
                     <div class="text-muted text-xs mt-2">${Math.round(ratio * 100)}% · ${esc(relativePlayed(progress.updated))}</div>
                   </div>
-                </a>`;
+                </article>`;
               }).join("")}
             </div>`}
       </div>`);
@@ -1461,15 +1687,9 @@
         </div>
         <div id="next-modal" class="hidden fixed inset-0 z-50 bg-black/70 grid place-items-center p-4">
           <div class="w-full max-w-lg rounded-3xl bg-panel border border-line p-6 text-center">
-            <p class="text-muted">Hoe ging deze les?</p>
-            <div class="grid grid-cols-4 gap-3 my-5">
-              ${[["1","😢","Moeilijk"],["2","😕","Matig"],["3","😊","Goed"],["4","🤩","Top"]].map(([s,e,l]) => `
-                <button data-action="rate" data-score="${s}" class="tap rounded-2xl bg-card border border-line py-5 text-4xl">
-                  <div>${e}</div><div class="text-xs mt-2 text-muted">${l}</div>
-                </button>`).join("")}
-            </div>
+            ${nextModalRates()}
             <p id="next-title" class="font-bold text-lg"></p>
-            <p class="text-muted text-sm mt-1">Volgende start over <span id="count">8</span>s</p>
+            <p id="next-countdown" class="hidden text-muted text-sm mt-1">Volgende start over <span id="count">5</span>s</p>
             <div class="flex gap-3 justify-center mt-5">
               <button data-action="replay" class="tap rounded-full bg-card px-5 py-3 border border-line">Opnieuw</button>
               <button data-action="play-next" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Volgende</button>
@@ -1592,6 +1812,9 @@
     const ac = new AbortController();
     video._vbBind = ac;
     const sig = { signal: ac.signal };
+    video.preload = "auto";
+    video.setAttribute("x-webkit-airplay", "allow");
+    startNativePrefetch(video, video.getAttribute("data-playlist") || video.src, ac.signal);
     let armed = false;
     const save = (force) => {
       if (!armed) return;
@@ -1632,6 +1855,7 @@
       if (state.player) {
         state.player.lastTickPos = video.currentTime || resumeAt || 0;
         state.player.lastSavedPos = video.currentTime || resumeAt || 0;
+        state.player.lastSavedWall = Date.now();
         if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
       }
       armed = true;
@@ -1812,6 +2036,15 @@
     }, 5000);
   }
 
+  const NEXT_COUNTDOWN_SEC = 5;
+
+  function stopCountdown() {
+    if (state.countdown) {
+      clearInterval(state.countdown);
+      state.countdown = null;
+    }
+  }
+
   function showNext(lesson) {
     const modal = $("#next-modal");
     if (!modal) return;
@@ -1819,17 +2052,32 @@
     const next = nid ? lessonById(nid) : null;
     const title = $("#next-title");
     if (title) title.textContent = next ? disp(next) : "Einde van The Method — goed gedaan!";
-    modal.classList.remove("hidden");
-    let n = 8;
+    const hint = $("#next-countdown");
+    if (hint) hint.classList.add("hidden");
     const node = $("#count");
-    if (state.countdown) clearInterval(state.countdown);
-    if (!next) return;
+    if (node) node.textContent = String(NEXT_COUNTDOWN_SEC);
+    $$("#next-modal [data-action=rate]").forEach((btn) => {
+      btn.classList.remove("ring-2", "ring-accent");
+    });
+    stopCountdown();
+    state.ratePicked = {};
+    state.pendingNext = next || null;
+    modal.classList.remove("hidden");
+  }
+
+  function startNextCountdown() {
+    const next = state.pendingNext;
+    if (!next || state.countdown) return;
+    const hint = $("#next-countdown");
+    if (hint) hint.classList.remove("hidden");
+    let n = NEXT_COUNTDOWN_SEC;
+    const node = $("#count");
+    if (node) node.textContent = String(n);
     state.countdown = setInterval(() => {
       n -= 1;
       if (node) node.textContent = String(n);
       if (n <= 0) {
-        clearInterval(state.countdown);
-        state.countdown = null;
+        stopCountdown();
         advanceWatch(next);
       }
     }, 1000);
@@ -1840,10 +2088,8 @@
       go("/home");
       return;
     }
-    if (state.countdown) {
-      clearInterval(state.countdown);
-      state.countdown = null;
-    }
+    stopCountdown();
+    state.pendingNext = null;
     $("#next-modal")?.classList.add("hidden");
     const video = state.player.video;
     if (video) {
@@ -1875,7 +2121,8 @@
     state.playGen++;
     unbindFullscreenWatch();
     if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-    if (state.countdown) { clearInterval(state.countdown); state.countdown = null; }
+    stopCountdown();
+    state.pendingNext = null;
     const video = state.player.video;
     if (video) {
       if (video._vbBind) {
@@ -1951,8 +2198,7 @@
     if (action === "week-day") {
       const date = el.dataset.date;
       if (!date) return;
-      state.weekDay = date;
-      render();
+      paintWeekDay(date);
       return;
     }
     if (action === "pick-profile") {
@@ -1963,6 +2209,52 @@
       return;
     }
     if (action === "switch-profile") {
+      teardownPlayer();
+      try { await api("/app/mate", { method: "POST", body: JSON.stringify({ slug: "" }) }); } catch {}
+      if (state.bootstrap) state.bootstrap.mate = null;
+      go("/profiles");
+      return;
+    }
+    if (action === "mate-menu") {
+      e.stopPropagation();
+      togglePopMenu("#mate-menu");
+      return;
+    }
+    if (action === "add-mate") {
+      closePopMenus();
+      const slug = el.dataset.slug;
+      if (!slug) return;
+      const res = await api("/app/mate", { method: "POST", body: JSON.stringify({ slug }) });
+      if (state.bootstrap) state.bootstrap.mate = res.mate || null;
+      keepWatchIfPlaying();
+      render();
+      return;
+    }
+    if (action === "drop-player") {
+      const slug = el.dataset.slug;
+      const profile = state.bootstrap?.profile;
+      const mate = mateOf();
+      if (!profile || !slug) return;
+      if (mate && slug === mate.slug) {
+        await api("/app/mate", { method: "POST", body: JSON.stringify({ slug: "" }) });
+        state.bootstrap.mate = null;
+        keepWatchIfPlaying();
+        render();
+        return;
+      }
+      if (mate && slug === profile.slug) {
+        await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: mate.slug }) });
+        await refresh();
+        touchActive();
+        if (state.route.name === "watch" && !lessonById(state.route.params.id)) {
+          teardownPlayer();
+          go("/home", true);
+          return;
+        }
+        keepWatchIfPlaying();
+        render();
+        return;
+      }
       teardownPlayer();
       go("/profiles");
       return;
@@ -2033,17 +2325,38 @@
       return;
     }
     if (action === "rate") {
-      const lesson = state.player.lesson || lessonById(state.route.params.id);
       const score = Number(el.dataset.score);
-      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score }) });
-      if (state.bootstrap) {
+      const slug = el.dataset.slug || state.bootstrap?.profile?.slug;
+      const historyId = Number(el.dataset.lesson);
+      if (!slug || score < 1) return;
+      if (historyId) {
+        if (state.bootstrap) {
+          state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(historyId)]: score };
+        }
+        const row = el.closest("[data-history-id]");
+        if (row) paintHistoryRate(row, historyId, score);
+        await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: historyId, score, slug }) });
+        return;
+      }
+      const lesson = state.player.lesson || lessonById(state.route.params.id);
+      if (!lesson) return;
+      const row = el.closest("[data-rate-player]") || $("#next-modal");
+      $$("[data-action=rate]", row).forEach((btn) => {
+        const on = btn === el;
+        btn.classList.toggle("ring-2", on);
+        btn.classList.toggle("ring-accent", on);
+      });
+      state.ratePicked = { ...(state.ratePicked || {}), [slug]: score };
+      if (everyoneRated()) startNextCountdown();
+      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score, slug }) });
+      if (state.bootstrap && slug === state.bootstrap.profile?.slug) {
         state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(lesson.id)]: score };
       }
-      el.classList.add("ring-2", "ring-accent");
       return;
     }
     if (action === "replay") {
-      if (state.countdown) clearInterval(state.countdown);
+      stopCountdown();
+      state.pendingNext = null;
       $("#next-modal")?.classList.add("hidden");
       const lesson = state.player.lesson || lessonById(state.route.params.id);
       await api("/app/reset", { method: "POST", body: JSON.stringify({ lessonId: lesson.id }) });
@@ -2077,7 +2390,8 @@
       state.savedStage = stage;
       unbindFullscreenWatch();
       if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-      if (state.countdown) { clearInterval(state.countdown); state.countdown = null; }
+      stopCountdown();
+      state.pendingNext = null;
       state.playGen++;
     } else {
       teardownPlayer();

@@ -92,6 +92,7 @@ final class Http
                 return;
             }
             $this->setProfileCookie($profile['slug']);
+            $this->clearMateCookie();
             $this->json(200, ['profile' => $profile]);
             return;
         }
@@ -126,6 +127,23 @@ final class Http
         }
         $pid = (int) $profile['id'];
 
+        if ($path === '/app/mate' && $method === 'POST') {
+            $slug = trim((string) ($this->body()['slug'] ?? ''));
+            if ($slug === '' || $slug === $profile['slug']) {
+                $this->clearMateCookie();
+                $this->json(200, ['mate' => null]);
+                return;
+            }
+            $mate = $this->progress->profileBySlug($slug);
+            if (!$mate) {
+                $this->json(400, ['error' => 'unknown profile']);
+                return;
+            }
+            $this->setNamedCookie($this->config->cookieMateName, $mate['slug']);
+            $this->json(200, ['mate' => $mate]);
+            return;
+        }
+
         if (preg_match('#^/app/lesson/(\d+)$#', $path, $m) && $method === 'GET') {
             $lesson = $this->visibleLesson($profile, (int) $m[1]);
             if ($lesson === null) {
@@ -148,15 +166,32 @@ final class Http
             if (!is_array($buckets)) {
                 $buckets = [];
             }
+            $vimeoId = (string) ($body['vimeoId'] ?? $lesson['vimeoId']);
+            $position = (float) ($body['position'] ?? 0);
+            $duration = (float) ($body['duration'] ?? $lesson['seconds']);
+            $playedDelta = (float) ($body['playedDelta'] ?? 0);
+            $slice = array_slice($buckets, 0, 400);
             $result = $this->progress->saveProgress(
                 $pid,
                 $lessonId,
-                (string) ($body['vimeoId'] ?? $lesson['vimeoId']),
-                (float) ($body['position'] ?? 0),
-                (float) ($body['duration'] ?? $lesson['seconds']),
-                (float) ($body['playedDelta'] ?? 0),
-                array_slice($buckets, 0, 400),
+                $vimeoId,
+                $position,
+                $duration,
+                $playedDelta,
+                $slice,
             );
+            $mate = $this->currentMate($profile);
+            if ($mate) {
+                $this->progress->saveProgress(
+                    (int) $mate['id'],
+                    $lessonId,
+                    $vimeoId,
+                    $position,
+                    $duration,
+                    $playedDelta,
+                    $slice,
+                );
+            }
             $this->json(200, $result);
             return;
         }
@@ -169,7 +204,10 @@ final class Http
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
-            $this->progress->markWatched($pid, $lessonId, $lesson['vimeoId'], (float) ($body['duration'] ?? $lesson['seconds']));
+            $duration = (float) ($body['duration'] ?? $lesson['seconds']);
+            foreach ($this->sessionProfileIds($profile) as $sid) {
+                $this->progress->markWatched($sid, $lessonId, $lesson['vimeoId'], $duration);
+            }
             $this->json(200, ['ok' => true]);
             return;
         }
@@ -181,7 +219,9 @@ final class Http
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
-            $this->progress->resetLesson($pid, $lessonId);
+            foreach ($this->sessionProfileIds($profile) as $sid) {
+                $this->progress->resetLesson($sid, $lessonId);
+            }
             $this->json(200, ['ok' => true]);
             return;
         }
@@ -198,7 +238,12 @@ final class Http
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
-            $this->progress->addRating($pid, $lessonId, $score);
+            $actor = $this->ratingActor($profile, (string) ($body['slug'] ?? ''));
+            if ($actor === null) {
+                $this->json(403, ['error' => 'not in session']);
+                return;
+            }
+            $this->progress->addRating((int) $actor['id'], $lessonId, $score);
             $this->json(200, ['ok' => true]);
             return;
         }
@@ -247,6 +292,7 @@ final class Http
         $payload = [
             'profiles' => $this->progress->profiles(),
             'profile' => $profile,
+            'mate' => $this->currentMate($profile),
             'intro' => $all['intro'],
             'paths' => $all['paths'],
             'order' => $all['order'],
@@ -328,10 +374,63 @@ final class Http
         return $this->progress->profileBySlug($slug);
     }
 
+    /** @param array<string,mixed>|null $profile */
+    private function currentMate(?array $profile): ?array
+    {
+        if (!$profile) {
+            return null;
+        }
+        $slug = $_COOKIE[$this->config->cookieMateName] ?? '';
+        if (!is_string($slug) || $slug === '' || $slug === $profile['slug']) {
+            return null;
+        }
+        return $this->progress->profileBySlug($slug);
+    }
+
+    /**
+     * @param array<string,mixed> $profile
+     * @return list<int>
+     */
+    private function sessionProfileIds(array $profile): array
+    {
+        $ids = [(int) $profile['id']];
+        $mate = $this->currentMate($profile);
+        if ($mate) {
+            $ids[] = (int) $mate['id'];
+        }
+        return $ids;
+    }
+
+    /**
+     * @param array<string,mixed> $profile
+     * @return array<string,mixed>|null
+     */
+    private function ratingActor(array $profile, string $slug): ?array
+    {
+        if ($slug === '' || $slug === $profile['slug']) {
+            return $profile;
+        }
+        $mate = $this->currentMate($profile);
+        if ($mate && $mate['slug'] === $slug) {
+            return $mate;
+        }
+        return null;
+    }
+
     private function setProfileCookie(string $slug): void
     {
-        setcookie($this->config->cookieName, $slug, [
-            'expires' => time() + 60 * 60 * 24 * 400,
+        $this->setNamedCookie($this->config->cookieName, $slug);
+    }
+
+    private function clearMateCookie(): void
+    {
+        $this->setNamedCookie($this->config->cookieMateName, '', true);
+    }
+
+    private function setNamedCookie(string $name, string $value, bool $clear = false): void
+    {
+        setcookie($name, $clear ? '' : $value, [
+            'expires' => $clear ? time() - 3600 : time() + 60 * 60 * 24 * 400,
             'path' => '/',
             'secure' => false,
             'httponly' => false,

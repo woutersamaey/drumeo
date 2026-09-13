@@ -20,7 +20,9 @@ final class PlayerJsonTest extends TestCase
             $this->assertStringContainsString('<video', $out['html']);
             $this->assertStringContainsString('controls', $out['html']);
             $this->assertStringContainsString('playsinline', $out['html']);
-            $this->assertStringContainsString('preload="metadata"', $out['html']);
+            $this->assertStringContainsString('preload="auto"', $out['html']);
+            $this->assertStringContainsString('x-webkit-airplay="allow"', $out['html']);
+            $this->assertStringContainsString('maxBufferLength: 90', $out['js']);
             $this->assertStringNotContainsString('<script', $out['html']);
             $this->assertStringNotContainsString('<link', $out['html']);
             $this->assertStringNotContainsString('<html', $out['html']);

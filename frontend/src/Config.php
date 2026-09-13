@@ -20,6 +20,7 @@ final class Config
         public readonly string $imageCacheDir,
         public readonly string $notationPath,
         public readonly string $cookieName = 'drumeo_profile',
+        public readonly string $cookieMateName = 'drumeo_mate',
     ) {
     }
 

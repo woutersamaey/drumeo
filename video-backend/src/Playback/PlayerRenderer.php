@@ -20,7 +20,7 @@ final class PlayerRenderer
         $domId = 'vp-' . $videoId . '-' . $recipe . '-' . $audioIndex;
         $html = '<div class="vp" data-vp="' . htmlspecialchars($domId, ENT_QUOTES) . '" id="' . htmlspecialchars($domId, ENT_QUOTES) . '">'
             . '<video id="' . htmlspecialchars($domId, ENT_QUOTES) . '-video"'
-            . ' controls playsinline webkit-playsinline preload="metadata"'
+            . ' controls playsinline webkit-playsinline x-webkit-airplay="allow" preload="auto"'
             . ' data-playlist="' . htmlspecialchars($playlistUrl, ENT_QUOTES) . '"'
             . ' data-video-id="' . htmlspecialchars($videoId, ENT_QUOTES) . '"'
             . ' data-recipe="' . htmlspecialchars($recipe, ENT_QUOTES) . '"'
@@ -66,6 +66,7 @@ final class PlayerRenderer
     return iOS || iPadOS || (safari && !/Chrome/.test(ua));
   }
   function attachNative() {
+    video.preload = 'auto';
     video.src = url;
     try { video.load(); } catch (e) {}
   }
@@ -83,6 +84,10 @@ final class PlayerRenderer
       lowLatencyMode: false,
       liveDurationInfinity: false,
       startPosition: 0,
+      maxBufferLength: 90,
+      maxMaxBufferLength: 240,
+      maxBufferSize: 120000000,
+      startFragPrefetch: true,
       manifestLoadingMaxRetry: 6,
       manifestLoadingRetryDelay: 1000,
       levelLoadingMaxRetry: 6

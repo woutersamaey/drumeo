@@ -202,14 +202,15 @@ final class Progress
     public function saveProgress(int $profileId, int $lessonId, string $vimeoId, float $position, float $duration, float $playedDelta = 0.0, array $playedBuckets = []): array
     {
         $this->ensureSchema();
-        $delta = max(0.0, min(30.0, $playedDelta));
         $pdo = $this->db->pdo();
         $existing = $pdo->prepare('SELECT played_buckets, watched FROM watch_progress WHERE profile_id = ? AND lesson_id = ?');
         $existing->execute([$profileId, $lessonId]);
         $row = $existing->fetch(PDO::FETCH_ASSOC);
         $storedJson = is_array($row) && is_string($row['played_buckets'] ?? null) ? $row['played_buckets'] : null;
+        $prevBuckets = self::mergeBuckets($storedJson, [], $duration);
         $merged = self::mergeBuckets($storedJson, $playedBuckets, $duration);
         $watched = self::qualifiesWatched(count($merged), $duration) || (is_array($row) && !empty($row['watched']));
+        $bucketGain = max(0, count($merged) - count($prevBuckets)) * self::BUCKET_SEC;
         $bucketJson = json_encode($merged, JSON_THROW_ON_ERROR);
         $stmt = $pdo->prepare(
             'INSERT INTO watch_progress (profile_id, lesson_id, vimeo_id, position_sec, duration_sec, watched, played_sec, played_buckets)
@@ -236,6 +237,12 @@ final class Progress
             'INSERT INTO profile_state (profile_id, last_lesson_id) VALUES (?, ?)
              ON DUPLICATE KEY UPDATE last_lesson_id = VALUES(last_lesson_id)'
         )->execute([$profileId, $lessonId]);
+        $delta = max(0.0, (float) $playedDelta, (float) $bucketGain);
+        if ($duration > 0) {
+            $delta = min($delta, $duration);
+        } else {
+            $delta = min($delta, 1200.0);
+        }
         $this->recordPlay($profileId, $lessonId, $delta);
         return ['watched' => $watched, 'position' => $position];
     }
@@ -869,6 +876,22 @@ final class Progress
             $pid = (int) $row['profile_id'];
             $copy->execute([$pid, $pid]);
         }
+        $this->backfillTodayPlaySeconds();
+    }
+
+    private function backfillTodayPlaySeconds(): void
+    {
+        $tz = new \DateTimeZone(self::TZ);
+        $today = (new \DateTimeImmutable('today', $tz))->format('Y-m-d');
+        $start = (new \DateTimeImmutable('today', $tz))->getTimestamp();
+        $this->db->pdo()->prepare(
+            'UPDATE play_events e
+             INNER JOIN watch_progress w ON w.profile_id = e.profile_id AND w.lesson_id = e.lesson_id
+             SET e.played_sec = w.played_sec
+             WHERE e.played_on = ?
+               AND UNIX_TIMESTAMP(w.updated_at) >= ?
+               AND w.played_sec > e.played_sec + 30'
+        )->execute([$today, $start]);
     }
 
     private function practiceTotal(int $profileId): float
