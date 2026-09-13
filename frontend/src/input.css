@@ -56,14 +56,22 @@ html, body {
 .header-face {
   width: 2.25rem;
   height: 2.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+}
+.header-face span {
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 999px;
   display: grid;
   place-items: center;
   font-weight: 700;
   color: #fff;
-  padding: 0;
-  border: 0;
-  line-height: 1;
 }
 .header-add {
   width: 2.25rem;

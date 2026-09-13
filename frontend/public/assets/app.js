@@ -473,7 +473,9 @@
   }
 
   function headerFace(p, action, label) {
-    return `<button type="button" data-action="${action}" data-slug="${esc(p.slug)}" class="header-face tap ${COLORS[p.slug] || "bg-accent"}" aria-label="${esc(label)}" title="${esc(label)}">${esc(p.name[0])}</button>`;
+    return `<button type="button" data-action="${action}" data-slug="${esc(p.slug)}" class="header-face tap" aria-label="${esc(label)}" title="${esc(label)}">
+      <span class="${COLORS[p.slug] || "bg-accent"}">${esc(p.name[0])}</span>
+    </button>`;
   }
 
   function headerPlayers() {
