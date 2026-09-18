@@ -100,6 +100,13 @@ final class Worker
                     $job['intent'] = 'play';
                     $this->jobs->save($job);
                 }
+                $this->log(sprintf(
+                    'upgrade id=%s recipe=%s audio=%d job=%s prefetch→play',
+                    $id,
+                    $recipe,
+                    $audioIndex,
+                    $existing['jobId'],
+                ));
             }
             return (string) $existing['jobId'];
         }
@@ -129,7 +136,20 @@ final class Worker
             'offer' => $offer,
             'mode' => $offer['mode'] ?? $recipe,
         ]);
+        $this->log(sprintf(
+            'queue id=%s recipe=%s audio=%d intent=%s job=%s',
+            $id,
+            $recipe,
+            $audioIndex,
+            $intent,
+            $jobId,
+        ));
         return $jobId;
+    }
+
+    private function log(string $msg): void
+    {
+        fwrite(STDERR, '[worker] ' . $msg . "\n");
     }
 
     public function activeCount(): int
@@ -373,6 +393,14 @@ final class Worker
             $variant['lastAccessAt'] = $this->clock->now();
             return $this->meta->upsertVariant($meta, $variant);
         });
+        $this->log(sprintf(
+            'start id=%s recipe=%s audio=%d intent=%s pid=%s',
+            $id,
+            $recipe,
+            $audio,
+            $lock['intent'] ?? '',
+            (string) $pid,
+        ));
     }
 
     /** @param array<string,mixed> $lock */
@@ -397,6 +425,16 @@ final class Worker
             $job['pid'] = $lock['pid'] ?? null;
             $this->jobs->save($job);
         }
+        $elapsed = isset($lock['startedUnix']) ? $this->clock->unix() - (int) $lock['startedUnix'] : null;
+        $this->log(sprintf(
+            'done id=%s recipe=%s audio=%d elapsedSec=%s durationReady=%s segs=%s',
+            $id,
+            $recipe,
+            $audio,
+            $elapsed === null ? '?' : (string) $elapsed,
+            (string) ($info['durationReadySec'] ?? ''),
+            (string) ($info['segmentCount'] ?? ''),
+        ));
         $this->locks->release($id, $recipe, $audio);
     }
 
@@ -419,6 +457,13 @@ final class Worker
             $job['error'] = $error;
             $this->jobs->save($job);
         }
+        $this->log(sprintf(
+            'fail id=%s recipe=%s audio=%d error=%s',
+            $id,
+            $recipe,
+            $audio,
+            $error,
+        ));
         $this->locks->release($id, $recipe, $audio);
     }
 

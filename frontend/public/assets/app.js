@@ -14,6 +14,8 @@
     overlay: null,
     countdown: null,
     pendingNext: null,
+    nextPrep: null,
+    logAt: {},
     playGen: 0,
     weekDay: null,
     pendingFullscreen: false,
@@ -230,6 +232,41 @@
       throw err;
     }
     return data;
+  }
+
+  function clientLog(event, data = {}, everyMs = 0) {
+    const key = event + ":" + (data.videoId || data.nextId || data.lessonId || "");
+    if (everyMs) {
+      const now = Date.now();
+      if (state.logAt[key] && now - state.logAt[key] < everyMs) return;
+      state.logAt[key] = now;
+    }
+    const payload = {
+      event,
+      profile: state.bootstrap?.profile?.slug || null,
+      lessonId: state.player?.lesson?.id ?? null,
+      atSec: Math.round(Number(state.player?.video?.currentTime) || 0),
+      ...data,
+    };
+    api("/app/client-log", { method: "POST", body: JSON.stringify(payload) }).catch(() => {});
+  }
+
+  function prepPct(st, lesson) {
+    if (!st) return 0;
+    if (st.state === "ready" && st.playlistUrl) return 100;
+    const ready = Number(st.durationReadySec) || 0;
+    const total = Number(st.progress?.durationTotalSec) || Number(lesson?.seconds) || 1;
+    return Math.min(95, Math.round((ready / Math.max(1, total)) * 100));
+  }
+
+  function nextWaitText(ready, pct, count) {
+    if (ready) {
+      return isNl() ? `Volgende start over ${count}s` : `Next starts in ${count}s`;
+    }
+    if (pct > 0) {
+      return isNl() ? `Volgende wordt klaargezet · ${pct}%` : `Getting the next lesson ready · ${pct}%`;
+    }
+    return isNl() ? "Volgende wordt klaargezet…" : "Getting the next lesson ready…";
   }
 
   async function refresh() {
@@ -1691,7 +1728,7 @@
           <div class="w-full max-w-lg rounded-3xl bg-panel border border-line p-6 text-center">
             ${nextModalRates()}
             <p id="next-title" class="font-bold text-lg"></p>
-            <p id="next-countdown" class="hidden text-muted text-sm mt-1">Volgende start over <span id="count">5</span>s</p>
+            <p id="next-wait" class="hidden text-muted text-sm mt-1"></p>
             <div class="flex gap-3 justify-center mt-5">
               <button data-action="replay" class="tap rounded-full bg-card px-5 py-3 border border-line">Opnieuw</button>
               <button data-action="play-next" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Volgende</button>
@@ -1742,18 +1779,27 @@
       if (title) title.textContent = "Video wordt klaargezet in " + langMeta(audioIndex).label + "…";
     }
 
+    let loggedWait = false;
     const tickPrep = (st) => {
       if (!detail) return;
-      const ready = st.durationReadySec || 0;
-      const total = st.progress?.durationTotalSec || lesson.seconds || 1;
       const done = st.state === "ready" && st.playlistUrl;
-      const pctN = done ? 100 : Math.min(95, Math.round((ready / total) * 100));
+      const pctN = prepPct(st, lesson);
       if (bar) bar.style.width = pctN + "%";
       detail.textContent = done
         ? "Klaar om te spelen"
         : (pctN > 0
           ? "Bezig met klaarzetten · " + pctN + "%"
           : "Bezig met klaarzetten…");
+      if (!done && !loggedWait) {
+        loggedWait = true;
+        clientLog("play_wait", {
+          videoId: String(lesson.vimeoId),
+          lessonId: lesson.id,
+          state: st.state || "",
+          pct: pctN,
+          recipe: st.recipe || "",
+        });
+      }
     };
 
     try {
@@ -1798,10 +1844,15 @@
       const wantFs = !!state.pendingFullscreen;
       state.pendingFullscreen = false;
       state.hadFullscreenThisClip = false;
-      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, safe: usedSafe, lastPos: null, lastTickPos: null, lastSavedPos: null, seenBuckets: new Set() };
+      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, caps, safe: usedSafe, lastPos: null, lastTickPos: null, lastSavedPos: null, seenBuckets: new Set(), prefetchStarted: false };
       if (prep) prep.classList.add("hidden");
+      clientLog("play_ready", {
+        videoId: String(lesson.vimeoId),
+        lessonId: lesson.id,
+        recipe: result.st.recipe || "",
+        waited: loggedWait,
+      });
       bindVideo(video, lesson, resumeAt, usedSafe, wantFs);
-      prefetchNext(lesson, audioIndex, caps);
     } catch (err) {
       if (detail) detail.textContent = "Kon de video niet klaarzetten: " + (err.body?.error || err.message);
     }
@@ -1861,13 +1912,16 @@
         if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
       }
       armed = true;
+      maybePrefetchNext();
     };
     video.addEventListener("loadedmetadata", tryResume, sig);
     video.addEventListener("durationchange", () => { if (!armed) tryResume(); }, sig);
     video.addEventListener("timeupdate", () => {
       noteSeenBuckets(video);
       save(false);
+      maybePrefetchNext();
     }, sig);
+    video.addEventListener("seeked", () => maybePrefetchNext(), sig);
     video.addEventListener("pause", () => save(true), sig);
     let endHandled = false;
     const onClipEnd = () => {
@@ -2023,19 +2077,77 @@
     return i >= 0 && order[i + 1] ? order[i + 1].id : null;
   }
 
-  function prefetchNext(lesson, audioIndex, caps) {
+  const PREFETCH_AFTER_SEC = 15;
+
+  function prefetchDue(video, lesson) {
+    const t = Number(video?.currentTime) || 0;
+    if (t >= PREFETCH_AFTER_SEC) return true;
+    const dur = Number(video?.duration);
+    const total = (isFinite(dur) && dur > 0) ? dur : (Number(lesson?.seconds) || 0);
+    return total > 0 && total <= PREFETCH_AFTER_SEC;
+  }
+
+  function maybePrefetchNext() {
+    const p = state.player;
+    if (!p?.lesson || p.prefetchStarted) return;
+    if (!prefetchDue(p.video, p.lesson)) return;
+    p.prefetchStarted = true;
+    startPrefetchNext(p.lesson, p.audioIndex, p.caps);
+  }
+
+  function startPrefetchNext(lesson, audioIndex, caps) {
     const nextId = nextIdOf(lesson);
-    if (!nextId) return;
+    if (!nextId) {
+      clientLog("prefetch_skip", { reason: "no-next", lessonId: lesson?.id });
+      return;
+    }
     const next = lessonById(nextId);
-    if (!next?.vimeoId || !available(next.vimeoId)) return;
+    if (!next?.vimeoId || !available(next.vimeoId)) {
+      clientLog("prefetch_skip", { reason: "unavailable", nextId, lessonId: lesson?.id });
+      return;
+    }
     const body = { videoId: String(next.vimeoId), audioIndex, intent: "prefetch", capabilities: caps };
-    api("/api/playback/prepare", { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+    clientLog("prefetch_start", {
+      nextId: next.id,
+      videoId: String(next.vimeoId),
+      atSec: Math.round(Number(state.player?.video?.currentTime) || 0),
+      audioIndex,
+    });
+    const tick = () => {
+      if (!state.player?.lesson || !sameId(state.player.lesson.id, lesson.id)) return;
+      api("/api/playback/prepare", { method: "POST", body: JSON.stringify(body) })
+        .then((st) => {
+          const pct = prepPct(st, next);
+          state.nextPrep = { ...st, pct, videoId: String(next.vimeoId) };
+          clientLog("prefetch_tick", {
+            nextId: next.id,
+            videoId: String(next.vimeoId),
+            state: st?.state || "",
+            pct,
+            recipe: st?.recipe || "",
+          }, 15000);
+          if (st?.state === "ready" || st?.state === "failed") {
+            if (st.state === "ready") {
+              clientLog("prefetch_ready", { nextId: next.id, videoId: String(next.vimeoId), recipe: st.recipe || "" });
+            }
+            if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
+          }
+        })
+        .catch((err) => {
+          clientLog("prefetch_error", {
+            nextId: next.id,
+            videoId: String(next.vimeoId),
+            status: err.status || 0,
+            error: err.message || "",
+          }, 10000);
+          if (err?.status === 409) {
+            if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
+          }
+        });
+    };
+    tick();
     if (state.prefetch) clearInterval(state.prefetch);
-    state.prefetch = setInterval(() => {
-      api("/api/playback/query", { method: "POST", body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }) })
-        .then((q) => api(`/api/playback/status?videoId=${encodeURIComponent(next.vimeoId)}&recipe=${encodeURIComponent(q.recipe)}&audioIndex=${audioIndex}`))
-        .catch(() => {});
-    }, 5000);
+    state.prefetch = setInterval(tick, 5000);
   }
 
   const NEXT_COUNTDOWN_SEC = 5;
@@ -2054,10 +2166,6 @@
     const next = nid ? lessonById(nid) : null;
     const title = $("#next-title");
     if (title) title.textContent = next ? disp(next) : "Einde van The Method — goed gedaan!";
-    const hint = $("#next-countdown");
-    if (hint) hint.classList.add("hidden");
-    const node = $("#count");
-    if (node) node.textContent = String(NEXT_COUNTDOWN_SEC);
     $$("#next-modal [data-action=rate]").forEach((btn) => {
       btn.classList.remove("ring-2", "ring-accent");
     });
@@ -2065,24 +2173,109 @@
     state.ratePicked = {};
     state.pendingNext = next || null;
     modal.classList.remove("hidden");
+    const waitEl = $("#next-wait");
+    if (!next) {
+      if (waitEl) {
+        waitEl.textContent = "";
+        waitEl.classList.add("hidden");
+      }
+      return;
+    }
+    clientLog("next_modal", {
+      nextId: next.id,
+      videoId: String(next.vimeoId),
+      pct: state.nextPrep?.pct || 0,
+      state: state.nextPrep?.state || null,
+    });
+    beginNextHandoff(next);
   }
 
   function startNextCountdown() {
     const next = state.pendingNext;
-    if (!next || state.countdown) return;
-    const hint = $("#next-countdown");
-    if (hint) hint.classList.remove("hidden");
-    let n = NEXT_COUNTDOWN_SEC;
-    const node = $("#count");
-    if (node) node.textContent = String(n);
-    state.countdown = setInterval(() => {
-      n -= 1;
-      if (node) node.textContent = String(n);
-      if (n <= 0) {
-        stopCountdown();
-        advanceWatch(next);
+    if (!next) return;
+    if (!state.countdown) beginNextHandoff(next);
+  }
+
+  function beginNextHandoff(next) {
+    stopCountdown();
+    const waitEl = $("#next-wait");
+    const audioIndex = state.player?.audioIndex ?? currentAudioIndex();
+    const caps = state.player?.caps || capabilities(false);
+    const COUNT = NEXT_COUNTDOWN_SEC;
+    let readyFor = 0;
+    let upgraded = false;
+    let inflight = false;
+
+    const tick = async () => {
+      if (inflight) return;
+      inflight = true;
+      try {
+        let st = state.nextPrep;
+        try {
+          const q = await api("/api/playback/query", {
+            method: "POST",
+            body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }),
+          });
+          if (!upgraded) {
+            upgraded = true;
+            st = await api("/api/playback/prepare", {
+              method: "POST",
+              body: JSON.stringify({ videoId: String(next.vimeoId), recipe: q.recipe, audioIndex, intent: "play" }),
+            });
+          } else {
+            st = await api(`/api/playback/status?videoId=${encodeURIComponent(next.vimeoId)}&recipe=${encodeURIComponent(q.recipe)}&audioIndex=${audioIndex}&intent=play`);
+          }
+        } catch (err) {
+          clientLog("next_poll_error", {
+            nextId: next.id,
+            videoId: String(next.vimeoId),
+            status: err.status || 0,
+            error: err.message || "",
+          }, 10000);
+        }
+        const pct = prepPct(st, next);
+        const ready = !!(st && st.state === "ready" && st.playlistUrl);
+        if (st) state.nextPrep = { ...st, pct, videoId: String(next.vimeoId) };
+        const rated = everyoneRated();
+        if (!ready) {
+          readyFor = 0;
+          if (waitEl) {
+            waitEl.classList.remove("hidden");
+            waitEl.textContent = nextWaitText(false, pct, 0);
+          }
+          clientLog("next_wait", {
+            nextId: next.id,
+            videoId: String(next.vimeoId),
+            pct,
+            state: st?.state || "unknown",
+            recipe: st?.recipe || "",
+          }, 10000);
+          return;
+        }
+        if (readyFor === 0) {
+          clientLog("next_ready", { nextId: next.id, videoId: String(next.vimeoId), pct });
+        }
+        if (!rated) {
+          readyFor = 0;
+          if (waitEl) waitEl.classList.add("hidden");
+          return;
+        }
+        readyFor += 1;
+        if (waitEl) {
+          waitEl.classList.remove("hidden");
+          waitEl.textContent = nextWaitText(true, 100, Math.max(0, COUNT - readyFor));
+        }
+        if (readyFor >= COUNT) {
+          stopCountdown();
+          advanceWatch(next);
+        }
+      } finally {
+        inflight = false;
       }
-    }, 1000);
+    };
+
+    tick();
+    state.countdown = setInterval(tick, 1000);
   }
 
   function advanceWatch(next) {
@@ -2106,6 +2299,7 @@
     }
     unbindFullscreenWatch();
     if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
+    state.nextPrep = null;
     history.pushState({}, "", `/watch/${next.id}`);
     state.route = parseRoute();
     const audioIndex = currentAudioIndex();
@@ -2125,6 +2319,7 @@
     if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
     stopCountdown();
     state.pendingNext = null;
+    state.nextPrep = null;
     const video = state.player.video;
     if (video) {
       if (video._vbBind) {
@@ -2391,7 +2586,6 @@
       stage.remove();
       state.savedStage = stage;
       unbindFullscreenWatch();
-      if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
       stopCountdown();
       state.pendingNext = null;
       state.playGen++;

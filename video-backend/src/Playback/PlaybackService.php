@@ -199,6 +199,7 @@ final class PlaybackService
             $fails = (int) ($variant['failCount'] ?? 0);
             $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, false);
             if ($intent === 'prefetch' || $fails >= $this->config->maxVariantFails) {
+                $this->logPrepare($intent, $id, $recipe, $audioIndex, 'failed', $payload);
                 return Response::conflict('failed', $payload);
             }
         }
@@ -207,6 +208,7 @@ final class PlaybackService
         $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
         if ($variant && ($variant['state'] ?? '') === 'ready' && $this->hls->playable($id, $recipe, $audioIndex)) {
             $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $intent === 'play');
+            $this->logPrepare($intent, $id, $recipe, $audioIndex, 'ready', $payload);
             return Response::ok($payload);
         }
 
@@ -215,10 +217,12 @@ final class PlaybackService
                 $this->worker->upgradeIntent($id, $recipe, $audioIndex);
             }
             $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $intent === 'play');
+            $this->logPrepare($intent, $id, $recipe, $audioIndex, $intent === 'play' ? 'active-play' : 'active', $payload);
             return Response::accepted($payload);
         }
 
         if ($intent === 'prefetch' && $this->worker->queuedOrRunningCount() >= $this->config->maxConcurrentJobs) {
+            $this->logPrepare($intent, $id, $recipe, $audioIndex, 'queue-full');
             return Response::tooMany('queue full', 15);
         }
 
@@ -245,7 +249,30 @@ final class PlaybackService
         $this->worker->enqueue($id, $recipe, $audioIndex, $intent, $offer);
         $meta = $this->meta->read($id) ?? $meta;
         $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $intent === 'play');
+        $this->logPrepare($intent, $id, $recipe, $audioIndex, 'enqueued', $payload);
         return Response::accepted($payload);
+    }
+
+    /** @param array<string,mixed> $payload */
+    private function logPrepare(string $intent, string $id, string $recipe, int $audio, string $result, array $payload = []): void
+    {
+        if ($intent === 'play' && $result === 'ready') {
+            return;
+        }
+        $state = (string) ($payload['state'] ?? '');
+        $ready = $payload['durationReadySec'] ?? '';
+        $queue = $this->worker->queuedOrRunningCount();
+        error_log(sprintf(
+            '[playback] prepare intent=%s id=%s recipe=%s audio=%d result=%s state=%s readySec=%s queue=%d',
+            $intent,
+            $id,
+            $recipe,
+            $audio,
+            $result,
+            $state,
+            is_numeric($ready) ? (string) $ready : '',
+            $queue,
+        ));
     }
 
     public function status(string $id, string $recipe, string $audioRaw, bool $playIntent = false): Response

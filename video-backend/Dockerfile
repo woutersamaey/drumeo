@@ -23,7 +23,7 @@ RUN composer dump-autoload --optimize --no-dev \
     && chmod +x /app/docker/entrypoint.sh /app/bin/*.php \
     && sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' /usr/local/etc/php-fpm.d/www.conf \
     && sed -i 's/^pm.max_children = .*/pm.max_children = 16/; s/^pm.start_servers = .*/pm.start_servers = 4/; s/^pm.min_spare_servers = .*/pm.min_spare_servers = 2/; s/^pm.max_spare_servers = .*/pm.max_spare_servers = 8/' /usr/local/etc/php-fpm.d/www.conf \
-    && printf '\n[www]\nclear_env = no\n' >> /usr/local/etc/php-fpm.d/zz-docker.conf \
+    && printf '\n[www]\nclear_env = no\ncatch_workers_output = yes\nphp_admin_flag[log_errors] = on\nphp_admin_value[error_log] = /proc/self/fd/2\n' >> /usr/local/etc/php-fpm.d/zz-docker.conf \
     && chown -R www-data:www-data /media/cache /media/meta
 
 ENV SOURCE_DIR=/media/bron \

@@ -269,6 +269,24 @@ final class Http
             return;
         }
 
+        if ($path === '/app/client-log' && $method === 'POST') {
+            $body = $this->body();
+            $event = strtolower((string) ($body['event'] ?? 'event'));
+            $event = preg_replace('/[^a-z0-9_-]/', '', $event) ?: 'event';
+            unset($body['event']);
+            $json = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($json)) {
+                $json = '{}';
+            }
+            if (strlen($json) > 1500) {
+                $json = substr($json, 0, 1500) . '…';
+            }
+            $slug = (string) ($profile['slug'] ?? '');
+            error_log('[drumeo] ' . $event . ' profile=' . $slug . ' ' . $json);
+            $this->json(200, ['ok' => true]);
+            return;
+        }
+
         if ($path === '/app/note' && $method === 'POST') {
             $body = $this->body();
             $lessonId = (int) ($body['lessonId'] ?? 0);
