@@ -8847,6 +8847,26 @@
       },
       "instructor": "Jack Young",
       "thumb": "thumbs/bbflXWDC-tg.jpg"
+    },
+    {
+      "id": 900002,
+      "vimeoId": "AJQuqSujhB0",
+      "seconds": 183,
+      "role": "loose",
+      "title": {
+        "en": "Highway to Hell — AC/DC Drum Cover",
+        "nl": "Highway to Hell op de drums"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Highway to Hell.",
+        "nl": "Speel Highway to Hell mee op de drums."
+      },
+      "instructor": "알려드럼",
+      "thumb": "thumbs/AJQuqSujhB0.jpg"
     }
   ]
 }
