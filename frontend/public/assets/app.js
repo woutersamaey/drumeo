@@ -186,7 +186,9 @@
     if (p === "/lessons") return { name: "lessons", params: {} };
     if (p === "/history") return { name: "history", params: {} };
     if (p === "/stats") return { name: "stats", params: {} };
+    if (p === "/admin") return { name: "admin", params: {} };
     if (p === "/practice") return { name: "practice", params: {} };
+    if (p === "/loose") return { name: "loose", params: {} };
     let m = p.match(/^\/path\/([a-zA-Z0-9_-]+)$/);
     if (m) return { name: "path", params: { slug: m[1] } };
     m = p.match(/^\/watch\/(\d+)$/);
@@ -419,6 +421,32 @@
     return (b?.order?.length || methodSequence().length || 0);
   }
 
+  function isLoose(lesson) {
+    return lesson?.role === "loose";
+  }
+
+  function shuffleIds(ids) {
+    const out = ids.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const swap = out[i];
+      out[i] = out[j];
+      out[j] = swap;
+    }
+    return out;
+  }
+
+  function looseLessons() {
+    const list = state.bootstrap?.loose || [];
+    const key = list.map((l) => String(l.id)).join(",");
+    if (state.looseKey !== key) {
+      state.looseKey = key;
+      state.looseOrder = shuffleIds(list.map((l) => l.id));
+    }
+    const by = new Map(list.map((l) => [String(l.id), l]));
+    return (state.looseOrder || []).map((id) => by.get(String(id))).filter(Boolean);
+  }
+
   function lessonById(id) {
     const b = state.bootstrap;
     if (!b) return null;
@@ -431,6 +459,7 @@
       }
     }
     for (const l of b.order || []) if (sameId(l.id, id)) return l;
+    for (const l of b.loose || []) if (sameId(l.id, id)) return l;
     return state.lessonCache[id] || state.lessonCache[String(id)] || null;
   }
 
@@ -827,11 +856,13 @@
             ${navLink("/home", "Home", { cls: "hidden lg:flex items-center" })}
             ${navLink("/lessons", "Lessen", { cls: "hidden lg:flex items-center" })}
             ${methodNav()}
+            ${navLink("/loose", "Losse lessen", { cls: "hidden lg:flex items-center" })}
             ${navLink("/practice", "Opnieuw oefenen", { cls: "hidden lg:flex items-center" })}
             ${navLink("/history", "Geschiedenis", { cls: "hidden lg:flex items-center" })}
             ${navLink("/stats", "Statistieken", { cls: "hidden lg:flex items-center" })}
           </nav>
           <div class="ml-auto flex items-center gap-2">
+            ${state.bootstrap?.admin ? navLink("/admin", "Beheer", { cls: "hidden lg:flex items-center" }) : ""}
             ${profile ? langToggle() : ""}
             ${profile ? headerPlayers() : ""}
           </div>
@@ -839,12 +870,14 @@
       </header>` : "";
     const bottom = nav ? `
       <nav class="nav-dock lg:hidden fixed bottom-0 inset-x-0 bg-panel/95 border-t border-line z-30">
-        <div class="nav-mobile">
+        <div class="nav-mobile${state.bootstrap?.admin ? " has-admin" : " has-loose"}">
           ${navLink("/home", "Home", { mobile: true })}
           ${navLink("/lessons", "Lessen", { mobile: true })}
+          ${navLink("/loose", "Los", { mobile: true })}
           ${navLink("/practice", "Opnieuw", { mobile: true })}
           ${navLink("/history", "Historie", { mobile: true })}
           ${navLink("/stats", "Stats", { mobile: true })}
+          ${state.bootstrap?.admin ? navLink("/admin", "Beheer", { mobile: true }) : ""}
           <button data-action="switch-profile" class="py-3 tap text-muted">Profiel</button>
         </div>
       </nav>` : "";
@@ -999,6 +1032,460 @@
     if (days === 1) return "Laatst geoefend gisteren";
     if (days < 7) return `Laatst geoefend ${days} dagen geleden`;
     return `Laatst geoefend ${t.toLocaleDateString("nl-BE", { day: "numeric", month: "short" })}`;
+  }
+
+  function fmtBytes(n) {
+    const b = Math.max(0, Number(n) || 0);
+    if (b < 1024) return `${Math.round(b)} B`;
+    const units = ["KB", "MB", "GB", "TB"];
+    let v = b / 1024;
+    let i = 0;
+    while (v >= 1024 && i < units.length - 1) {
+      v /= 1024;
+      i++;
+    }
+    const digits = v >= 10 || i === 0 ? 0 : 1;
+    return `${v.toFixed(digits)} ${units[i]}`;
+  }
+
+  function adminAudio(index) {
+    const n = Number(index);
+    if (n === 0) return "EN";
+    if (n === 1) return "NL";
+    return String(index ?? "");
+  }
+
+  function adminRecipe(recipe) {
+    if (recipe === "avc_1080") return "1080p";
+    if (recipe === "remux") return "Remux";
+    if (recipe === "audio_aac") return "Audio";
+    return recipe || "";
+  }
+
+  function adminReason(reason) {
+    if (reason === "age") return "lang niet gespeeld";
+    if (reason === "lru") return "cache vol";
+    if (reason === "failed") return "mislukt";
+    return reason || "";
+  }
+
+  function adminState(name) {
+    const map = {
+      ready: "klaar",
+      running: "bezig",
+      starting: "start",
+      failed: "mislukt",
+      queued: "wachtrij",
+      onbekend: "onbekend",
+    };
+    return map[name] || name || "";
+  }
+
+  function adminPill(kind, text) {
+    const cls = kind === "bad" ? " is-bad" : kind === "warn" ? " is-warn" : kind === "ok" ? " is-ok" : "";
+    return `<span class="admin-pill${cls}">${esc(text)}</span>`;
+  }
+
+  function adminWhen(iso) {
+    const t = Date.parse(iso || "");
+    if (!Number.isFinite(t)) return "";
+    return new Date(t).toLocaleString("nl-BE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function adminHours(sec) {
+    const n = Number(sec) || 0;
+    if (n <= 0) return "0";
+    if (n < 3600) return `${Math.max(1, Math.round(n / 60))} min`;
+    const h = Math.round(n / 360) / 10;
+    return Number.isInteger(h) ? `${h} uur` : `${h.toFixed(1)} uur`;
+  }
+
+  function adminLessonLabel(item) {
+    const title = isNl() ? (item?.titleNl || item?.title) : (item?.title || item?.titleNl);
+    const n = item?.n ? `${item.n}. ` : "";
+    if (title) return n + title;
+    return String(item?.vimeoId || item?.id || item?.videoId || "onbekend");
+  }
+
+  function adminPlayed(item) {
+    if (item?.lastPlayedAt) {
+      const t = Date.parse(item.lastPlayedAt);
+      if (Number.isFinite(t)) return relativePlayed(Math.floor(t / 1000)) || "zojuist";
+    }
+    const days = Number(item?.ageDays);
+    if (!Number.isFinite(days) || days <= 0) return "niet afgespeeld";
+    return days === 1 ? "niet afgespeeld · 1 dag oud" : `niet afgespeeld · ${days} dagen oud`;
+  }
+
+  function adminDisk(disk) {
+    if (!disk || disk.exists === false) return "niet gemount";
+    if (disk.freeBytes == null) return "onbekend";
+    if (!disk.totalBytes) return `${fmtBytes(disk.freeBytes)} vrij`;
+    return `${fmtBytes(disk.freeBytes)} vrij van ${fmtBytes(disk.totalBytes)}`;
+  }
+
+  function adminCard(k, v, s = "") {
+    return `<div class="stat-card"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`;
+  }
+
+  function adminSection(title, intro, inner) {
+    return `<section class="mb-10">
+      <h2 class="text-2xl font-bold">${esc(title)}</h2>
+      ${intro ? `<p class="text-muted text-sm mt-1 mb-4">${esc(intro)}</p>` : `<div class="mb-4"></div>`}
+      ${inner}
+    </section>`;
+  }
+
+  function adminBox(inner) {
+    return `<div class="rounded-2xl bg-card border border-line p-4 sm:p-5">${inner}</div>`;
+  }
+
+  function adminLessonHtml(item) {
+    const label = esc(adminLessonLabel(item));
+    const id = Number(item?.lessonId);
+    if (!id || !lessonById(id)) return label;
+    return `<a href="/watch/${id}" data-link class="hover:text-accent">${label}</a>`;
+  }
+
+  function adminVariantRow(item) {
+    const reason = item.reason ? adminPill(item.reason === "failed" ? "bad" : "warn", adminReason(item.reason)) : "";
+    const gone = item.hasSource === false ? adminPill("bad", "geen bron") : "";
+    const state = item.state && item.state !== "ready" ? adminPill(item.state === "failed" ? "bad" : "warn", adminState(item.state)) : "";
+    return `<div class="flex items-start justify-between gap-3 py-2.5 border-b border-line">
+      <div class="min-w-0">
+        <div class="font-semibold leading-snug">${adminLessonHtml(item)}</div>
+        <div class="text-muted text-xs mt-1">${esc(adminRecipe(item.recipe))} · ${esc(adminAudio(item.audioIndex))} · ${esc(adminPlayed(item))}</div>
+      </div>
+      <div class="shrink-0 text-right">
+        <div class="font-semibold">${esc(fmtBytes(item.bytes))}</div>
+        <div class="mt-1 flex flex-wrap gap-1 justify-end">${reason}${state}${gone}</div>
+      </div>
+    </div>`;
+  }
+
+  function adminJobLine(job) {
+    const exit = job.exitCode == null
+      ? adminState(job.state)
+      : (Number(job.exitCode) === 0 ? "gelukt" : `exit ${job.exitCode}`);
+    const intent = job.intent === "prefetch" ? "voorladen" : job.intent === "play" ? "afspelen" : (job.intent || "");
+    const when = job.startedAt || job.queuedAt;
+    return `<div class="py-2.5 border-b border-line">
+      <div class="flex justify-between gap-3">
+        <div class="font-semibold min-w-0">${adminLessonHtml(job)}</div>
+        <div class="text-sm shrink-0">${esc(exit)}</div>
+      </div>
+      <div class="text-muted text-xs mt-1">${esc([adminRecipe(job.recipe), adminAudio(job.audioIndex), intent].filter(Boolean).join(" · "))}${when ? ` · ${esc(adminWhen(when))}` : ""}</div>
+    </div>`;
+  }
+
+  function adminStorage(v) {
+    const src = v.source || {};
+    const cache = v.cache || {};
+    const limits = v.limits || {};
+    const cap = Number(limits.maxCacheBytes) || 0;
+    const used = Number(cache.bytes) || 0;
+    const pct = cap ? Math.min(100, Math.round((used / cap) * 100)) : 0;
+    const pctReal = cap ? Math.round((used / cap) * 100) : 0;
+    const share = used ? Math.round(((Number(cache.scaledBytes) || 0) / used) * 100) : 0;
+    const audio = cache.byAudio || {};
+    const audioLine = Object.keys(audio).sort().map((k) => `${adminAudio(k)} ${fmtBytes(audio[k].bytes)}`).join(" · ");
+    const recipes = [
+      ["avc_1080", "Geschaald 1080p"],
+      ["remux", "Remux"],
+      ["audio_aac", "Alleen audio"],
+    ];
+    Object.keys(cache.byRecipe || {}).forEach((key) => {
+      if (!recipes.some((row) => row[0] === key)) recipes.push([key, key]);
+    });
+    const warns = [];
+    if (src.probeErrors) warns.push(`${src.probeErrors} probe-fouten`);
+    if (src.unreadable) warns.push(`${src.unreadable} onleesbaar`);
+    if (src.skippedNames) warns.push(`${src.skippedNames} MKV zonder id`);
+    if (cache.orphans?.count) warns.push(`${cache.orphans.count} cache zonder bron (${fmtBytes(cache.orphans.bytes)})`);
+    const states = Object.entries(cache.byState || {});
+    const disk = v.disk?.cache;
+    return `
+      <div class="stat-cards mb-4">
+        ${adminCard("Totale videobron", fmtBytes(src.bytes), esc(`${Number(src.count) || 0} MKV’s`))}
+        ${adminCard("Geschaalde video’s", fmtBytes(cache.scaledBytes), esc(`${Number(cache.scaledCount) || 0} varianten · ${share}% van de cache`))}
+        ${adminCard("HLS-cache", fmtBytes(used), esc(cap ? `limiet ${fmtBytes(cap)} · ${Number(cache.variants) || 0} varianten` : `${Number(cache.variants) || 0} varianten`))}
+        ${adminCard("Vrij op cacheschijf", disk?.freeBytes == null ? "—" : fmtBytes(disk.freeBytes), esc(disk?.totalBytes ? `van ${fmtBytes(disk.totalBytes)}` : ""))}
+      </div>
+      ${adminBox(`
+        <dl class="admin-kv">
+          <dt>Bron + cache</dt><dd>${esc(fmtBytes((Number(src.bytes) || 0) + used))}</dd>
+          <dt>Metadata</dt><dd>${esc(fmtBytes(v.meta?.bytes || 0))} · ${Number(v.meta?.files) || 0} bestanden</dd>
+          ${src.unprobed ? `<dt>Nog niet geprobed</dt><dd>${Number(src.unprobed)} bronnen</dd>` : ""}
+          <dt>Bronschijf</dt><dd>${esc(adminDisk(v.disk?.source))}</dd>
+          <dt>Cacheschijf</dt><dd>${esc(adminDisk(v.disk?.cache))}</dd>
+          <dt>Audio in cache</dt><dd>${esc(audioLine || "geen")}</dd>
+          <dt>Encoder</dt><dd>${esc(v.encoder?.encoder || "onbekend")}${v.encoder?.requested ? ` <span class="text-muted">(gevraagd ${esc(v.encoder.requested)})</span>` : ""}</dd>
+          <dt>Limieten</dt><dd>opruimen na ${Number(limits.maxAgeDays) || 90} dagen · cache ${esc(fmtBytes(cap))} · max ${Number(limits.maxConcurrentJobs) || 0} jobs · max ${Number(limits.maxConcurrentVideoTranscodes) || 0} video-encode · timeout ${esc(adminHours(limits.jobTimeoutSeconds))}</dd>
+        </dl>
+        <div class="mt-4">
+          <div class="flex justify-between text-sm mb-1"><span class="text-muted">Cache t.o.v. limiet</span><span class="${pctReal > 100 ? "text-warn" : ""}">${pctReal}%</span></div>
+          <div class="progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Cachegebruik"><span style="width:${pct}%"></span></div>
+        </div>
+        <div class="overflow-x-auto mt-4">
+          <table class="admin-table">
+            <thead><tr><th>Type</th><th>Aantal</th><th>Grootte</th></tr></thead>
+            <tbody>
+              ${recipes.map(([key, label]) => {
+                const row = cache.byRecipe?.[key] || { count: 0, bytes: 0 };
+                return `<tr><td>${esc(label)}</td><td>${Number(row.count) || 0}</td><td>${esc(fmtBytes(row.bytes))}</td></tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+        ${states.length ? `<div class="flex flex-wrap gap-2 mt-3">${states.map(([name, row]) => adminPill(name === "failed" ? "bad" : name === "ready" ? "ok" : "warn", `${adminState(name)} ${row.count} · ${fmtBytes(row.bytes)}`)).join("")}</div>` : ""}
+      `)}
+      ${warns.length ? `<div class="admin-note admin-warn mt-4">${esc(warns.join(" · "))}</div>` : ""}
+    `;
+  }
+
+  function adminCleanupBlock(v, ui) {
+    const c = v.cleanup || {};
+    const n = Number(c.count) || 0;
+    const days = Number(c.maxAgeDays) || Number(v.limits?.maxAgeDays) || 90;
+    const items = c.items || [];
+    const hidden = Math.max(0, n - items.length);
+    const busy = !!ui.busy;
+    const reasons = Object.entries(c.byReason || {}).map(([key, row]) => `${adminReason(key)} ${row.count}`).join(" · ");
+    let actions;
+    if (n === 0) {
+      actions = `<button type="button" class="admin-ghost tap rounded-xl px-4 py-3 font-semibold" disabled>Niets om op te ruimen</button>`;
+    } else if (ui.confirm) {
+      actions = `<div class="flex flex-wrap gap-2">
+        <button type="button" data-action="admin-cleanup" class="admin-danger tap rounded-xl px-4 py-3 font-bold" ${busy ? "disabled" : ""}>Verwijder ${n} ${n === 1 ? "variant" : "varianten"} (${esc(fmtBytes(c.bytes))})</button>
+        <button type="button" data-action="admin-cancel" class="admin-ghost tap rounded-xl px-4 py-3 font-semibold" ${busy ? "disabled" : ""}>Annuleren</button>
+      </div>`;
+    } else {
+      actions = `<button type="button" data-action="admin-confirm" class="admin-danger tap rounded-xl px-4 py-3 font-bold" ${busy ? "disabled" : ""}>${busy ? "Bezig met opruimen…" : "Ruim lang niet gespeelde cache op"}</button>`;
+    }
+    return adminSection(
+      "Opruimen",
+      `Varianten die langer dan ${days} dagen niet zijn afgespeeld, mislukte encodes, en de oudste als de cache boven de limiet zit. Bron-MKV’s blijven staan. Een les die je daarna opent, wordt opnieuw geschaald. Encodes die nu lopen slaat dit over.`,
+      adminBox(`
+        <div class="flex flex-wrap items-end justify-between gap-3 mb-3">
+          <div>
+            <div class="text-2xl font-black">${n === 0 ? "Cache is bij" : esc(fmtBytes(c.bytes))}</div>
+            <div class="text-muted text-sm mt-1">${n === 0 ? "Geen varianten om te verwijderen." : `${n} ${n === 1 ? "variant" : "varianten"}${reasons ? ` · ${esc(reasons)}` : ""}`}</div>
+          </div>
+        </div>
+        ${actions}
+        ${items.length ? `<div class="mt-4">${items.map(adminVariantRow).join("")}</div>` : ""}
+        ${hidden ? `<p class="text-muted text-sm mt-3">En nog ${hidden} varianten.</p>` : ""}
+      `),
+    );
+  }
+
+  function adminJobs(v) {
+    const queue = v.queue || [];
+    const recent = v.jobs?.recent || [];
+    const largest = v.cache?.largest || [];
+    return adminSection("Encodes", "Wachtrij van de worker en de zwaarste cache-varianten.", `
+      ${adminBox(queue.length ? queue.map(adminJobLine).join("") : `<p class="text-muted">Geen encodes in de wachtrij.</p>`)}
+      ${recent.length ? `<h3 class="font-bold mt-6 mb-2">Recent afgerond</h3>${adminBox(recent.map(adminJobLine).join(""))}` : ""}
+      ${largest.length ? `<h3 class="font-bold mt-6 mb-2">Grootste cache</h3>${adminBox(largest.map(adminVariantRow).join(""))}` : ""}
+    `);
+  }
+
+  function adminCatalog(cat) {
+    if (!cat) return "";
+    const missing = cat.missing || [];
+    const extra = cat.extra || [];
+    const moreMissing = Math.max(0, (Number(cat.missingCount) || 0) - missing.length);
+    const moreExtra = Math.max(0, (Number(cat.extraCount) || 0) - extra.length);
+    return adminSection("Catalogus en bron", "Lessen in de catalogus naast MKV’s op de NAS.", adminBox(`
+      <dl class="admin-kv">
+        <dt>Lessen</dt><dd>${Number(cat.lessonCount) || 0}</dd>
+        <dt>Met bronbestand</dt><dd>${Number(cat.withSource) || 0} van ${Number(cat.sourceCount) || 0} bronnen</dd>
+        <dt>Zonder video</dt><dd>${Number(cat.missingCount) || 0}</dd>
+        <dt>Bron zonder les</dt><dd>${Number(cat.extraCount) || 0}</dd>
+      </dl>
+      ${missing.length ? `<div class="mt-4">${missing.map((item) => `<div class="py-2 border-b border-line text-sm">${adminLessonHtml(item)}</div>`).join("")}${moreMissing ? `<p class="text-muted text-sm mt-2">En nog ${moreMissing}.</p>` : ""}</div>` : ""}
+      ${extra.length ? `<p class="text-muted text-sm mt-4">Bron zonder catalogusles: ${esc(extra.join(", "))}${moreExtra ? ` en nog ${moreExtra}` : ""}</p>` : ""}
+    `));
+  }
+
+  function adminServices(d) {
+    const s = d.services || {};
+    const rows = [
+      [s.mysql, "MySQL"],
+      [s.redis, "Redis"],
+      [s.video, "Video-API"],
+      [s.ffmpeg, "FFmpeg"],
+    ];
+    const db = d.database || {};
+    const images = d.images || {};
+    const runtime = d.runtime || {};
+    return `
+      ${adminSection("Diensten", "", `
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+          ${rows.map(([ok, label]) => {
+            const cls = ok === true ? "" : ok == null ? " is-warn" : " is-bad";
+            const word = ok === true ? "ok" : ok == null ? "onbekend" : "uit";
+            return `<div class="flex items-center gap-2 rounded-xl bg-card border border-line px-3 py-2">
+              <span class="admin-dot${cls}" aria-hidden="true"></span>
+              <span class="font-semibold">${esc(label)}</span>
+              <span class="text-muted text-sm ml-auto">${word}</span>
+            </div>`;
+          }).join("")}
+        </div>
+        ${adminBox(`<dl class="admin-kv">
+          <dt>Encoder</dt><dd>${esc(s.encoder || "onbekend")}${s.encoderRequested ? ` <span class="text-muted">(gevraagd ${esc(s.encoderRequested)})</span>` : ""}</dd>
+          <dt>PHP</dt><dd>${esc(runtime.php || "")}${runtime.memoryLimit ? ` · geheugen ${esc(runtime.memoryLimit)}` : ""}</dd>
+          <dt>MySQL</dt><dd>${esc(db.version || (db.error ? "fout" : ""))}</dd>
+        </dl>`)}
+      `)}
+      ${adminSection("Afbeeldingen", "Geschaalde thumbnails, los van de videocache.", adminBox(`<dl class="admin-kv">
+        <dt>Thumbnail-cache</dt><dd>${esc(fmtBytes(images.cache?.bytes))} · ${Number(images.cache?.files) || 0} bestanden${images.cache?.exists === false ? " · map ontbreekt" : ""}</dd>
+        <dt>Bron-thumbnails</dt><dd>${esc(fmtBytes(images.thumbs?.bytes))} · ${Number(images.thumbs?.files) || 0} bestanden</dd>
+      </dl>`))}
+      ${adminSection("Database", "Tabellen in MySQL. Rijtelling is een schatting.", adminBox(db.error ? `<p class="text-muted">${esc(db.error)}</p>` : `
+        <p class="text-sm text-muted mb-2">Totaal ${esc(fmtBytes(db.bytes))}</p>
+        <div class="overflow-x-auto"><table class="admin-table">
+          <thead><tr><th>Tabel</th><th>Rijen</th><th>Grootte</th></tr></thead>
+          <tbody>${(db.tables || []).map((t) => `<tr><td>${esc(t.name)}</td><td>${Number(t.rows) || 0}</td><td>${esc(fmtBytes(t.bytes))}</td></tr>`).join("")}</tbody>
+        </table></div>
+      `))}
+      ${adminSection("Profielen", "Laatste activiteit van elke drummer.", adminBox((d.profiles || []).map((p) => `
+        <div class="flex items-center justify-between gap-3 py-2.5 border-b border-line">
+          <div class="min-w-0">
+            <div class="font-semibold">${esc(p.name)}</div>
+            <div class="text-muted text-xs mt-0.5">${p.hideFuture ? "toekomst verborgen" : "alles zichtbaar"} · ${Number(p.watchedCount) || 0} / ${Number(p.lessonCount) || 0} gezien</div>
+          </div>
+          <div class="text-right text-sm shrink-0">
+            <div>${esc(fmtPractice(p.weekSec))} deze week</div>
+            <div class="text-muted text-xs mt-0.5">${esc(p.lastPlayed ? (relativePlayed(p.lastPlayed) || "zojuist") : "nog niet geoefend")}</div>
+          </div>
+        </div>`).join("") || `<p class="text-muted">Geen profielen.</p>`))}
+    `;
+  }
+
+  function adminDashboardHtml(d, ui) {
+    const when = adminWhen(d.generatedAt);
+    const noticeCls = ui.noticeWarn ? "admin-note admin-warn" : "admin-note";
+    return `<div class="max-w-7xl mx-auto px-4 pt-6">
+      <div class="flex flex-wrap items-end justify-between gap-3 mb-6">
+        <div>
+          <h1 class="text-3xl sm:text-4xl font-black">Beheer</h1>
+          <p class="text-muted mt-2">Technisch overzicht van video, cache en diensten.${when ? ` Bijgewerkt ${esc(when)}.` : ""}</p>
+        </div>
+        <button type="button" data-action="admin-refresh" class="admin-ghost tap rounded-xl px-4 py-3 font-semibold" ${ui.busy ? "disabled" : ""}>${ui.busy ? "Bezig…" : "Ververs"}</button>
+      </div>
+      ${ui.notice ? `<div class="${noticeCls} mb-6">${esc(ui.notice)}</div>` : ""}
+      ${d.videoError ? `<div class="admin-note admin-warn mb-6">Video-API: ${esc(d.videoError)}</div>` : ""}
+      ${d.video ? adminStorage(d.video) + adminCleanupBlock(d.video, ui) + adminJobs(d.video) + adminCatalog(d.catalog) : ""}
+      ${adminServices(d)}
+    </div>`;
+  }
+
+  function paintAdmin() {
+    const ui = state.admin || {};
+    const y = window.scrollY;
+    const body = ui.data
+      ? adminDashboardHtml(ui.data, ui)
+      : `<div class="max-w-3xl mx-auto px-4 pt-8">
+          <h1 class="text-3xl font-black">Beheer</h1>
+          <div class="admin-note admin-warn mt-6">${esc(ui.error || "Kon het overzicht niet laden.")}</div>
+          <button type="button" data-action="admin-refresh" class="admin-ghost tap rounded-xl px-4 py-3 mt-4 font-semibold">Opnieuw</button>
+        </div>`;
+    $("#app").innerHTML = layout(body);
+    if (y) window.scrollTo(0, y);
+  }
+
+  async function renderAdmin() {
+    if (!state.bootstrap?.admin) {
+      $("#app").innerHTML = layout(`
+        <div class="max-w-3xl mx-auto px-4 pt-10">
+          <h1 class="text-3xl font-black">Beheer</h1>
+          <p class="text-muted mt-3">Dit overzicht is alleen voor Wouter.</p>
+        </div>`);
+      return;
+    }
+    const prev = state.admin;
+    if (!prev?.data || prev.reload) {
+      const notice = prev?.notice || null;
+      const noticeWarn = !!prev?.noticeWarn;
+      if (!prev?.data) {
+        $("#app").innerHTML = layout(`<div class="grid place-items-center min-h-[50vh] text-muted">Technisch overzicht laden…</div>`);
+      }
+      try {
+        const data = await api("/app/admin/overview" + (prev?.reload ? "?fresh=1" : ""));
+        state.admin = { data, error: null, confirm: false, busy: false, notice, noticeWarn, reload: false };
+      } catch (e) {
+        state.admin = {
+          data: prev?.data || null,
+          error: prev?.data ? null : (e.message || "Kon het overzicht niet laden"),
+          notice: prev?.data ? (e.message || "Verversen mislukt") : notice,
+          noticeWarn: !!prev?.data || noticeWarn,
+          confirm: false,
+          busy: false,
+          reload: false,
+        };
+      }
+    }
+    paintAdmin();
+  }
+
+  async function onAdminAction(action) {
+    if (!state.bootstrap?.admin) return;
+    if (!state.admin) state.admin = {};
+    if (action === "admin-confirm") {
+      state.admin.confirm = true;
+      paintAdmin();
+      bind();
+      return;
+    }
+    if (action === "admin-cancel") {
+      state.admin.confirm = false;
+      paintAdmin();
+      bind();
+      return;
+    }
+    if (action === "admin-refresh") {
+      state.admin.notice = null;
+      state.admin.noticeWarn = false;
+      state.admin.confirm = false;
+      state.admin.busy = true;
+      if (state.admin.data) {
+        paintAdmin();
+        bind();
+      }
+      state.admin.reload = true;
+      await renderAdmin();
+      bind();
+      return;
+    }
+    if (action === "admin-cleanup") {
+      if (state.admin.busy) return;
+      state.admin.busy = true;
+      state.admin.confirm = false;
+      paintAdmin();
+      bind();
+      try {
+        const res = await api("/app/admin/cleanup", { method: "POST", body: JSON.stringify({ confirm: true }) });
+        const n = Number(res.count) || 0;
+        state.admin = {
+          data: state.admin?.data || null,
+          notice: `Verwijderd: ${n} ${n === 1 ? "variant" : "varianten"} (${fmtBytes(res.bytes || 0)}). Bronbestanden blijven staan.`,
+          noticeWarn: false,
+          reload: true,
+          confirm: false,
+          busy: false,
+          error: null,
+        };
+        await renderAdmin();
+        bind();
+      } catch (e) {
+        state.admin.busy = false;
+        state.admin.notice = e.message || "Opruimen mislukt";
+        state.admin.noticeWarn = true;
+        paintAdmin();
+        bind();
+      }
+    }
   }
 
   function renderProfiles() {
@@ -1276,6 +1763,17 @@
         ${weekDayPanelHtml(selectedDay)}
       </section>` : "";
 
+    const loose = looseLessons();
+    const looseRow = loose.length ? `
+      <section class="mb-10">
+        <div class="flex items-end justify-between mb-3">
+          <h3 class="text-2xl font-bold">Losse lessen</h3>
+          <a href="/loose" data-link class="text-muted text-sm tap">Alles</a>
+        </div>
+        <p class="text-muted text-sm mb-4">Oefeningen zonder vaste volgorde. Aan het einde geef je een score, en de volgende video start niet vanzelf.</p>
+        ${hscroll(loose.map((l) => card(l, { wide: true })).join(""))}
+      </section>` : "";
+
     const shows = `
       <section class="mb-10">
         <h3 class="text-2xl font-bold mb-4">The Method</h3>
@@ -1307,6 +1805,7 @@
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
         ${hero}
+        ${looseRow}
         ${practiceRow}
         ${weekRow}
         ${shows}
@@ -1640,6 +2139,18 @@
     return practiceGroups().flatMap((g) => g.lessons);
   }
 
+  function renderLoose() {
+    const lessons = looseLessons();
+    $("#app").innerHTML = layout(`
+      <div class="max-w-7xl mx-auto px-4 pt-6">
+        <h1 class="text-3xl sm:text-4xl font-black">Losse lessen</h1>
+        <p class="text-muted mt-2 mb-8">Losse oefeningen, door elkaar. Aan het einde geef je een score. De volgende video start niet vanzelf, en opnieuw spelen kan meteen.</p>
+        ${lessons.length === 0
+          ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog geen losse lessen.</div>`
+          : `<div class="lesson-grid">${lessons.map((l) => card(l)).join("")}</div>`}
+      </div>`);
+  }
+
   function renderPractice() {
     const groups = practiceGroups();
     $("#app").innerHTML = layout(`
@@ -1658,6 +2169,36 @@
             </div>
           </section>`).join("")}
       </div>`);
+  }
+
+  function looseAside(current) {
+    const items = looseLessons();
+    return `
+      <div class="p-4 border-b border-line">
+        <div class="text-muted text-xs uppercase tracking-wide">Oefeningen</div>
+        <div class="font-bold mt-0.5">Losse lessen</div>
+        <p class="text-sm text-muted mt-2">Geen vaste volgorde. Opnieuw spelen kan altijd.</p>
+      </div>
+      ${items.map((l) => {
+        const on = sameId(l.id, current.id);
+        const w = progressOf(l.id)?.watched;
+        const body = `
+          <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
+            ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
+            ${thumbBadges(l.id, { watched: w, compact: true })}
+            ${on ? `<span class="absolute inset-0 rounded-lg ring-2 ring-accent"></span>` : ""}
+          </div>
+          <div class="min-w-0">
+            <div class="text-[11px] uppercase tracking-wide ${on ? "text-accent" : "text-muted"}">${on ? "Nu aan het kijken" : "Oefening"}</div>
+            <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}"><span ${locAttr(l.title, l.titleNl)}</span></div>
+            <div class="text-muted text-xs mt-1">${esc(l.length || "")}</div>
+          </div>`;
+        const cls = `flex gap-3 p-3 border-b border-line ${on ? "bg-ink" : "tap"}`;
+        return on
+          ? `<div class="${cls}" aria-current="true">${body}</div>`
+          : `<a href="/watch/${l.id}" data-link class="${cls}">${body}</a>`;
+      }).join("")}
+      <a href="/loose" data-link class="block p-4 text-sm text-accent tap">Alle losse lessen →</a>`;
   }
 
   async function renderWatch() {
@@ -1680,6 +2221,8 @@
     const audioIndex = preferredAudioIndex(lesson.vimeoId, preferredAudio);
     const lang = langMeta(audioIndex);
     const englishOnly = preferredAudio === 1 && audioIndex === 0;
+    const loose = isLoose(lesson);
+    const about = isNl() ? (lesson.descriptionNl || lesson.description) : (lesson.description || lesson.descriptionNl);
 
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-3 sm:px-4 pt-3">
@@ -1696,16 +2239,22 @@
               </div>
             </div>
             <div class="flex items-center justify-between gap-3 mt-3">
+              ${loose ? `
+                <button type="button" data-action="replay" class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm">Opnieuw</button>
+                <a href="/loose" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line">Alle losse lessen</a>
+              ` : `
               ${prevLesson
                 ? `<a href="/watch/${prevLesson.id}" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line inline-flex items-center gap-2">${skipPrevIcon()} Vorige</a>`
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">${skipPrevIcon()} Vorige</span>`}
               ${nextLesson
                 ? `<a href="/watch/${nextLesson.id}" data-link class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm inline-flex items-center gap-2">Volgende ${skipNextIcon()}</a>`
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">Volgende ${skipNextIcon()}</span>`}
+              `}
             </div>
           </section>
           <aside class="rounded-2xl bg-card border border-line overflow-hidden">
-            <div class="p-4 border-b border-line">
+            ${loose ? looseAside(lesson) : ""}
+            ${loose ? "" : `<div class="p-4 border-b border-line">
               <div class="text-muted text-xs uppercase tracking-wide" ${locAttr(chapter.pathTitle, chapter.pathTitleNl)}</div>
               <div class="font-bold mt-0.5" ${locAttr(chapter.title, chapter.titleNl)}</div>
               <div class="text-sm mt-2">Les ${chapter.globalN} van ${chapter.globalTotal}</div>
@@ -1732,7 +2281,7 @@
                 ? `<div class="${cls}" aria-current="true">${body}</div>`
                 : `<a href="/watch/${l.id}" data-link class="${cls}">${body}</a>`;
             }).join("")}
-            ${chapter.pathSlug ? `<a href="/path/${chapter.pathSlug}${chapter.packAnchor ? "#" + chapter.packAnchor : ""}" data-link class="block p-4 text-sm text-accent tap">Alle lessen in dit hoofdstuk →</a>` : ""}
+            ${chapter.pathSlug ? `<a href="/path/${chapter.pathSlug}${chapter.packAnchor ? "#" + chapter.packAnchor : ""}" data-link class="block p-4 text-sm text-accent tap">Alle lessen in dit hoofdstuk →</a>` : ""}`}
           </aside>
           <section class="pt-1">
             <div class="flex items-start gap-2">
@@ -1753,7 +2302,7 @@
               </div>
               <p id="note-error" class="hidden text-sm mt-2" style="color:#fb7185"></p>
             </div>
-            ${lesson.description ? `<p class="mt-3">${esc(lesson.description)}</p>` : ""}
+            ${about ? `<p class="mt-3">${esc(about)}</p>` : ""}
             <p class="mt-4"><a href="/app/notation.pdf" class="text-sm text-accent tap inline-flex" target="_blank" rel="noopener">Notatiesleutel (PDF)</a></p>
           </section>
         </div>
@@ -1763,8 +2312,13 @@
             <p id="next-title" class="font-bold text-lg"></p>
             <p id="next-wait" class="hidden text-muted text-sm mt-1"></p>
             <div class="flex gap-3 justify-center mt-5">
-              <button data-action="replay" class="tap rounded-full bg-card px-5 py-3 border border-line">Opnieuw</button>
-              <button data-action="play-next" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Volgende</button>
+              ${loose ? `
+                <button data-action="replay" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Opnieuw</button>
+                <button data-action="loose-done" class="tap rounded-full bg-card px-5 py-3 border border-line">Klaar</button>
+              ` : `
+                <button data-action="replay" class="tap rounded-full bg-card px-5 py-3 border border-line">Opnieuw</button>
+                <button data-action="play-next" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Volgende</button>
+              `}
             </div>
           </div>
         </div>
@@ -2123,6 +2677,7 @@
   }
 
   function nextIdOf(lesson) {
+    if (isLoose(lesson)) return null;
     const order = methodSequence();
     const i = order.findIndex((l) => sameId(l.id, lesson?.id));
     return i >= 0 && order[i + 1] ? order[i + 1].id : null;
@@ -2227,15 +2782,25 @@
     const nid = nextIdOf(lesson);
     const next = nid ? lessonById(nid) : null;
     const title = $("#next-title");
+    const waitEl = $("#next-wait");
     if (title) title.textContent = next ? disp(next) : "Einde van The Method — goed gedaan!";
     $$("#next-modal [data-action=rate]").forEach((btn) => {
       btn.classList.remove("ring-2", "ring-accent");
     });
     stopCountdown();
     state.ratePicked = {};
+    if (isLoose(lesson)) {
+      if (title) title.textContent = "Klaar met deze oefening";
+      state.pendingNext = null;
+      modal.classList.remove("hidden");
+      if (waitEl) {
+        waitEl.textContent = "De volgende video start niet vanzelf.";
+        waitEl.classList.remove("hidden");
+      }
+      return;
+    }
     state.pendingNext = next || null;
     modal.classList.remove("hidden");
-    const waitEl = $("#next-wait");
     if (!next) {
       if (waitEl) {
         waitEl.textContent = "";
@@ -2470,6 +3035,10 @@
   async function onAction(e) {
     const el = e.currentTarget;
     const action = el.getAttribute("data-action");
+    if (action === "admin-refresh" || action === "admin-confirm" || action === "admin-cancel" || action === "admin-cleanup") {
+      await onAdminAction(action);
+      return;
+    }
     if (action === "week-day") {
       const date = el.dataset.date;
       if (!date) return;
@@ -2647,6 +3216,12 @@
       }
       return;
     }
+    if (action === "loose-done") {
+      stopCountdown();
+      state.pendingNext = null;
+      go("/loose");
+      return;
+    }
     if (action === "play-next") {
       const lesson = state.player.lesson || lessonById(state.route.params.id);
       const nid = nextIdOf(lesson);
@@ -2700,12 +3275,15 @@
       state.lessonsShown = 0;
       unwireLessonsScroll();
     }
+    if (route.name !== "admin") state.admin = null;
     if (route.name === "profiles") renderProfiles();
     else if (route.name === "home") renderHome();
     else if (route.name === "path") renderPath();
     else if (route.name === "history") renderHistory();
     else if (route.name === "stats") await renderStats();
+    else if (route.name === "admin") await renderAdmin();
     else if (route.name === "practice") renderPractice();
+    else if (route.name === "loose") renderLoose();
     else if (route.name === "lessons") renderLessons();
     else if (route.name === "watch") await renderWatch();
     else renderHome();

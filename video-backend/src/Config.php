@@ -26,6 +26,7 @@ final class Config
         public readonly string $publicHlsBase = '/hls',
         public readonly string $tmpDir = '/tmp',
         public readonly string $playerHlsJsPath = '',
+        public readonly string $adminToken = '',
     ) {
     }
 
@@ -54,6 +55,7 @@ final class Config
             publicHlsBase: rtrim(self::env('PUBLIC_HLS_BASE', '/hls'), '/'),
             tmpDir: self::env('TMPDIR', '/tmp'),
             playerHlsJsPath: self::env('PLAYER_HLS_JS', $player),
+            adminToken: self::env('ADMIN_TOKEN', ''),
         );
     }
 

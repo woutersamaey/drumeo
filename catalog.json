@@ -8825,5 +8825,28 @@
         "id": 459453
       }
     }
-  }
+  },
+
+  "loose": [
+    {
+      "id": 900001,
+      "vimeoId": "bbflXWDC-tg",
+      "seconds": 76,
+      "role": "loose",
+      "title": {
+        "en": "How to Play Back in Black on Drums",
+        "nl": "Back in Black op de drums"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Back in Black.",
+        "nl": "Speel Back in Black mee op de drums."
+      },
+      "instructor": "Jack Young",
+      "thumb": "thumbs/bbflXWDC-tg.jpg"
+    }
+  ]
 }

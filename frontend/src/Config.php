@@ -21,6 +21,9 @@ final class Config
         public readonly string $notationPath,
         public readonly string $cookieName = 'drumeo_profile',
         public readonly string $cookieMateName = 'drumeo_mate',
+        public readonly string $videoApiUrl = 'http://nginx',
+        public readonly string $adminToken = '',
+        public readonly string $apiToken = '',
     ) {
     }
 
@@ -40,6 +43,9 @@ final class Config
             mediaDir: self::env('MEDIA_DIR', '/media/nas'),
             imageCacheDir: self::env('IMAGE_CACHE_DIR', '/media/img-cache'),
             notationPath: self::env('NOTATION_PATH', $root . '/notation.pdf'),
+            videoApiUrl: rtrim(self::env('VIDEO_API_URL', 'http://nginx'), '/'),
+            adminToken: self::env('ADMIN_TOKEN', ''),
+            apiToken: self::env('API_TOKEN', ''),
         );
     }
 

@@ -21,13 +21,13 @@ final class Catalog
         if (self::$memo !== null) {
             return self::$memo;
         }
-        $cached = $this->cache->get('catalog:v7');
-        if (is_array($cached) && isset($cached['lessons'])) {
+        $cached = $this->cache->get('catalog:v8');
+        if (is_array($cached) && isset($cached['lessons'], $cached['loose'])) {
             self::$memo = $cached;
             return $cached;
         }
         $built = $this->build();
-        $this->cache->set('catalog:v7', $built, 600);
+        $this->cache->set('catalog:v8', $built, 600);
         self::$memo = $built;
         return $built;
     }
@@ -195,11 +195,36 @@ final class Catalog
             $intro['nextId'] = $lessons[(string) $intro['id']]['nextId'] ?? null;
         }
 
+        $loose = [];
+        foreach (is_array($raw['loose'] ?? null) ? $raw['loose'] : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $lesson = $this->hydrate($row);
+            if ($lesson === null) {
+                continue;
+            }
+            $id = (string) $lesson['id'];
+            if (isset($orderIds[$id])) {
+                continue;
+            }
+            $lesson['role'] = 'loose';
+            $lesson['pathSlug'] = null;
+            $lesson['pathTitle'] = 'Loose lessons';
+            $lesson['pathTitleNl'] = 'Losse lessen';
+            $lesson['n'] = null;
+            $lesson['prevId'] = null;
+            $lesson['nextId'] = null;
+            $lessons[$id] = $lesson;
+            $loose[] = $this->thin($lesson);
+        }
+
         return [
             'intro' => $intro,
             'paths' => $paths,
             'lessons' => $lessons,
             'order' => $order,
+            'loose' => $loose,
         ];
     }
 
@@ -322,12 +347,12 @@ final class Catalog
         if (is_array($local)) {
             return $local;
         }
-        $cached = $this->cache->get('media-index:v2');
+        $cached = $this->cache->get('media-index:v3');
         if (is_array($cached)) {
             $local = $cached;
             return $local;
         }
-        $fileCache = sys_get_temp_dir() . '/drumeo-media-index-v2.json';
+        $fileCache = sys_get_temp_dir() . '/drumeo-media-index-v3.json';
         if (is_file($fileCache) && (time() - (filemtime($fileCache) ?: 0)) < 900) {
             $decoded = json_decode((string) file_get_contents($fileCache), true);
             if (is_array($decoded)) {
@@ -354,7 +379,7 @@ final class Catalog
                 closedir($handle);
             }
         }
-        $this->cache->set('media-index:v2', $map, 900);
+        $this->cache->set('media-index:v3', $map, 900);
         @file_put_contents($fileCache, json_encode($map));
         $local = $map;
         return $map;

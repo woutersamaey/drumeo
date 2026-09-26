@@ -17,7 +17,7 @@ final class TestHarness
     public FakeFfmpegRunner $runner;
     public App $app;
 
-    public function __construct(?FfmpegRunner $runner = null, ?Clock $clock = null)
+    public function __construct(?FfmpegRunner $runner = null, ?Clock $clock = null, string $adminToken = '')
     {
         $this->root = sys_get_temp_dir() . '/vbtest-' . bin2hex(random_bytes(6));
         foreach (['bron', 'cache', 'meta', 'tmp'] as $d) {
@@ -35,6 +35,7 @@ final class TestHarness
             ffmpegBin: 'ffmpeg',
             ffprobeBin: 'ffprobe',
             ffmpegVcodec: 'libx264',
+            adminToken: $adminToken,
         );
         $this->app = App::build($this->config, $this->runner, $this->clock);
     }

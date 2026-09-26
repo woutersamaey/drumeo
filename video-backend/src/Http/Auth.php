@@ -24,4 +24,21 @@ final class Auth
         }
         return Response::unauthorized();
     }
+
+    /**
+     * Admin routes stay closed unless ADMIN_TOKEN is set and the caller presents it.
+     * The browser never gets this header; the frontend adds it server-side.
+     */
+    public function requireAdmin(Request $request): ?Response
+    {
+        $token = $this->config->adminToken;
+        if ($token === '') {
+            return Response::json(401, ['error' => 'admin disabled']);
+        }
+        $given = (string) ($request->header('x-drumeo-admin') ?? '');
+        if ($given === '' || !hash_equals($token, $given)) {
+            return Response::unauthorized();
+        }
+        return null;
+    }
 }

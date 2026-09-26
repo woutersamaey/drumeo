@@ -58,7 +58,8 @@ Eén bestand: [`catalog.json`](catalog.json) (~224 KB). Geen `lessons/`-map, gee
 - `paths[].order` is de officiële Method-volgorde (CMS `videos[]`). Dat is de afspeelvolgorde.
 - `paths[].packs` groepeert dezelfde lessen per skill (horizontale rijen).
 - `thumb` is `thumbs/{vimeoId}.jpg` — lokaal, nooit een remote URL.
-- Redis-cache: `catalog:v7` (10 min). Na catalogus- of PHP-wijziging: `docker compose exec redis redis-cli DEL catalog:v7 media-index:v2`.
+- `loose` is een lijst losse oefeningen. Die zitten niet in `order`, hebben geen lesnummer en starten de volgende video niet vanzelf.
+- Redis-cache: `catalog:v8` (10 min). Na catalogus- of PHP-wijziging: `docker compose exec redis redis-cli DEL catalog:v7 catalog:v8 media-index:v2 media-index:v3`.
 
 `Catalog.php` nummert bij het laden:
 
@@ -69,7 +70,8 @@ Het lesnummer hoort **voor de titel** in de tekst (`3. De hi-hat en snare`), nie
 
 ## UI
 
-- Header: Drumeo-wordmark (SVG in `frontend/public/assets/logo-drumeo.svg`) · Home · Hoofdstukken · Oefenen · Geschiedenis · Statistieken. Desktop-nav vanaf `lg` (1024px) zodat iPad-portrait niet overloopt.
+- Header: Drumeo-wordmark (SVG in `frontend/public/assets/logo-drumeo.svg`) · Home · Hoofdstukken · Losse lessen · Oefenen · Geschiedenis · Statistieken. Desktop-nav vanaf `lg` (1024px) zodat iPad-portrait niet overloopt.
+- **Beheer** (`/admin`) is alleen zichtbaar en bereikbaar voor profiel Wouter: bron-opslag, geschaalde 1080p-cache, HLS-totaal, schijfruimte, encodes, catalogusgaten en een opruimknop.
 - Mobiel: Hoofdstukken in de header, dock onderaan (Home / Oefenen / Geschiedenis / Stats / Profiel).
 - Taal (EN/NL) is de audiostream: index `0` Engels, `1` Nederlands. Sommige MKV’s hebben geen `nl` of heten de Engelse track `Original` i.p.v. `en`.
 - Padweergave per profiel: **Lesvolgorde** (grid in Method-order, default) of **Per skill** (horizontale packs). `POST /app/path-view`.
@@ -96,7 +98,7 @@ FFMPEG_VCODEC=auto   # NVENC → QSV → VAAPI → VideoToolbox → libx264
 GET /api/health      # encoder + encoderRequested
 ```
 
-HLS-cache opruimen (raakt `SOURCE_DIR` nooit):
+HLS-cache opruimen (raakt `SOURCE_DIR` nooit). Dezelfde regels zitten achter de knop op `/admin`: varianten ouder dan `MAX_AGE_DAYS` (90), mislukte encodes, en de oudste als de cache boven `MAX_CACHE_GB` (80) zit. `ADMIN_TOKEN` (compose-default `drumeo-admin`) gaat alleen van de frontend naar de video-API.
 
 ```bash
 docker compose exec video-worker php /app/bin/cleanup.php --dry-run
@@ -137,7 +139,7 @@ Sommige clips hebben geen `en` maar `Original`, of geen Nederlands. Bestandsnaam
 docker compose cp frontend/src/Catalog.php frontend:/app/src/Catalog.php
 docker compose cp frontend/src/Http.php frontend:/app/src/Http.php
 docker compose cp frontend/src/Progress.php frontend:/app/src/Progress.php
-docker compose exec redis redis-cli DEL catalog:v7 media-index:v2
+docker compose exec redis redis-cli DEL catalog:v7 catalog:v8 media-index:v2 media-index:v3
 docker compose exec frontend kill -USR2 1
 ```
 
@@ -155,14 +157,14 @@ CSS herbouwen:
 DRUMEO_MEDIA=/mnt/drumeo ./upload-to-production.sh
 ```
 
-Host `root@192.168.0.188`, map `/home/wouter/drumeo`. Extern Nginx (storefront) doet TLS; deze stack luistert op `:5050`. Het script compileert CSS, rsync’t (zonder `.git`, `node_modules`, `vendor`, screenshots), start compose (GPU-overlay als `/dev/dri` of NVIDIA bestaat) en legt `catalog:v7` + `media-index:v2` leeg.
+Host `root@192.168.0.188`, map `/home/wouter/drumeo`. Extern Nginx (storefront) doet TLS; deze stack luistert op `:5050`. Het script compileert CSS, rsync’t (zonder `.git`, `node_modules`, `vendor`, screenshots), start compose (GPU-overlay als `/dev/dri` of NVIDIA bestaat) en legt `catalog:v8` + `media-index:v3` leeg.
 
 ## Redis-sleutels
 
 | Key | TTL | Inhoud |
 |---|---|---|
-| `catalog:v7` | 600 s | Gebouwde catalogus + `n` / prev/next |
-| `media-index:v2` | 900 s | Vimeo-id → NAS-pad (alleen `.mkv`) |
+| `catalog:v8` | 600 s | Gebouwde catalogus + `n` / prev/next + losse lessen |
+| `media-index:v3` | 900 s | Video-id → NAS-pad (alleen `.mkv`) |
 
 Oude keys (`catalog:v3` … `v6`) mogen weg.
 
@@ -171,6 +173,7 @@ Oude keys (`catalog:v3` … `v6`) mogen weg.
 ```bash
 # frontend (GD)
 php frontend/tests/ImageScalerTest.php
+php frontend/tests/AdminDashboardTest.php
 
 # video-backend
 (cd video-backend && ./vendor/bin/phpunit)

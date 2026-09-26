@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drumeo\Video;
 
+use Drumeo\Video\Admin\Overview;
 use Drumeo\Video\Cleanup\Cleaner;
 use Drumeo\Video\Http\Auth;
 use Drumeo\Video\Http\Request;
@@ -39,6 +40,7 @@ final class App
         public readonly Probe $probe,
         public readonly Clock $clock,
         public readonly EncoderPicker $encoders,
+        public readonly Overview $overview,
     ) {
     }
 
@@ -61,7 +63,8 @@ final class App
         $player = new PlayerRenderer($config);
         $playback = new PlaybackService($config, $sources, $meta, $hls, $matcher, $worker, $clock, $player, $encoders);
         $cleaner = new Cleaner($config, $meta, $hls, $clock);
-        return new self($config, $sources, $meta, $hls, $matcher, $worker, $playback, $jobs, $cleaner, $probe, $clock, $encoders);
+        $overview = new Overview($config, $sources, $meta, $hls, $cleaner, $jobs, $locks, $encoders, $clock);
+        return new self($config, $sources, $meta, $hls, $matcher, $worker, $playback, $jobs, $cleaner, $probe, $clock, $encoders, $overview);
     }
 
     public function handle(Request $request): Response
@@ -127,6 +130,31 @@ final class App
                 $req->query('recipe'),
                 $req->query('audioIndex'),
             );
+        });
+        $router->get('/api/admin/overview', function (Request $req) use ($auth) {
+            $admin = $auth->requireAdmin($req);
+            if ($admin) {
+                return $admin;
+            }
+            return Response::ok($this->overview->collect());
+        });
+        $router->post('/api/admin/cleanup', function (Request $req) use ($auth) {
+            $admin = $auth->requireAdmin($req);
+            if ($admin) {
+                return $admin;
+            }
+            if (($req->json['confirm'] ?? false) !== true) {
+                return Response::badRequest('confirm required');
+            }
+            $result = $this->cleaner->run(false);
+            $bytes = 0;
+            foreach ($result['deleted'] as $row) {
+                $bytes += (int) ($row['bytes'] ?? 0);
+            }
+            return Response::ok($result + [
+                'count' => count($result['deleted']),
+                'bytes' => $bytes,
+            ]);
         });
 
         $response = $router->dispatch($request);

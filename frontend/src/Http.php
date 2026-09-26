@@ -13,6 +13,7 @@ final class Http
         private readonly RedisCache $cache,
         private readonly Database $db,
         private readonly ImageScaler $scaler,
+        private readonly AdminDashboard $admin,
     ) {
     }
 
@@ -25,7 +26,15 @@ final class Http
         $progress = new Progress($db, $catalog);
         $progress->ensureSchema();
         $scaler = ImageScaler::fromThumbs($config->imageCacheDir, $config->thumbsDir);
-        return new self($config, $catalog, $progress, $cache, $db, $scaler);
+        $admin = new AdminDashboard(
+            $config,
+            new VideoAdminClient($config->videoApiUrl, $config->adminToken, $config->apiToken),
+            $catalog,
+            $progress,
+            $cache,
+            $db,
+        );
+        return new self($config, $catalog, $progress, $cache, $db, $scaler, $admin);
     }
 
     public function run(): void
@@ -269,6 +278,43 @@ final class Http
             return;
         }
 
+        if ($path === '/app/admin/overview' && $method === 'GET') {
+            if (!AdminDashboard::isAdmin($profile)) {
+                $this->json(403, ['error' => 'geen beheerder']);
+                return;
+            }
+            header('Cache-Control: no-store');
+            $this->json(200, $this->admin->overview(($_GET['fresh'] ?? '') === '1'));
+            return;
+        }
+
+        if ($path === '/app/admin/cleanup' && $method === 'POST') {
+            if (!AdminDashboard::isAdmin($profile)) {
+                $this->json(403, ['error' => 'geen beheerder']);
+                return;
+            }
+            if (($this->body()['confirm'] ?? false) !== true) {
+                $this->json(400, ['error' => 'bevestig de opruiming']);
+                return;
+            }
+            try {
+                $result = $this->admin->cleanup();
+            } catch (\Throwable $e) {
+                $this->json(502, ['error' => $e->getMessage()]);
+                return;
+            }
+            $count = (int) ($result['count'] ?? 0);
+            $bytes = (int) ($result['bytes'] ?? 0);
+            error_log('[drumeo] admin cleanup profile=wouter count=' . $count . ' bytes=' . $bytes);
+            header('Cache-Control: no-store');
+            $this->json(200, [
+                'dryRun' => (bool) ($result['dryRun'] ?? false),
+                'count' => $count,
+                'bytes' => $bytes,
+            ]);
+            return;
+        }
+
         if ($path === '/app/client-log' && $method === 'POST') {
             $body = $this->body();
             $event = strtolower((string) ($body['event'] ?? 'event'));
@@ -324,6 +370,8 @@ final class Http
             'language' => 'nl',
             'pathView' => 'order',
             'notes' => new \stdClass(),
+            'loose' => [],
+            'admin' => AdminDashboard::isAdmin($profile),
         ];
         if ($profile) {
             $snap = $this->progress->snapshot((int) $profile['id']);
@@ -356,6 +404,7 @@ final class Http
             }
             $payload['practice'] = $practice;
             $payload['week'] = $this->progress->week((int) $profile['id'], $snap);
+            $payload['loose'] = is_array($all['loose'] ?? null) ? $all['loose'] : [];
         } else {
             $payload['intro'] = null;
             $payload['paths'] = [];
@@ -370,6 +419,9 @@ final class Http
         $lesson = $this->catalog->lesson($lessonId);
         if ($lesson === null) {
             return null;
+        }
+        if (($lesson['role'] ?? '') === 'loose') {
+            return $lesson;
         }
         if (!($profile['hideFuture'] ?? true)) {
             return $lesson;

@@ -559,6 +559,14 @@ button.tap {
   text-align: center;
   font-size: 0.62rem;
 }
+.nav-mobile.has-loose {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  font-size: 0.56rem;
+}
+.nav-mobile.has-admin {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  font-size: 0.52rem;
+}
 
 .nav-drop {
   position: absolute;
@@ -660,6 +668,80 @@ button.tap {
   margin-top: 0.35rem;
   line-height: 1.15;
 }
+.stat-card .s {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.admin-table th,
+.admin-table td {
+  text-align: left;
+  padding: 0.55rem 0.45rem;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: top;
+}
+.admin-table th {
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.admin-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #243044;
+  color: var(--color-muted);
+}
+.admin-pill.is-bad { color: #fecaca; background: #3f1d24; }
+.admin-pill.is-warn { color: #fde68a; background: #3a2e12; }
+.admin-pill.is-ok { color: #99f6e4; background: #12332e; }
+.admin-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  display: inline-block;
+  background: var(--color-good);
+  flex: none;
+}
+.admin-dot.is-bad { background: #f87171; }
+.admin-dot.is-warn { background: var(--color-warn); }
+.admin-note {
+  border: 1px solid var(--color-line);
+  border-left: 4px solid var(--color-good);
+  background: var(--color-card);
+  border-radius: 1rem;
+  padding: 0.85rem 1rem;
+}
+.admin-note.admin-warn { border-left-color: #f87171; }
+.admin-danger {
+  background: #b91c1c;
+  color: #fff;
+}
+.admin-danger:disabled,
+.admin-ghost:disabled { opacity: 0.45; cursor: default; }
+.admin-ghost {
+  background: transparent;
+  border: 1px solid var(--color-line);
+  color: inherit;
+}
+.admin-kv {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 38%) 1fr;
+  gap: 0.35rem 0.8rem;
+  font-size: 0.92rem;
+}
+.admin-kv dt { color: var(--color-muted); }
+.admin-kv dd { margin: 0; font-variant-numeric: tabular-nums; }
 
 .emoji-mix {
   display: grid;
