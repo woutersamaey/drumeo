@@ -44,6 +44,36 @@
     return LANGS[index === 1 ? 1 : 0];
   }
 
+  // Spoor 1 is Nederlands. Clips zonder dat spoor hebben alleen Engels (0).
+  function englishFallbackIndex(err, audioIndex) {
+    if (Number(audioIndex) !== 1) return null;
+    if (err?.status !== 400 || err?.body?.error !== "invalid audioIndex") return null;
+    const available = err.body?.available;
+    if (Array.isArray(available) && !available.some((n) => Number(n) === 0)) return null;
+    return 0;
+  }
+
+  function preferredAudioIndex(videoId, preferred) {
+    const want = Number(preferred) === 1 ? 1 : 0;
+    const hit = state.audioResolved?.[String(videoId)];
+    if (hit && hit.preferred === want) return hit.index;
+    return want;
+  }
+
+  function rememberResolvedAudio(videoId, preferred, index) {
+    if (!state.audioResolved) state.audioResolved = {};
+    state.audioResolved[String(videoId)] = {
+      preferred: Number(preferred) === 1 ? 1 : 0,
+      index: Number(index) === 1 ? 1 : 0,
+    };
+  }
+
+  function setEnglishOnlyNote(on) {
+    const note = $("#lang-fallback");
+    if (!note) return;
+    note.classList.toggle("hidden", !on);
+  }
+
   function isNl() {
     return currentAudioIndex() === 1;
   }
@@ -1646,8 +1676,10 @@
     const prevLesson = chapter.nearby.find((i) => i.role === "vorige")?.lesson;
     const nextLesson = chapter.nearby.find((i) => i.role === "volgende")?.lesson;
     const have = available(lesson.vimeoId);
-    const audioIndex = currentAudioIndex();
+    const preferredAudio = currentAudioIndex();
+    const audioIndex = preferredAudioIndex(lesson.vimeoId, preferredAudio);
     const lang = langMeta(audioIndex);
+    const englishOnly = preferredAudio === 1 && audioIndex === 0;
 
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-3 sm:px-4 pt-3">
@@ -1708,6 +1740,7 @@
               <button type="button" data-action="note-edit" class="note-pen tap${noteOf(lesson.id) ? " is-on" : ""}" aria-expanded="false" aria-label="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}" title="${noteOf(lesson.id) ? "Notitie bewerken" : "Notitie toevoegen"}">${pencilIcon()}</button>
             </div>
             <p class="text-muted mt-1">${esc([disp(lesson, "difficulty"), disp(lesson, "skillPackTitle"), lesson.instructor].filter(Boolean).join(" · "))}</p>
+            <p id="lang-fallback" class="${englishOnly ? "" : "hidden"} text-sm text-muted mt-2">Deze les is alleen in het Engels.</p>
             <div id="note-view" class="${noteOf(lesson.id) ? "" : "hidden"}">
               <p id="note-text" class="note-body mt-3">${esc(noteOf(lesson.id))}</p>
             </div>
@@ -1745,7 +1778,7 @@
     }
     const reuseVideo = savedStage ? savedStage.querySelector("video") : null;
     const alreadyOn = state.player.video && state.player.lesson && sameId(state.player.lesson.id, lesson.id);
-    if (have && !alreadyOn) startPlayback(lesson, audioIndex, undefined, reuseVideo);
+    if (have && !alreadyOn) startPlayback(lesson, preferredAudio, undefined, reuseVideo);
     else if (!have) {
       const d = $("#prep-detail");
       if (d) d.textContent = "Zodra het MKV-bestand binnen is, kun je hier kijken.";
@@ -1773,10 +1806,15 @@
     const resumeAt = startAt ?? 0;
     let caps = capabilities(false);
     let usedSafe = wantsSafeProfile();
+    let playIndex = preferredAudioIndex(lesson.vimeoId, audioIndex);
+    const paintPrepLang = () => {
+      const title = prep?.querySelector(".text-lg");
+      if (title) title.textContent = "Video wordt klaargezet in " + langMeta(playIndex).label + "…";
+      setEnglishOnlyNote(Number(audioIndex) === 1 && playIndex === 0);
+    };
     if (prep) {
       prep.classList.remove("hidden");
-      const title = prep.querySelector(".text-lg");
-      if (title) title.textContent = "Video wordt klaargezet in " + langMeta(audioIndex).label + "…";
+      paintPrepLang();
     }
 
     let loggedWait = false;
@@ -1804,16 +1842,29 @@
 
     try {
       const run = async (c) => {
-        const q = await api("/api/playback/query", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), audioIndex, capabilities: c }) });
-        let st = await api("/api/playback/prepare", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), recipe: q.recipe, audioIndex, intent: "play" }) });
+        const queryAt = (idx) => api("/api/playback/query", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), audioIndex: idx, capabilities: c }) });
+        let q;
+        try {
+          q = await queryAt(playIndex);
+        } catch (err) {
+          const fb = englishFallbackIndex(err, playIndex);
+          if (fb === null) throw err;
+          playIndex = fb;
+          rememberResolvedAudio(lesson.vimeoId, audioIndex, fb);
+          paintPrepLang();
+          clientLog("play_audio_fallback", { videoId: String(lesson.vimeoId), lessonId: lesson.id, from: 1, to: 0 });
+          q = await queryAt(playIndex);
+        }
+        rememberResolvedAudio(lesson.vimeoId, audioIndex, playIndex);
+        let st = await api("/api/playback/prepare", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), recipe: q.recipe, audioIndex: playIndex, intent: "play" }) });
         tickPrep(st);
         while (!(st.state === "ready" && st.playlistUrl)) {
           if (st.state === "failed") throw Object.assign(new Error(st.error || "failed"), { body: st });
           await sleep(1000);
-          st = await api(`/api/playback/status?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${audioIndex}&intent=play`);
+          st = await api(`/api/playback/status?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${playIndex}&intent=play`);
           tickPrep(st);
         }
-        const player = await api(`/api/playback/player?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${audioIndex}`);
+        const player = await api(`/api/playback/player?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${playIndex}`);
         return { player, st };
       };
       if (gen !== state.playGen) return;
@@ -1844,7 +1895,7 @@
       const wantFs = !!state.pendingFullscreen;
       state.pendingFullscreen = false;
       state.hadFullscreenThisClip = false;
-      state.player = { video, lesson, recipe: result.st.recipe, audioIndex, caps, safe: usedSafe, lastPos: null, lastTickPos: null, lastSavedPos: null, seenBuckets: new Set(), prefetchStarted: false };
+      state.player = { video, lesson, recipe: result.st.recipe, audioIndex: playIndex, caps, safe: usedSafe, lastPos: null, lastTickPos: null, lastSavedPos: null, seenBuckets: new Set(), prefetchStarted: false };
       if (prep) prep.classList.add("hidden");
       clientLog("play_ready", {
         videoId: String(lesson.vimeoId),
@@ -1892,7 +1943,7 @@
           await refresh();
           const p = state.player;
           if (p?.lesson) {
-            prefetchNext(p.lesson, p.audioIndex ?? currentAudioIndex(), capabilities(!!p.safe));
+            startPrefetchNext(p.lesson, currentAudioIndex(), capabilities(!!p.safe));
           }
         }
       }).catch(() => {});
@@ -1944,7 +1995,7 @@
     const fallback = () => {
       if (alreadySafe || state.player?.safe) return;
       rememberSafeProfile();
-      startPlayback(lesson, state.player.audioIndex ?? currentAudioIndex(), video.currentTime || 0);
+      startPlayback(lesson, currentAudioIndex(), video.currentTime || 0);
     };
     video.addEventListener("error", fallback, sig);
     window.addEventListener("pagehide", () => save(true), sig);
@@ -2092,7 +2143,7 @@
     if (!p?.lesson || p.prefetchStarted) return;
     if (!prefetchDue(p.video, p.lesson)) return;
     p.prefetchStarted = true;
-    startPrefetchNext(p.lesson, p.audioIndex, p.caps);
+    startPrefetchNext(p.lesson, currentAudioIndex(), p.caps);
   }
 
   function startPrefetchNext(lesson, audioIndex, caps) {
@@ -2106,19 +2157,22 @@
       clientLog("prefetch_skip", { reason: "unavailable", nextId, lessonId: lesson?.id });
       return;
     }
-    const body = { videoId: String(next.vimeoId), audioIndex, intent: "prefetch", capabilities: caps };
+    const preferred = Number(audioIndex) === 1 ? 1 : 0;
+    let idx = preferredAudioIndex(next.vimeoId, preferred);
     clientLog("prefetch_start", {
       nextId: next.id,
       videoId: String(next.vimeoId),
       atSec: Math.round(Number(state.player?.video?.currentTime) || 0),
-      audioIndex,
+      audioIndex: idx,
     });
     const tick = () => {
       if (!state.player?.lesson || !sameId(state.player.lesson.id, lesson.id)) return;
+      const body = { videoId: String(next.vimeoId), audioIndex: idx, intent: "prefetch", capabilities: caps };
       api("/api/playback/prepare", { method: "POST", body: JSON.stringify(body) })
         .then((st) => {
+          rememberResolvedAudio(next.vimeoId, preferred, idx);
           const pct = prepPct(st, next);
-          state.nextPrep = { ...st, pct, videoId: String(next.vimeoId) };
+          state.nextPrep = { ...st, pct, videoId: String(next.vimeoId), audioIndex: idx };
           clientLog("prefetch_tick", {
             nextId: next.id,
             videoId: String(next.vimeoId),
@@ -2134,6 +2188,14 @@
           }
         })
         .catch((err) => {
+          const fb = englishFallbackIndex(err, idx);
+          if (fb !== null) {
+            idx = fb;
+            rememberResolvedAudio(next.vimeoId, preferred, fb);
+            clientLog("play_audio_fallback", { videoId: String(next.vimeoId), lessonId: next.id, from: 1, to: 0, via: "prefetch" });
+            tick();
+            return;
+          }
           clientLog("prefetch_error", {
             nextId: next.id,
             videoId: String(next.vimeoId),
@@ -2199,7 +2261,8 @@
   function beginNextHandoff(next) {
     stopCountdown();
     const waitEl = $("#next-wait");
-    const audioIndex = state.player?.audioIndex ?? currentAudioIndex();
+    const preferred = currentAudioIndex();
+    let audioIndex = preferredAudioIndex(next.vimeoId, preferred);
     const caps = state.player?.caps || capabilities(false);
     const COUNT = NEXT_COUNTDOWN_SEC;
     let readyFor = 0;
@@ -2210,12 +2273,27 @@
       if (inflight) return;
       inflight = true;
       try {
-        let st = state.nextPrep;
+        let st = state.nextPrep && String(state.nextPrep.videoId) === String(next.vimeoId) ? state.nextPrep : null;
         try {
-          const q = await api("/api/playback/query", {
-            method: "POST",
-            body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }),
-          });
+          let q;
+          try {
+            q = await api("/api/playback/query", {
+              method: "POST",
+              body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }),
+            });
+          } catch (err) {
+            const fb = englishFallbackIndex(err, audioIndex);
+            if (fb === null) throw err;
+            audioIndex = fb;
+            upgraded = false;
+            rememberResolvedAudio(next.vimeoId, preferred, fb);
+            clientLog("play_audio_fallback", { videoId: String(next.vimeoId), lessonId: next.id, from: 1, to: 0, via: "next" });
+            q = await api("/api/playback/query", {
+              method: "POST",
+              body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }),
+            });
+          }
+          rememberResolvedAudio(next.vimeoId, preferred, audioIndex);
           if (!upgraded) {
             upgraded = true;
             st = await api("/api/playback/prepare", {
