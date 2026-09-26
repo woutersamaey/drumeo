@@ -149,7 +149,12 @@ final class Worker
 
     private function log(string $msg): void
     {
-        fwrite(STDERR, '[worker] ' . $msg . "\n");
+        $line = '[worker] ' . $msg . "\n";
+        if (defined('STDERR')) {
+            fwrite(STDERR, $line);
+            return;
+        }
+        file_put_contents('php://stderr', $line);
     }
 
     public function activeCount(): int

@@ -8834,8 +8834,8 @@
       "seconds": 76,
       "role": "loose",
       "title": {
-        "en": "How to Play Back in Black on Drums",
-        "nl": "Back in Black op de drums"
+        "en": "AC/DC - Back in Black",
+        "nl": "AC/DC - Back in Black"
       },
       "difficulty": {
         "en": "Exercise",
@@ -8854,8 +8854,8 @@
       "seconds": 183,
       "role": "loose",
       "title": {
-        "en": "Highway to Hell — AC/DC Drum Cover",
-        "nl": "Highway to Hell op de drums"
+        "en": "AC/DC - Highway to Hell",
+        "nl": "AC/DC - Highway to Hell"
       },
       "difficulty": {
         "en": "Exercise",
@@ -8867,6 +8867,86 @@
       },
       "instructor": "알려드럼",
       "thumb": "thumbs/AJQuqSujhB0.jpg"
+    },
+    {
+      "id": 900003,
+      "vimeoId": "gb4DThMLBQM",
+      "seconds": 384,
+      "role": "loose",
+      "title": {
+        "en": "Eagles - Hotel California",
+        "nl": "Eagles - Hotel California"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Hotel California.",
+        "nl": "Speel Hotel California mee op de drums."
+      },
+      "instructor": "jeremy Yanzi",
+      "thumb": "thumbs/gb4DThMLBQM.jpg"
+    },
+    {
+      "id": 900004,
+      "vimeoId": "qS-mINAV83k",
+      "seconds": 232,
+      "role": "loose",
+      "title": {
+        "en": "Amy Winehouse - You Know I'm No Good",
+        "nl": "Amy Winehouse - You Know I'm No Good"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with You Know I'm No Good.",
+        "nl": "Speel You Know I'm No Good mee op de drums."
+      },
+      "instructor": "Jack Young",
+      "thumb": "thumbs/qS-mINAV83k.jpg"
+    },
+    {
+      "id": 900005,
+      "vimeoId": "VemG98jU1Ls",
+      "seconds": 276,
+      "role": "loose",
+      "title": {
+        "en": "Lola Young - Messy",
+        "nl": "Lola Young - Messy"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Messy.",
+        "nl": "Speel Messy mee op de drums."
+      },
+      "instructor": "Chef Cook",
+      "thumb": "thumbs/VemG98jU1Ls.jpg"
+    },
+    {
+      "id": 900006,
+      "vimeoId": "ZE8wDmQknWk",
+      "seconds": 222,
+      "role": "loose",
+      "title": {
+        "en": "Radiohead - No Surprises",
+        "nl": "Radiohead - No Surprises"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with No Surprises.",
+        "nl": "Speel No Surprises mee op de drums."
+      },
+      "instructor": "알려드럼",
+      "thumb": "thumbs/ZE8wDmQknWk.jpg"
     }
   ]
 }
