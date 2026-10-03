@@ -291,6 +291,10 @@
     return Math.min(95, Math.round((ready / Math.max(1, total)) * 100));
   }
 
+  function looseReplayText(count) {
+    return isNl() ? `Deze les herbegint over ${count}s` : `This lesson restarts in ${count}s`;
+  }
+
   function nextWaitText(ready, pct, count) {
     if (ready) {
       return isNl() ? `Volgende start over ${count}s` : `Next starts in ${count}s`;
@@ -1770,7 +1774,7 @@
           <h3 class="text-2xl font-bold">Losse lessen</h3>
           <a href="/loose" data-link class="text-muted text-sm tap">Alles</a>
         </div>
-        <p class="text-muted text-sm mb-4">Oefeningen zonder vaste volgorde. Aan het einde geef je een score, en de volgende video start niet vanzelf.</p>
+        <p class="text-muted text-sm mb-4">Oefeningen zonder vaste volgorde. Aan het einde kun je een score geven. Dezelfde les herbegint vanzelf na 10 seconden.</p>
         ${hscroll(loose.map((l) => card(l, { wide: true })).join(""))}
       </section>` : "";
 
@@ -2144,7 +2148,7 @@
     $("#app").innerHTML = layout(`
       <div class="max-w-7xl mx-auto px-4 pt-6">
         <h1 class="text-3xl sm:text-4xl font-black">Losse lessen</h1>
-        <p class="text-muted mt-2 mb-8">Losse oefeningen, door elkaar. Aan het einde geef je een score. De volgende video start niet vanzelf, en opnieuw spelen kan meteen.</p>
+        <p class="text-muted mt-2 mb-8">Losse oefeningen, door elkaar. Aan het einde kun je een score geven. Dezelfde les herbegint vanzelf na 10 seconden.</p>
         ${lessons.length === 0
           ? `<div class="rounded-2xl bg-card border border-line p-8 text-muted">Nog geen losse lessen.</div>`
           : `<div class="lesson-grid">${lessons.map((l) => card(l)).join("")}</div>`}
@@ -2177,7 +2181,7 @@
       <div class="p-4 border-b border-line">
         <div class="text-muted text-xs uppercase tracking-wide">Oefeningen</div>
         <div class="font-bold mt-0.5">Losse lessen</div>
-        <p class="text-sm text-muted mt-2">Geen vaste volgorde. Opnieuw spelen kan altijd.</p>
+        <p class="text-sm text-muted mt-2">Geen vaste volgorde. Na afloop herbegint dezelfde les vanzelf.</p>
       </div>
       ${items.map((l) => {
         const on = sameId(l.id, current.id);
@@ -2528,10 +2532,13 @@
     }, sig);
     video.addEventListener("seeked", () => maybePrefetchNext(), sig);
     video.addEventListener("pause", () => save(true), sig);
-    let endHandled = false;
+    video._vbEndHandled = false;
     const onClipEnd = () => {
-      if (endHandled) return;
-      endHandled = true;
+      if (video._vbEndHandled) return;
+      const dur = Number(video.duration) || 0;
+      const t = Number(video.currentTime) || 0;
+      if (Number.isFinite(dur) && dur > 0 && t < dur - 1.5) return;
+      video._vbEndHandled = true;
       save(true);
       state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
       whenExitedFullscreen(video, () => showNext(lesson));
@@ -2555,6 +2562,12 @@
     window.addEventListener("pagehide", () => save(true), sig);
     let programmaticPlay = false;
     let firstPlayFsDone = false;
+    video.addEventListener("playing", () => {
+      const dur = Number(video.duration) || 0;
+      const t = Number(video.currentTime) || 0;
+      if (Number.isFinite(dur) && dur > 0 && t >= dur - 1.5) return;
+      video._vbEndHandled = false;
+    }, sig);
     video.addEventListener("play", () => {
       if (programmaticPlay) return;
       if (firstPlayFsDone || !isHandheld()) return;
@@ -2768,6 +2781,7 @@
   }
 
   const NEXT_COUNTDOWN_SEC = 5;
+  const LOOSE_REPLAY_SEC = 10;
 
   function stopCountdown() {
     if (state.countdown) {
@@ -2793,10 +2807,7 @@
       if (title) title.textContent = "Klaar met deze oefening";
       state.pendingNext = null;
       modal.classList.remove("hidden");
-      if (waitEl) {
-        waitEl.textContent = "De volgende video start niet vanzelf.";
-        waitEl.classList.remove("hidden");
-      }
+      beginLooseReplay(lesson);
       return;
     }
     state.pendingNext = next || null;
@@ -2821,6 +2832,60 @@
     const next = state.pendingNext;
     if (!next) return;
     if (!state.countdown) beginNextHandoff(next);
+  }
+
+  function beginLooseReplay(lesson) {
+    stopCountdown();
+    const waitEl = $("#next-wait");
+    let left = LOOSE_REPLAY_SEC;
+    const tick = () => {
+      const modal = $("#next-modal");
+      if (!modal || modal.classList.contains("hidden")) {
+        stopCountdown();
+        return;
+      }
+      if (left <= 0) {
+        stopCountdown();
+        replayLesson(lesson);
+        return;
+      }
+      if (waitEl) {
+        waitEl.classList.remove("hidden");
+        waitEl.textContent = looseReplayText(left);
+      }
+      left -= 1;
+    };
+    tick();
+    state.countdown = setInterval(tick, 1000);
+  }
+
+  async function replayLesson(lesson) {
+    if (state.replaying) return;
+    state.replaying = true;
+    stopCountdown();
+    state.pendingNext = null;
+    $("#next-modal")?.classList.add("hidden");
+    try {
+      lesson = lesson || state.player.lesson || lessonById(state.route.params.id);
+      if (!lesson?.id) return;
+      try {
+        await api("/app/reset", { method: "POST", body: JSON.stringify({ lessonId: lesson.id }) });
+      } catch {}
+      const wantFs = !!state.pendingFullscreen;
+      state.pendingFullscreen = false;
+      const video = state.player.video;
+      if (video) {
+        try { video.currentTime = 0; } catch {}
+        const playP = video.play();
+        if (playP && playP.catch) playP.catch(() => {});
+        if (wantFs) enterFullscreen(video);
+      } else {
+        state.pendingFullscreen = wantFs;
+        startPlayback(lesson, state.bootstrap?.lastAudioIndex || 0, 0);
+      }
+    } finally {
+      state.replaying = false;
+    }
   }
 
   function beginNextHandoff(next) {
@@ -3191,7 +3256,7 @@
         btn.classList.toggle("ring-accent", on);
       });
       state.ratePicked = { ...(state.ratePicked || {}), [slug]: score };
-      if (everyoneRated()) startNextCountdown();
+      if (!isLoose(lesson) && everyoneRated()) startNextCountdown();
       await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score, slug }) });
       if (state.bootstrap && slug === state.bootstrap.profile?.slug) {
         state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(lesson.id)]: score };
@@ -3199,21 +3264,8 @@
       return;
     }
     if (action === "replay") {
-      stopCountdown();
-      state.pendingNext = null;
-      $("#next-modal")?.classList.add("hidden");
       const lesson = state.player.lesson || lessonById(state.route.params.id);
-      await api("/app/reset", { method: "POST", body: JSON.stringify({ lessonId: lesson.id }) });
-      const wantFs = !!state.pendingFullscreen;
-      state.pendingFullscreen = false;
-      if (state.player.video) {
-        state.player.video.currentTime = 0;
-        state.player.video.play().catch(() => {});
-        if (wantFs) enterFullscreen(state.player.video);
-      } else {
-        state.pendingFullscreen = wantFs;
-        startPlayback(lesson, state.bootstrap.lastAudioIndex || 0, 0);
-      }
+      await replayLesson(lesson);
       return;
     }
     if (action === "loose-done") {
