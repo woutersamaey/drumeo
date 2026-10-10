@@ -20,6 +20,7 @@
     weekDay: null,
     pendingFullscreen: false,
     hadFullscreenThisClip: false,
+    fsRestoreArmed: false,
     fsListener: null,
     keepWatchStage: false,
     lessonsShown: 0,
@@ -2541,6 +2542,18 @@
       video._vbEndHandled = true;
       save(true);
       state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
+      state.fsRestoreArmed = false;
+      // Stay fullscreen across the score dialog and the automatic replay.
+      // A fresh requestFullscreen after the 10s wait is rejected without a click.
+      if (isLoose(lesson) && state.pendingFullscreen) {
+        const open = () => {
+          if (!state.player || state.player.video !== video) return;
+          if (isVideoFullscreen(video)) parkLooseModalInStage();
+          showNext(lesson);
+        };
+        moveFullscreenToStage(video).then(open, open);
+        return;
+      }
       whenExitedFullscreen(video, () => showNext(lesson));
     };
     video.addEventListener("ended", onClipEnd, sig);
@@ -2548,9 +2561,16 @@
       if (video.ended) onClipEnd();
       else noteFullscreen(video, false);
     }, sig);
-    video.addEventListener("webkitbeginfullscreen", () => noteFullscreen(video, true), sig);
+    video.addEventListener("webkitbeginfullscreen", () => {
+      noteFullscreen(video, true);
+      moveFullscreenToStage(video);
+    }, sig);
     unbindFullscreenWatch();
-    state.fsListener = () => noteFullscreen(video, isVideoFullscreen(video));
+    state.fsListener = () => {
+      const on = isVideoFullscreen(video);
+      noteFullscreen(video, on);
+      if (on) moveFullscreenToStage(video);
+    };
     document.addEventListener("fullscreenchange", state.fsListener);
     document.addEventListener("webkitfullscreenchange", state.fsListener);
     const fallback = () => {
@@ -2608,7 +2628,7 @@
   }
 
   function noteFullscreen(video, on) {
-    if (on) {
+    if (on || state.fsTransferring) {
       state.hadFullscreenThisClip = true;
       return;
     }
@@ -2680,6 +2700,127 @@
     setTimeout(() => {
       if (state.player?.video === video && !isVideoFullscreen(video)) requestDocFullscreen(video);
     }, 300);
+  }
+
+  function enterFullscreenWhenPlaying(video) {
+    if (!video) return;
+    const go = () => {
+      if (state.player?.video !== video || isVideoFullscreen(video)) return;
+      enterFullscreen(video);
+    };
+    if (!video.paused && !video.ended) go();
+    video.addEventListener("playing", go, { once: true });
+  }
+
+  function stageHoldsFullscreen(video) {
+    const stage = $("#stage");
+    const el = fsElement();
+    if (!stage || !el || video?.webkitDisplayingFullscreen) return false;
+    if (el === video) return false;
+    return el === stage || el.contains(video);
+  }
+
+  // The browser fullscreen button targets the video. Move that to the stage
+  // while the click still counts, so later replays can stay there.
+  function moveFullscreenToStage(video) {
+    const stage = $("#stage");
+    if (!stage || !video) return Promise.resolve(false);
+    const el = fsElement();
+    const videoNative = !!video.webkitDisplayingFullscreen;
+    const videoElementFs = el === video;
+    if (!videoNative && !videoElementFs) return Promise.resolve(stageHoldsFullscreen(video));
+    if (state.fsTransferring) return Promise.resolve(false);
+    const req = stage.requestFullscreen || stage.webkitRequestFullscreen;
+    if (typeof req !== "function") return Promise.resolve(false);
+    state.fsTransferring = true;
+    let result;
+    try { result = req.call(stage); }
+    catch {
+      state.fsTransferring = false;
+      return Promise.resolve(false);
+    }
+    const finish = (ok) => {
+      state.fsTransferring = false;
+      if (ok && stageHoldsFullscreen(video) && video.webkitDisplayingFullscreen && typeof video.webkitExitFullscreen === "function") {
+        try { video.webkitExitFullscreen(); } catch {}
+      }
+      return !!ok;
+    };
+    if (result && typeof result.then === "function") {
+      return result.then(() => finish(true), () => finish(false));
+    }
+    return Promise.resolve(finish(true));
+  }
+
+  function parkLooseModalInStage() {
+    const stage = $("#stage");
+    const modal = $("#next-modal");
+    if (!stage || !modal || stage.contains(modal)) return;
+    if (!modal._vbHome) modal._vbHome = modal.parentElement;
+    stage.appendChild(modal);
+  }
+
+  function restoreLooseModalHome() {
+    const modal = $("#next-modal");
+    const home = modal?._vbHome;
+    if (!modal || !home || modal.parentElement === home) return;
+    home.appendChild(modal);
+  }
+
+  // Fallback when fullscreen was already lost, for example the iOS video
+  // player. The click is the only moment the browser still allows re-entry.
+  function armFullscreenRestore() {
+    if (!state.pendingFullscreen) return;
+    const video = state.player?.video;
+    if (video && isVideoFullscreen(video)) {
+      parkLooseModalInStage();
+      return;
+    }
+    const stage = $("#stage");
+    const req = stage && (stage.requestFullscreen || stage.webkitRequestFullscreen);
+    if (typeof req !== "function") {
+      parkLooseModalInStage();
+      if (video) enterFullscreen(video);
+      return;
+    }
+    state.fsRestoreArmed = true;
+    const gen = (state.fsRestoreGen = (state.fsRestoreGen || 0) + 1);
+    const dropWatch = () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("webkitfullscreenchange", onFs);
+    };
+    const onFs = () => {
+      dropWatch();
+      if (gen !== state.fsRestoreGen) return;
+      const modal = $("#next-modal");
+      if (!modal || modal.classList.contains("hidden")) return;
+      if (video && isVideoFullscreen(video)) parkLooseModalInStage();
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    document.addEventListener("webkitfullscreenchange", onFs);
+    let result;
+    try { result = req.call(stage); }
+    catch {
+      dropWatch();
+      state.fsRestoreArmed = false;
+      if (video) enterFullscreen(video);
+      return;
+    }
+    if (result && typeof result.then === "function") {
+      result.then(() => {
+        const modal = $("#next-modal");
+        if (!modal || modal.classList.contains("hidden")) return;
+        if (video && isVideoFullscreen(video)) parkLooseModalInStage();
+      }, () => {
+        dropWatch();
+        if (gen !== state.fsRestoreGen) return;
+        state.fsRestoreArmed = false;
+        if (video && isVideoFullscreen(video)) return;
+        restoreLooseModalHome();
+        try { if (video && Number(video.currentTime) > 0) video.currentTime = 0; } catch {}
+        if (video) enterFullscreen(video);
+      });
+    }
   }
 
   function unbindFullscreenWatch() {
@@ -2865,22 +3006,26 @@
     stopCountdown();
     state.pendingNext = null;
     $("#next-modal")?.classList.add("hidden");
+    const wantFs = !!state.pendingFullscreen;
+    const armed = !!state.fsRestoreArmed;
+    restoreLooseModalHome();
     try {
       lesson = lesson || state.player.lesson || lessonById(state.route.params.id);
       if (!lesson?.id) return;
       try {
         await api("/app/reset", { method: "POST", body: JSON.stringify({ lessonId: lesson.id }) });
       } catch {}
-      const wantFs = !!state.pendingFullscreen;
-      state.pendingFullscreen = false;
       const video = state.player.video;
       if (video) {
+        state.pendingFullscreen = false;
+        state.fsRestoreArmed = false;
         try { video.currentTime = 0; } catch {}
         const playP = video.play();
         if (playP && playP.catch) playP.catch(() => {});
-        if (wantFs) enterFullscreen(video);
+        if (wantFs && !armed) enterFullscreenWhenPlaying(video);
       } else {
         state.pendingFullscreen = wantFs;
+        state.fsRestoreArmed = false;
         startPlayback(lesson, state.bootstrap?.lastAudioIndex || 0, 0);
       }
     } finally {
@@ -3256,7 +3401,8 @@
         btn.classList.toggle("ring-accent", on);
       });
       state.ratePicked = { ...(state.ratePicked || {}), [slug]: score };
-      if (!isLoose(lesson) && everyoneRated()) startNextCountdown();
+      if (isLoose(lesson)) armFullscreenRestore();
+      else if (everyoneRated()) startNextCountdown();
       await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score, slug }) });
       if (state.bootstrap && slug === state.bootstrap.profile?.slug) {
         state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(lesson.id)]: score };
@@ -3265,12 +3411,16 @@
     }
     if (action === "replay") {
       const lesson = state.player.lesson || lessonById(state.route.params.id);
+      if (isLoose(lesson)) armFullscreenRestore();
       await replayLesson(lesson);
       return;
     }
     if (action === "loose-done") {
       stopCountdown();
       state.pendingNext = null;
+      state.pendingFullscreen = false;
+      state.fsRestoreArmed = false;
+      exitFullscreen(state.player?.video);
       go("/loose");
       return;
     }

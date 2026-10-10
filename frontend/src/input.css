@@ -621,6 +621,15 @@ button.tap {
   height: 100%;
   max-height: none;
 }
+.stage:fullscreen #next-modal,
+.stage:-webkit-full-screen #next-modal {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-height: none;
+  z-index: 60;
+}
 @media (min-width: 64rem) {
   .stage {
     max-height: calc(100vh - 7.5rem);
