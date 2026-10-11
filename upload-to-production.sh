@@ -77,10 +77,15 @@ fi
 
 docker compose "${files[@]}" up --build -d --remove-orphans
 
+# nginx often stays up while video-api and frontend get new addresses.
+# Reload picks up a new nginx.conf and refreshes names that are not on resolve yet.
+docker compose "${files[@]}" exec -T nginx nginx -s reload
+
 echo "Wachten op nginx health…"
 ok=0
 for _ in $(seq 1 60); do
-  if docker compose "${files[@]}" exec -T nginx wget -qO- http://127.0.0.1/app/health >/dev/null 2>&1; then
+  if docker compose "${files[@]}" exec -T nginx wget -qO- http://127.0.0.1/app/health >/dev/null 2>&1 \
+    && docker compose "${files[@]}" exec -T nginx wget -qO- http://127.0.0.1/api/health >/dev/null 2>&1; then
     ok=1
     break
   fi
