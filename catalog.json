@@ -8947,6 +8947,26 @@
       },
       "instructor": "알려드럼",
       "thumb": "thumbs/ZE8wDmQknWk.jpg"
+    },
+    {
+      "id": 900007,
+      "vimeoId": "5dLmk0bpMqY",
+      "seconds": 58,
+      "role": "loose",
+      "title": {
+        "en": "John Mayer - Slow Dancing In a Burning Room",
+        "nl": "John Mayer - Slow Dancing In a Burning Room"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Slow Dancing In a Burning Room.",
+        "nl": "Speel Slow Dancing In a Burning Room mee op de drums."
+      },
+      "instructor": "DRUMCLIP",
+      "thumb": "thumbs/5dLmk0bpMqY.jpg"
     }
   ]
 }
