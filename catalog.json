@@ -8967,6 +8967,46 @@
       },
       "instructor": "DRUMCLIP",
       "thumb": "thumbs/5dLmk0bpMqY.jpg"
+    },
+    {
+      "id": 900008,
+      "vimeoId": "sdbr-sheet",
+      "seconds": 237,
+      "role": "loose",
+      "title": {
+        "en": "John Mayer - Slow Dancing in a Burning Room",
+        "nl": "John Mayer - Slow Dancing in a Burning Room"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Slow Dancing in a Burning Room. Sheet music with the original recording.",
+        "nl": "Speel Slow Dancing in a Burning Room mee op de drums. Partituur met de originele opname."
+      },
+      "instructor": "Songsterr",
+      "thumb": "thumbs/sdbr-sheet.jpg"
+    },
+    {
+      "id": 900009,
+      "vimeoId": "bib-sheet",
+      "seconds": 272,
+      "role": "loose",
+      "title": {
+        "en": "AC/DC - Back in Black",
+        "nl": "AC/DC - Back in Black"
+      },
+      "difficulty": {
+        "en": "Exercise",
+        "nl": "Oefening"
+      },
+      "description": {
+        "en": "Play along with Back in Black. Sheet music with the original recording.",
+        "nl": "Speel Back in Black mee op de drums. Partituur met de originele opname."
+      },
+      "instructor": "Songsterr",
+      "thumb": "thumbs/bib-sheet.jpg"
     }
   ]
 }

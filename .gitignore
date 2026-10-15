@@ -11,6 +11,8 @@ data/
 .idea/
 .playwright-mcp/
 /downloads/
+/songs/
+/grok-build-cli-sessions.zip
 /*.png
 *.part
 *.ytdl

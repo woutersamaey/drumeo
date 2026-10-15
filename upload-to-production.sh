@@ -29,6 +29,8 @@ rsync -az --delete --stats \
   --exclude '.playwright-mcp/' \
   --exclude '.DS_Store' \
   --exclude 'downloads/' \
+  --exclude 'songs/' \
+  --exclude 'grok-build-cli-sessions.zip' \
   --exclude 'data/' \
   --exclude 'frontend/node_modules/' \
   --exclude 'frontend/vendor/' \
