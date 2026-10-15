@@ -181,6 +181,8 @@ final class PrepareAndFailTest extends TestCase
             $stat = stat($path);
             $this->assertSame((int) round($stat['mtime'] * 1000), $res->body['source']['mtimeMs']);
             $this->assertSame($stat['size'], $res->body['source']['size']);
+            $this->assertSame([], $res->body['variants']);
+            $this->assertDirectoryDoesNotExist($h->root . '/cache/film1');
         } finally {
             $h->destroy();
         }

@@ -48,4 +48,34 @@ final class MediaPlaylist
         }
         return $contents;
     }
+
+    /**
+     * Segment files keep the names seg_000.ts, seg_001.ts, … across a rebuild.
+     * Browsers cache those URLs for a day, so a replaced source would keep
+     * playing the previous picture and audio. The token changes when the
+     * encode does; nginx ignores the query and still serves the file.
+     */
+    public static function withSegmentVersion(string $contents, string $token): string
+    {
+        if ($token === '' || !preg_match('/^[A-Za-z0-9._~-]+$/', $token)) {
+            return $contents;
+        }
+        $newline = str_ends_with($contents, "\n");
+        $lines = preg_split("/\r\n|\n|\r/", $contents);
+        if ($lines === false) {
+            return $contents;
+        }
+        foreach ($lines as $i => $line) {
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            $path = preg_replace('/\?.*$/', '', $line) ?? $line;
+            $lines[$i] = $path . '?v=' . $token;
+        }
+        $out = implode("\n", $lines);
+        if ($newline && !str_ends_with($out, "\n")) {
+            $out .= "\n";
+        }
+        return $out;
+    }
 }

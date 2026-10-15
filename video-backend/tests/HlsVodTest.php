@@ -23,6 +23,17 @@ final class HlsVodTest extends TestCase
         $this->assertSame($vod, MediaPlaylist::toVod($vod));
     }
 
+    public function testSegmentVersionBustsRebuiltSegmentsAndStaysIdempotent(): void
+    {
+        $raw = "#EXTM3U\n#EXTINF:6.0,\nseg_000.ts\n#EXTINF:6.0,\nseg_001.ts?v=1\n";
+        $once = MediaPlaylist::withSegmentVersion($raw, '1710000000');
+        $this->assertStringContainsString("seg_000.ts?v=1710000000\n", $once);
+        $this->assertStringContainsString("seg_001.ts?v=1710000000\n", $once);
+        $this->assertStringNotContainsString("seg_001.ts?v=1\n", $once);
+        $this->assertSame($once, MediaPlaylist::withSegmentVersion($once, '1710000000'));
+        $this->assertSame($raw, MediaPlaylist::withSegmentVersion($raw, 'not a token'));
+    }
+
     public function testMasterWithMediaUriReplacesIndexLine(): void
     {
         $raw = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nindex.m3u8\n";
@@ -69,6 +80,9 @@ final class HlsVodTest extends TestCase
             $this->assertStringContainsString('?v=', $res->body['playlistUrl']);
             $master = file_get_contents($h->root . '/cache/film1/remux/0/master.m3u8') ?: '';
             $this->assertMatchesRegularExpression('/index\\.m3u8\\?v=\\d+/', $master);
+            $index = file_get_contents($h->root . '/cache/film1/remux/0/index.m3u8') ?: '';
+            $segMtime = (string) filemtime($h->root . '/cache/film1/remux/0/seg_000.ts');
+            $this->assertStringContainsString('seg_000.ts?v=' . $segMtime, $index);
         } finally {
             $h->destroy();
         }

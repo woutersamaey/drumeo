@@ -109,10 +109,31 @@ final class HlsCache
             return;
         }
         $vod = MediaPlaylist::toVod($raw);
+        $token = $this->segmentVersion($id, $recipe, $audioIndex);
+        if ($token !== null) {
+            $vod = MediaPlaylist::withSegmentVersion($vod, $token);
+        }
         if ($vod !== $raw) {
             file_put_contents($path, $vod);
         }
         $this->bustMasterUri($id, $recipe, $audioIndex);
+    }
+
+    /**
+     * Stable for one encode, different after the variant directory is rebuilt.
+     * A source mtime/size change deletes that directory before the next encode.
+     */
+    private function segmentVersion(string $id, string $recipe, int $audioIndex): ?string
+    {
+        $seg = $this->variantDir($id, $recipe, $audioIndex) . '/seg_000.ts';
+        if (!is_file($seg)) {
+            return null;
+        }
+        $mtime = filemtime($seg);
+        if ($mtime === false) {
+            return null;
+        }
+        return (string) $mtime;
     }
 
     private function bustMasterUri(string $id, string $recipe, int $audioIndex): void
