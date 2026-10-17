@@ -14,7 +14,10 @@ RUN apt-get update \
     && docker-php-ext-configure gd --with-jpeg --with-webp \
     && docker-php-ext-install pdo_mysql zip gd \
     && rm -rf /var/lib/apt/lists/* \
-    && echo "memory_limit=256M" > /usr/local/etc/php/conf.d/memory.ini
+    && cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
+
+COPY docker/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+COPY docker/zz-root.conf /usr/local/etc/php-fpm.d/zz-root.conf
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
@@ -23,10 +26,9 @@ COPY composer.json composer.lock /app/
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 COPY . /app
+# Classes added since the composer step (PSR-4, so the classmap is only a speed-up).
+RUN composer dump-autoload --no-dev --optimize --no-scripts
 COPY --from=css /out/app.css /app/public/assets/app.css
-RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' /usr/local/etc/php-fpm.d/www.conf \
-    && sed -i 's/^pm.max_children = .*/pm.max_children = 20/; s/^pm.start_servers = .*/pm.start_servers = 4/; s/^pm.min_spare_servers = .*/pm.min_spare_servers = 2/; s/^pm.max_spare_servers = .*/pm.max_spare_servers = 8/' /usr/local/etc/php-fpm.d/www.conf \
-    && printf '\n[www]\nclear_env = no\ncatch_workers_output = yes\nphp_admin_flag[log_errors] = on\nphp_admin_value[error_log] = /proc/self/fd/2\n' >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
 ENV CATALOG_PATH=/app/catalog.json \
     THUMBS_DIR=/app/thumbs \

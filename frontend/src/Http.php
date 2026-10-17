@@ -6,17 +6,33 @@ namespace Drumeo\App;
 
 final class Http
 {
+    /** @var array<string,mixed>|null decoded JSON request body */
+    private ?array $bodyCache = null;
+
     public function __construct(
         private readonly Config $config,
         private readonly Catalog $catalog,
         private readonly Progress $progress,
+        private readonly Schema $schema,
         private readonly RedisCache $cache,
         private readonly Database $db,
         private readonly ImageScaler $scaler,
         private readonly AdminDashboard $admin,
+        private readonly AdminAuth $auth,
     ) {
     }
 
+    /** Front controller. Nothing escapes as a PHP fatal; details go to the error log. */
+    public static function main(): void
+    {
+        try {
+            self::boot()->run();
+        } catch (\Throwable $e) {
+            self::serverError($e);
+        }
+    }
+
+    /** Wires the services. No I/O here: the DB, Redis and catalog are touched only by routes that need them. */
     public static function boot(): self
     {
         $config = Config::fromEnv();
@@ -24,8 +40,6 @@ final class Http
         $db = new Database($config);
         $catalog = new Catalog($config, $cache);
         $progress = new Progress($db, $catalog);
-        $progress->ensureSchema();
-        $scaler = ImageScaler::fromThumbs($config->imageCacheDir, $config->thumbsDir);
         $admin = new AdminDashboard(
             $config,
             new VideoAdminClient($config->videoApiUrl, $config->adminToken, $config->apiToken),
@@ -34,92 +48,71 @@ final class Http
             $cache,
             $db,
         );
-        return new self($config, $catalog, $progress, $cache, $db, $scaler, $admin);
+        return new self(
+            $config,
+            $catalog,
+            $progress,
+            new Schema($db, $catalog),
+            $cache,
+            $db,
+            ImageScaler::fromThumbs($config->imageCacheDir, $config->thumbsDir),
+            $admin,
+            new AdminAuth($config->adminPassword, $cache),
+        );
     }
 
     public function run(): void
     {
-        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-
-        if ($method === 'OPTIONS') {
-            $this->cors();
-            http_response_code(204);
+        $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $path = self::requestPath();
+        if (str_starts_with($path, '/img/')) {
+            $this->sendVariant($path);
             return;
         }
-
-        try {
-            if (str_starts_with($path, '/img/')) {
-                $this->sendVariant($path);
-                return;
-            }
-            if (str_starts_with($path, '/app/')) {
-                $this->api($method, $path);
-                return;
-            }
-            $this->shell();
-        } catch (\Throwable $e) {
-            if (str_starts_with($path, '/app/')) {
-                $this->json(500, ['error' => $e->getMessage()]);
-                return;
-            }
-            http_response_code(500);
-            if (!str_starts_with($path, '/img/')) {
-                echo 'Server error';
-            }
+        if (str_starts_with($path, '/app/')) {
+            $this->api($method, $path);
+            return;
         }
+        $this->shell();
     }
 
     private function api(string $method, string $path): void
     {
-        $this->cors();
+        // Routes without the database.
         if ($path === '/app/health') {
-            $ok = true;
-            $redis = $this->cache->ping();
-            $db = false;
-            try {
-                $this->db->pdo()->query('SELECT 1');
-                $db = true;
-            } catch (\Throwable) {
-                $ok = false;
-            }
-            $this->json($ok ? 200 : 503, ['ok' => $ok, 'redis' => $redis, 'mysql' => $db]);
+            $this->health();
+            return;
+        }
+        if ($path === '/app/notation.pdf') {
+            $this->notation();
+            return;
+        }
+        if ($path === '/app/admin/login' && $method === 'POST') {
+            $this->adminLogin();
+            return;
+        }
+        if ($path === '/app/admin/logout' && $method === 'POST') {
+            $this->setAdminCookie('', time() - 3600);
+            $this->json(200, ['ok' => true]);
             return;
         }
 
-        if ($path === '/app/profiles' && $method === 'GET') {
-            $this->json(200, ['profiles' => $this->progress->profiles()]);
+        $this->schema->migrate();
+
+        if (str_starts_with($path, '/app/admin/')) {
+            $this->adminApi($method, $path);
             return;
         }
 
         if ($path === '/app/profile' && $method === 'POST') {
-            $body = $this->body();
-            $slug = (string) ($body['slug'] ?? '');
-            $profile = $this->progress->profileBySlug($slug);
+            $profile = $this->progress->profileBySlug(self::str($this->body()['slug'] ?? ''));
             if (!$profile) {
                 $this->json(400, ['error' => 'unknown profile']);
                 return;
             }
-            $this->setProfileCookie($profile['slug']);
+            $this->setNamedCookie($this->config->cookieName, $profile['slug']);
             $this->clearMateCookie();
             $this->json(200, ['profile' => $profile]);
-            return;
-        }
-
-        if ($path === '/app/notation.pdf') {
-            $file = $this->config->notationPath;
-            if (!is_file($file)) {
-                $alt = dirname(__DIR__, 2) . '/drumeo-method-notation-key.pdf';
-                $file = is_file($alt) ? $alt : $file;
-            }
-            if (!is_file($file)) {
-                http_response_code(404);
-                return;
-            }
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: inline; filename="drumeo-method-notation-key.pdf"');
-            header('Cache-Control: public, max-age=86400');
-            readfile($file);
             return;
         }
 
@@ -137,7 +130,7 @@ final class Http
         $pid = (int) $profile['id'];
 
         if ($path === '/app/mate' && $method === 'POST') {
-            $slug = trim((string) ($this->body()['slug'] ?? ''));
+            $slug = trim(self::str($this->body()['slug'] ?? ''));
             if ($slug === '' || $slug === $profile['slug']) {
                 $this->clearMateCookie();
                 $this->json(200, ['mate' => null]);
@@ -153,7 +146,7 @@ final class Http
             return;
         }
 
-        if (preg_match('#^/app/lesson/(\d+)$#', $path, $m) && $method === 'GET') {
+        if (preg_match('#^/app/lesson/(\d+)$#', $path, $m) === 1 && $method === 'GET') {
             $lesson = $this->visibleLesson($profile, (int) $m[1]);
             if ($lesson === null) {
                 $this->json(404, ['error' => 'not found']);
@@ -164,66 +157,12 @@ final class Http
         }
 
         if ($path === '/app/progress' && $method === 'POST') {
-            $body = $this->body();
-            $lessonId = (int) ($body['lessonId'] ?? 0);
-            $lesson = $this->visibleLesson($profile, $lessonId);
-            if ($lesson === null) {
-                $this->json(404, ['error' => 'unknown lesson']);
-                return;
-            }
-            $buckets = $body['playedBuckets'] ?? [];
-            if (!is_array($buckets)) {
-                $buckets = [];
-            }
-            $vimeoId = (string) ($body['vimeoId'] ?? $lesson['vimeoId']);
-            $position = (float) ($body['position'] ?? 0);
-            $duration = (float) ($body['duration'] ?? $lesson['seconds']);
-            $playedDelta = (float) ($body['playedDelta'] ?? 0);
-            $slice = array_slice($buckets, 0, 400);
-            $result = $this->progress->saveProgress(
-                $pid,
-                $lessonId,
-                $vimeoId,
-                $position,
-                $duration,
-                $playedDelta,
-                $slice,
-            );
-            $mate = $this->currentMate($profile);
-            if ($mate) {
-                $this->progress->saveProgress(
-                    (int) $mate['id'],
-                    $lessonId,
-                    $vimeoId,
-                    $position,
-                    $duration,
-                    $playedDelta,
-                    $slice,
-                );
-            }
-            $this->json(200, $result);
-            return;
-        }
-
-        if ($path === '/app/watched' && $method === 'POST') {
-            $body = $this->body();
-            $lessonId = (int) ($body['lessonId'] ?? 0);
-            $lesson = $this->visibleLesson($profile, $lessonId);
-            if ($lesson === null) {
-                $this->json(404, ['error' => 'unknown lesson']);
-                return;
-            }
-            $duration = (float) ($body['duration'] ?? $lesson['seconds']);
-            foreach ($this->sessionProfileIds($profile) as $sid) {
-                $this->progress->markWatched($sid, $lessonId, $lesson['vimeoId'], $duration);
-            }
-            $this->json(200, ['ok' => true]);
+            $this->saveProgress($profile);
             return;
         }
 
         if ($path === '/app/reset' && $method === 'POST') {
-            $body = $this->body();
-            $lessonId = (int) ($body['lessonId'] ?? 0);
+            $lessonId = (int) self::num($this->body()['lessonId'] ?? 0);
             if ($this->visibleLesson($profile, $lessonId) === null) {
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
@@ -237,8 +176,8 @@ final class Http
 
         if ($path === '/app/rating' && $method === 'POST') {
             $body = $this->body();
-            $lessonId = (int) ($body['lessonId'] ?? 0);
-            $score = (int) ($body['score'] ?? 0);
+            $lessonId = (int) self::num($body['lessonId'] ?? 0);
+            $score = (int) self::num($body['score'] ?? 0);
             if ($score < 1 || $score > 4) {
                 $this->json(400, ['error' => 'invalid rating']);
                 return;
@@ -247,7 +186,7 @@ final class Http
                 $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
-            $actor = $this->ratingActor($profile, (string) ($body['slug'] ?? ''));
+            $actor = $this->ratingActor($profile, self::str($body['slug'] ?? ''));
             if ($actor === null) {
                 $this->json(403, ['error' => 'not in session']);
                 return;
@@ -258,7 +197,7 @@ final class Http
         }
 
         if ($path === '/app/audio' && $method === 'POST') {
-            $idx = $this->progress->setAudio($pid, (int) ($this->body()['audioIndex'] ?? 1));
+            $idx = $this->progress->setAudio($pid, (int) self::num($this->body()['audioIndex'] ?? 1, 1.0));
             $this->json(200, [
                 'ok' => true,
                 'audioIndex' => $idx,
@@ -268,7 +207,7 @@ final class Http
         }
 
         if ($path === '/app/path-view' && $method === 'POST') {
-            $view = $this->progress->setPathView($pid, (string) ($this->body()['view'] ?? 'order'));
+            $view = $this->progress->setPathView($pid, self::str($this->body()['view'] ?? 'order'));
             $this->json(200, ['ok' => true, 'pathView' => $view]);
             return;
         }
@@ -278,21 +217,128 @@ final class Http
             return;
         }
 
-        if ($path === '/app/admin/overview' && $method === 'GET') {
-            if (!AdminDashboard::isAdmin($profile)) {
-                $this->json(403, ['error' => 'geen beheerder']);
+        if ($path === '/app/client-log' && $method === 'POST') {
+            $body = $this->body();
+            $event = strtolower(self::str($body['event'] ?? 'event'));
+            $event = preg_replace('/[^a-z0-9_-]/', '', $event) ?: 'event';
+            unset($body['event']);
+            $json = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+            if (!is_string($json)) {
+                $json = '{}';
+            }
+            if (strlen($json) > 1500) {
+                $json = mb_strcut($json, 0, 1500, 'UTF-8') . '…';
+            }
+            error_log('[drumeo] ' . $event . ' profile=' . $profile['slug'] . ' ' . $json);
+            $this->json(200, ['ok' => true]);
+            return;
+        }
+
+        if ($path === '/app/note' && $method === 'POST') {
+            $body = $this->body();
+            $lessonId = (int) self::num($body['lessonId'] ?? 0);
+            if ($this->visibleLesson($profile, $lessonId) === null) {
+                $this->json(404, ['error' => 'unknown lesson']);
                 return;
             }
-            header('Cache-Control: no-store');
+            $saved = $this->progress->saveNote($pid, $lessonId, self::str($body['body'] ?? ''));
+            $this->json(200, ['ok' => true, 'body' => $saved]);
+            return;
+        }
+
+        $this->json(404, ['error' => 'unknown endpoint']);
+    }
+
+    private function health(): void
+    {
+        $redis = $this->cache->ping();
+        $db = false;
+        try {
+            $this->db->pdo()->query('SELECT 1');
+            $db = true;
+        } catch (\Throwable $e) {
+            error_log('[drumeo] health: mysql ' . $e->getMessage());
+        }
+        $this->json($db ? 200 : 503, ['ok' => $db, 'redis' => $redis, 'mysql' => $db]);
+    }
+
+    private function notation(): void
+    {
+        $file = $this->config->notationPath;
+        if (!is_file($file)) {
+            $alt = dirname(__DIR__, 2) . '/drumeo-method-notation-key.pdf';
+            $file = is_file($alt) ? $alt : $file;
+        }
+        if (!is_file($file)) {
+            http_response_code(404);
+            return;
+        }
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="drumeo-method-notation-key.pdf"');
+        header('Cache-Control: public, max-age=86400');
+        header('Content-Length: ' . (string) filesize($file));
+        readfile($file);
+    }
+
+    /** @param array<string,mixed> $profile */
+    private function saveProgress(array $profile): void
+    {
+        $body = $this->body();
+        $lessonId = (int) self::num($body['lessonId'] ?? 0);
+        $lesson = $this->visibleLesson($profile, $lessonId);
+        if ($lesson === null) {
+            $this->json(404, ['error' => 'unknown lesson']);
+            return;
+        }
+        // The catalog decides the video and the length; the client only refines
+        // the length within a small tolerance.
+        $duration = Progress::clampDuration(self::num($body['duration'] ?? 0), (int) ($lesson['seconds'] ?? 0));
+        $position = Progress::clampPosition(self::num($body['position'] ?? 0), $duration);
+        $buckets = is_array($body['playedBuckets'] ?? null)
+            ? array_slice(array_values($body['playedBuckets']), 0, Progress::bucketCap($duration))
+            : [];
+        $playedDelta = self::num($body['playedDelta'] ?? 0);
+        $vimeoId = (string) $lesson['vimeoId'];
+
+        $pid = (int) $profile['id'];
+        $result = null;
+        foreach ($this->sessionProfileIds($profile) as $sid) {
+            $saved = $this->progress->saveProgress($sid, $lessonId, $vimeoId, $position, $duration, $playedDelta, $buckets);
+            if ($sid === $pid) {
+                $result = $saved;
+            }
+        }
+        $this->json(200, $result ?? ['watched' => false, 'position' => $position]);
+    }
+
+    private function adminLogin(): void
+    {
+        [$status, $body] = $this->auth->login(self::str($this->body()['password'] ?? ''));
+        if ($status === 200) {
+            $now = time();
+            $this->setAdminCookie($this->auth->cookieValue($now), $now + AdminAuth::COOKIE_TTL);
+            error_log('[drumeo] admin login ok');
+        } elseif ($status === 401 || $status === 429) {
+            error_log('[drumeo] admin login refused status=' . $status);
+        }
+        header('Cache-Control: no-store');
+        $this->json($status, $body);
+    }
+
+    private function adminApi(string $method, string $path): void
+    {
+        if (!$this->adminUnlocked()) {
+            $this->json(401, ['error' => 'login', 'login' => true]);
+            return;
+        }
+        header('Cache-Control: no-store');
+
+        if ($path === '/app/admin/overview' && $method === 'GET') {
             $this->json(200, $this->admin->overview(($_GET['fresh'] ?? '') === '1'));
             return;
         }
 
         if ($path === '/app/admin/cleanup' && $method === 'POST') {
-            if (!AdminDashboard::isAdmin($profile)) {
-                $this->json(403, ['error' => 'geen beheerder']);
-                return;
-            }
             if (($this->body()['confirm'] ?? false) !== true) {
                 $this->json(400, ['error' => 'bevestig de opruiming']);
                 return;
@@ -300,48 +346,19 @@ final class Http
             try {
                 $result = $this->admin->cleanup();
             } catch (\Throwable $e) {
+                error_log('[drumeo] admin cleanup failed: ' . $e->getMessage());
                 $this->json(502, ['error' => $e->getMessage()]);
                 return;
             }
             $count = (int) ($result['count'] ?? 0);
             $bytes = (int) ($result['bytes'] ?? 0);
-            error_log('[drumeo] admin cleanup profile=wouter count=' . $count . ' bytes=' . $bytes);
-            header('Cache-Control: no-store');
+            $who = $this->currentProfile()['slug'] ?? '-';
+            error_log('[drumeo] admin cleanup profile=' . $who . ' count=' . $count . ' bytes=' . $bytes);
             $this->json(200, [
                 'dryRun' => (bool) ($result['dryRun'] ?? false),
                 'count' => $count,
                 'bytes' => $bytes,
             ]);
-            return;
-        }
-
-        if ($path === '/app/client-log' && $method === 'POST') {
-            $body = $this->body();
-            $event = strtolower((string) ($body['event'] ?? 'event'));
-            $event = preg_replace('/[^a-z0-9_-]/', '', $event) ?: 'event';
-            unset($body['event']);
-            $json = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if (!is_string($json)) {
-                $json = '{}';
-            }
-            if (strlen($json) > 1500) {
-                $json = substr($json, 0, 1500) . '…';
-            }
-            $slug = (string) ($profile['slug'] ?? '');
-            error_log('[drumeo] ' . $event . ' profile=' . $slug . ' ' . $json);
-            $this->json(200, ['ok' => true]);
-            return;
-        }
-
-        if ($path === '/app/note' && $method === 'POST') {
-            $body = $this->body();
-            $lessonId = (int) ($body['lessonId'] ?? 0);
-            if ($this->visibleLesson($profile, $lessonId) === null) {
-                $this->json(404, ['error' => 'unknown lesson']);
-                return;
-            }
-            $saved = $this->progress->saveNote($pid, $lessonId, (string) ($body['body'] ?? ''));
-            $this->json(200, ['ok' => true, 'body' => $saved]);
             return;
         }
 
@@ -353,6 +370,7 @@ final class Http
     {
         $all = $this->catalog->all();
         $available = $this->catalog->availableVideos();
+        $adminUnlocked = $this->adminUnlocked();
         $payload = [
             'profiles' => $this->progress->profiles(),
             'profile' => $profile,
@@ -371,11 +389,13 @@ final class Http
             'pathView' => 'order',
             'notes' => new \stdClass(),
             'loose' => [],
-            'admin' => AdminDashboard::isAdmin($profile),
+            'admin' => AdminAuth::showsLink($profile, $adminUnlocked),
+            'adminUnlocked' => $adminUnlocked,
+            'adminLogin' => $this->auth->enabled(),
         ];
         if ($profile) {
             $snap = $this->progress->snapshot((int) $profile['id']);
-            $progressByLesson = is_array($snap['progress'] ?? null) ? $snap['progress'] : [];
+            $progressByLesson = $snap['progress'];
             $hideFuture = (bool) ($profile['hideFuture'] ?? true);
             $visibleIds = Progress::visibleIds($all['order'], $progressByLesson, $hideFuture);
             if ($hideFuture) {
@@ -384,23 +404,20 @@ final class Http
                 $payload['paths'] = $filtered['paths'];
                 $payload['order'] = $filtered['order'];
             }
-            $payload['progress'] = $snap['progress'];
-            $payload['latestScore'] = $snap['latestScore'];
+            $payload['progress'] = $progressByLesson ?: new \stdClass();
+            $payload['latestScore'] = $snap['latestScore'] ?: new \stdClass();
             $payload['notes'] = $snap['notes'] ?: new \stdClass();
             $payload['lastAudioIndex'] = $snap['lastAudioIndex'];
             $payload['language'] = $snap['lastAudioIndex'] === 1 ? 'nl' : 'en';
-            $payload['pathView'] = $snap['pathView'] ?? 'order';
-            $payload['resume'] = $this->progress->resume((int) $profile['id'], $snap);
+            $payload['pathView'] = $snap['pathView'];
+            $payload['resume'] = $this->progress->resume($snap);
             $practice = $this->progress->practice($snap);
             if ($hideFuture) {
                 $allow = array_fill_keys($visibleIds, true);
-                $kept = [];
-                foreach ($practice as $row) {
-                    if (isset($allow[(int) $row['id']])) {
-                        $kept[] = $row;
-                    }
-                }
-                $practice = $kept;
+                $practice = array_values(array_filter(
+                    $practice,
+                    static fn (array $row): bool => isset($allow[(int) $row['id']]),
+                ));
             }
             $payload['practice'] = $practice;
             $payload['week'] = $this->progress->week((int) $profile['id'], $snap);
@@ -426,10 +443,9 @@ final class Http
         if (!($profile['hideFuture'] ?? true)) {
             return $lesson;
         }
-        $snap = $this->progress->snapshot((int) $profile['id']);
         $ids = Progress::visibleIds(
             $this->catalog->orderedLessons(),
-            is_array($snap['progress'] ?? null) ? $snap['progress'] : [],
+            $this->progress->progressMap((int) $profile['id']),
             true,
         );
         return in_array($lessonId, $ids, true) ? $lesson : null;
@@ -487,9 +503,20 @@ final class Http
         return null;
     }
 
-    private function setProfileCookie(string $slug): void
+    private function adminUnlocked(): bool
     {
-        $this->setNamedCookie($this->config->cookieName, $slug);
+        return $this->auth->unlocked($_COOKIE[$this->config->cookieAdminName] ?? null);
+    }
+
+    private function setAdminCookie(string $value, int $expires): void
+    {
+        setcookie($this->config->cookieAdminName, $value, [
+            'expires' => $expires,
+            'path' => '/',
+            'secure' => self::isHttps(),
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
     }
 
     private function clearMateCookie(): void
@@ -508,9 +535,19 @@ final class Http
         ]);
     }
 
+    private static function isHttps(): bool
+    {
+        $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off') {
+            return true;
+        }
+        $proto = explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0];
+        return strtolower(trim($proto)) === 'https';
+    }
+
     private function sendVariant(string $path): void
     {
-        if (!preg_match('#^/img/([a-zA-Z0-9_-]+)/(\d+)\.(webp|jpg|jpeg)$#', $path, $m)) {
+        if (preg_match('#^/img/([a-zA-Z0-9_-]+)/(\d+)\.(webp|jpg|jpeg)$#', $path, $m) !== 1) {
             http_response_code(404);
             return;
         }
@@ -526,7 +563,8 @@ final class Http
             $this->sendPlaceholder($width, $format);
             return;
         }
-        $mime = $format === 'webp' ? 'image/webp' : 'image/jpeg';
+        // ensure() may fall back to JPEG, so the file decides the type.
+        $mime = str_ends_with($file, '.webp') ? 'image/webp' : 'image/jpeg';
         header('Content-Type: ' . $mime);
         header('Cache-Control: public, max-age=2592000, immutable');
         header('Content-Length: ' . (string) filesize($file));
@@ -553,7 +591,6 @@ final class Http
             header('Content-Type: image/jpeg');
             imagejpeg($im, null, 80);
         }
-        imagedestroy($im);
     }
 
     private function shell(): void
@@ -577,21 +614,64 @@ final class Http
     {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        echo json_encode($body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}';
     }
 
     /** @return array<string,mixed> */
     private function body(): array
     {
-        $raw = file_get_contents('php://input') ?: '';
-        $data = json_decode($raw, true);
-        return is_array($data) ? $data : [];
+        if ($this->bodyCache === null) {
+            $data = json_decode(file_get_contents('php://input') ?: '', true);
+            $this->bodyCache = is_array($data) ? $data : [];
+        }
+        return $this->bodyCache;
     }
 
-    private function cors(): void
+    /** A JSON number or numeric string; anything else (arrays, INF, junk) is the default. */
+    private static function num(mixed $value, float $default = 0.0): float
     {
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Headers: Content-Type');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        if (!is_int($value) && !is_float($value) && !(is_string($value) && is_numeric($value))) {
+            return $default;
+        }
+        $f = (float) $value;
+        return is_finite($f) ? $f : $default;
+    }
+
+    private static function str(mixed $value): string
+    {
+        return is_string($value) ? $value : (is_int($value) || is_float($value) ? (string) $value : '');
+    }
+
+    private static function requestPath(): string
+    {
+        $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+        return is_string($path) && $path !== '' ? $path : '/';
+    }
+
+    private static function serverError(\Throwable $e): void
+    {
+        $method = (string) ($_SERVER['REQUEST_METHOD'] ?? '-');
+        $path = self::requestPath();
+        error_log(sprintf(
+            '[drumeo] %s %s failed: %s: %s at %s:%d',
+            $method,
+            $path,
+            $e::class,
+            $e->getMessage(),
+            $e->getFile(),
+            $e->getLine(),
+        ));
+        if (headers_sent()) {
+            return;
+        }
+        http_response_code(500);
+        header('Cache-Control: no-store');
+        if (str_starts_with($path, '/app/')) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo '{"error":"Serverfout"}';
+        } elseif (!str_starts_with($path, '/img/')) {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Server error';
+        }
     }
 }

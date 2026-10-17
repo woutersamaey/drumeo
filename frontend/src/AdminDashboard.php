@@ -6,7 +6,6 @@ namespace Drumeo\App;
 
 final class AdminDashboard
 {
-    public const ADMIN_SLUG = 'wouter';
     private const VIDEO_CACHE_KEY = 'admin:video:v1';
     private const LIST_CAP = 30;
 
@@ -18,12 +17,6 @@ final class AdminDashboard
         private readonly RedisCache $cache,
         private readonly Database $db,
     ) {
-    }
-
-    /** @param array<string,mixed>|null $profile */
-    public static function isAdmin(?array $profile): bool
-    {
-        return is_array($profile) && ($profile['slug'] ?? '') === self::ADMIN_SLUG;
     }
 
     /** @return array<string,mixed> */
@@ -55,6 +48,7 @@ final class AdminDashboard
         }
 
         $encoder = is_array($video) && is_array($video['encoder'] ?? null) ? $video['encoder'] : [];
+        $database = $this->database();
 
         return [
             'generatedAt' => is_array($video) && is_string($video['now'] ?? null) ? $video['now'] : gmdate('c'),
@@ -62,12 +56,12 @@ final class AdminDashboard
             'video' => $video,
             'catalog' => $catalog,
             'images' => [
-                'cache' => DirStats::of($this->config->imageCacheDir),
+                'cache' => DirStats::of($this->config->imageCacheDir . '/img'),
                 'thumbs' => DirStats::of($this->config->thumbsDir),
             ],
-            'database' => $this->database(),
+            'database' => $database,
             'services' => [
-                'mysql' => true,
+                'mysql' => $database['error'] === null,
                 'redis' => $this->cache->ping(),
                 'video' => $videoError === null && is_array($video),
                 'ffmpeg' => is_array($video) ? ($video['ffmpeg'] ?? null) : null,

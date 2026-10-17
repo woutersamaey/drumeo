@@ -6,23 +6,7 @@ namespace Drumeo\App\Tests;
 
 use Drumeo\App\Progress;
 
-$autoload = dirname(__DIR__) . '/vendor/autoload.php';
-if (is_file($autoload)) {
-    require $autoload;
-} else {
-    require dirname(__DIR__) . '/src/Progress.php';
-}
-
-function fail(string $msg): never
-{
-    fwrite(STDERR, "FAIL: $msg\n");
-    exit(1);
-}
-
-function ok(string $msg): void
-{
-    fwrite(STDOUT, "ok: $msg\n");
-}
+require __DIR__ . '/helpers.php';
 
 if (Progress::HISTORY_RATIO !== 0.33) {
     fail('HISTORY_RATIO should be 0.33, got ' . (string) Progress::HISTORY_RATIO);

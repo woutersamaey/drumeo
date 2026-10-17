@@ -6,8 +6,16 @@ namespace Drumeo\App;
 
 final class Catalog
 {
+    /** Bump only for a change in the cached shape that the key below would not catch. */
+    private const CATALOG_KEY = 'catalog:v9';
+    private const CATALOG_TTL = 600;
+    private const MEDIA_KEY = 'media-index:v4';
+    private const MEDIA_TTL = 900;
+
     /** @var array<string,mixed>|null */
-    private static ?array $memo = null;
+    private ?array $memo = null;
+    /** @var array<string,string>|null */
+    private ?array $mediaMemo = null;
 
     public function __construct(
         private readonly Config $config,
@@ -18,18 +26,36 @@ final class Catalog
     /** @return array<string,mixed> */
     public function all(): array
     {
-        if (self::$memo !== null) {
-            return self::$memo;
+        if ($this->memo !== null) {
+            return $this->memo;
         }
-        $cached = $this->cache->get('catalog:v8');
+        $path = $this->resolveCatalogPath();
+        $key = self::catalogCacheKey($path);
+        $cached = $this->cache->get($key);
         if (is_array($cached) && isset($cached['lessons'], $cached['loose'])) {
-            self::$memo = $cached;
-            return $cached;
+            return $this->memo = $cached;
         }
-        $built = $this->build();
-        $this->cache->set('catalog:v8', $built, 600);
-        self::$memo = $built;
-        return $built;
+        $raw = self::readJson($path);
+        if ($raw === null) {
+            // Do not cache a missing or broken catalog; the next request retries.
+            error_log('[drumeo] catalog unreadable: ' . $path);
+            return $this->memo = $this->build([]);
+        }
+        $built = $this->build($raw);
+        $this->cache->set($key, $built, self::CATALOG_TTL);
+        return $this->memo = $built;
+    }
+
+    /**
+     * Redis key for the built catalog. It changes whenever catalog.json or this
+     * class changes, so an edit or deploy never needs a manual DEL.
+     */
+    public static function catalogCacheKey(string $path): string
+    {
+        clearstatcache(true, $path);
+        $file = is_file($path) ? filemtime($path) . '-' . filesize($path) : 'missing';
+        $code = (string) (filemtime(__FILE__) ?: 0);
+        return self::CATALOG_KEY . ':' . substr(sha1($file . '|' . $code), 0, 12);
     }
 
     /** @return array<string,mixed>|null */
@@ -49,15 +75,17 @@ final class Catalog
     {
         $out = [];
         foreach (array_keys($this->mediaIndex()) as $id) {
-            $out[$id] = true;
+            $out[(string) $id] = true;
         }
         return $out;
     }
 
-    /** @return array<string,mixed> */
-    private function build(): array
+    /**
+     * @param array<string,mixed> $raw
+     * @return array<string,mixed>
+     */
+    private function build(array $raw): array
     {
-        $raw = $this->readJson($this->resolveCatalogPath()) ?? [];
         $lessons = [];
         foreach (is_array($raw['lessons'] ?? null) ? $raw['lessons'] : [] as $row) {
             if (!is_array($row)) {
@@ -109,6 +137,7 @@ final class Catalog
                 'lessons' => [],
             ];
             $pathLessons = [];
+            $thinById = [];
             foreach (is_array($pathInfo['order'] ?? null) ? $pathInfo['order'] : [] as $lid) {
                 $id = (string) (int) $lid;
                 $lesson = $lessons[$id] ?? null;
@@ -120,7 +149,9 @@ final class Catalog
                 $lesson['pathTitleNl'] = $path['titleNl'] !== '' ? $path['titleNl'] : null;
                 $lesson['pathId'] = $path['id'];
                 $lessons[$id] = $lesson;
-                $pathLessons[] = $this->thin($lesson);
+                $thin = $this->thin($lesson);
+                $pathLessons[] = $thin;
+                $thinById[$id] = $thin;
             }
             $packs = [];
             foreach (is_array($pathInfo['packs'] ?? null) ? $pathInfo['packs'] : [] as $packInfo) {
@@ -130,18 +161,16 @@ final class Catalog
                 $packLoc = $this->loc($packInfo['title'] ?? '');
                 $packLessons = [];
                 foreach (is_array($packInfo['lessons'] ?? null) ? $packInfo['lessons'] : [] as $lid) {
-                    $id = (string) (int) $lid;
-                    foreach ($pathLessons as $thin) {
-                        if ((string) $thin['id'] === $id) {
-                            $packLessons[] = $thin;
-                            break;
-                        }
+                    $thin = $thinById[(string) (int) $lid] ?? null;
+                    if ($thin !== null) {
+                        $packLessons[] = $thin;
                     }
                 }
+                $packTitle = $packLoc['en'] !== '' ? $packLoc['en'] : null;
                 $packs[] = [
                     'id' => isset($packInfo['id']) ? (int) $packInfo['id'] : null,
-                    'title' => $packLoc['en'] !== '' ? $packLoc['en'] : 'More',
-                    'titleNl' => $packLoc['nl'] ?? 'Meer',
+                    'title' => $packTitle ?? 'More',
+                    'titleNl' => $packLoc['nl'] ?? $packTitle ?? 'Meer',
                     'lessons' => $packLessons,
                 ];
             }
@@ -295,7 +324,7 @@ final class Catalog
     /**
      * @return array{en:string,nl:?string}
      */
-    private function loc(mixed $value, mixed $legacyNl = null): array
+    private function loc(mixed $value): array
     {
         if (is_array($value) && (array_key_exists('en', $value) || array_key_exists('nl', $value))) {
             $en = $value['en'] ?? '';
@@ -304,9 +333,7 @@ final class Catalog
             $nl = ($nl === null || $nl === '') ? null : (string) $nl;
             return ['en' => $en, 'nl' => $nl];
         }
-        $en = is_string($value) ? $value : '';
-        $nl = is_string($legacyNl) && $legacyNl !== '' ? $legacyNl : null;
-        return ['en' => $en, 'nl' => $nl];
+        return ['en' => is_string($value) ? $value : '', 'nl' => null];
     }
 
     private function fmt(int $seconds): string
@@ -317,7 +344,7 @@ final class Catalog
     }
 
     /** @return array<string,mixed>|null */
-    private function readJson(string $path): ?array
+    private static function readJson(string $path): ?array
     {
         if (!is_file($path)) {
             return null;
@@ -340,48 +367,63 @@ final class Catalog
         return is_file($fallback) ? $fallback : $file;
     }
 
-    /** @return array<string,string> */
+    /**
+     * Video id → NAS path. The key includes the directory mtime, so adding or
+     * removing an MKV rebuilds the index without a manual DEL. A failed or
+     * empty scan (NAS not mounted) is never cached.
+     *
+     * @return array<string,string>
+     */
     private function mediaIndex(): array
     {
-        static $local = null;
-        if (is_array($local)) {
-            return $local;
+        if ($this->mediaMemo !== null) {
+            return $this->mediaMemo;
         }
-        $cached = $this->cache->get('media-index:v3');
-        if (is_array($cached)) {
-            $local = $cached;
-            return $local;
+        $dir = rtrim($this->config->mediaDir, '/');
+        clearstatcache(true, $dir);
+        $mtime = ($dir !== '' && is_dir($dir)) ? filemtime($dir) : false;
+        if ($mtime === false) {
+            error_log('[drumeo] media dir unavailable: ' . $dir);
+            return $this->mediaMemo = [];
         }
-        $fileCache = sys_get_temp_dir() . '/drumeo-media-index-v3.json';
-        if (is_file($fileCache) && (time() - (filemtime($fileCache) ?: 0)) < 900) {
-            $decoded = json_decode((string) file_get_contents($fileCache), true);
-            if (is_array($decoded)) {
-                $local = $decoded;
-                return $local;
-            }
+        $key = self::MEDIA_KEY . ':' . $mtime;
+        $cached = $this->cache->get($key);
+        if (is_array($cached) && $cached !== []) {
+            return $this->mediaMemo = $cached;
         }
-        $dir = $this->config->mediaDir;
+        $map = self::scanMedia($dir);
+        if ($map === null) {
+            error_log('[drumeo] media dir unreadable: ' . $dir);
+            return $this->mediaMemo = [];
+        }
+        if ($map !== []) {
+            $this->cache->set($key, $map, self::MEDIA_TTL);
+        }
+        return $this->mediaMemo = $map;
+    }
+
+    /**
+     * @return array<string,string>|null null when the directory cannot be read
+     */
+    public static function scanMedia(string $dir): ?array
+    {
+        $handle = is_dir($dir) ? @opendir($dir) : false;
+        if ($handle === false) {
+            return null;
+        }
         $map = [];
-        if (is_dir($dir)) {
-            $handle = @opendir($dir);
-            if ($handle !== false) {
-                while (($entry = readdir($handle)) !== false) {
-                    if ($entry === '.' || $entry === '..' || str_starts_with($entry, '.')) {
-                        continue;
-                    }
-                    if (!preg_match('/\[([a-zA-Z0-9_-]+)\]\.mkv$/i', $entry, $m)
-                        && !preg_match('/^([a-zA-Z0-9_-]+)\.mkv$/i', $entry, $m)
-                    ) {
-                        continue;
-                    }
-                    $map[$m[1]] = $dir . '/' . $entry;
-                }
-                closedir($handle);
+        while (($entry = readdir($handle)) !== false) {
+            if (str_starts_with($entry, '.')) {
+                continue;
             }
+            if (preg_match('/\[([a-zA-Z0-9_-]+)\]\.mkv$/i', $entry, $m) !== 1
+                && preg_match('/^([a-zA-Z0-9_-]+)\.mkv$/i', $entry, $m) !== 1
+            ) {
+                continue;
+            }
+            $map[$m[1]] = $dir . '/' . $entry;
         }
-        $this->cache->set('media-index:v3', $map, 900);
-        @file_put_contents($fileCache, json_encode($map));
-        $local = $map;
+        closedir($handle);
         return $map;
     }
 }

@@ -2,32 +2,12 @@
 
 declare(strict_types=1);
 
+namespace Drumeo\App\Tests;
+
 use Drumeo\App\AdminDashboard;
 use Drumeo\App\DirStats;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
-
-function fail(string $msg): never
-{
-    fwrite(STDERR, "FAIL: $msg\n");
-    exit(1);
-}
-
-function ok(string $msg): void
-{
-    fwrite(STDOUT, "ok: $msg\n");
-}
-
-if (AdminDashboard::isAdmin(['slug' => 'wouter']) !== true) {
-    fail('wouter is admin');
-}
-if (AdminDashboard::isAdmin(['slug' => 'vic']) !== false) {
-    fail('vic is not admin');
-}
-if (AdminDashboard::isAdmin(null) !== false) {
-    fail('missing profile is not admin');
-}
-ok('admin slug');
+require __DIR__ . '/helpers.php';
 
 $lessons = [
     ['id' => 1, 'n' => 1, 'vimeoId' => 'aaa', 'title' => 'Hats', 'titleNl' => 'Hi-hats'],
@@ -70,7 +50,7 @@ if (($video['jobs']['recent'][0]['n'] ?? null) !== 1) {
 }
 ok('annotate');
 
-$tmp = sys_get_temp_dir() . '/dirstats-' . bin2hex(random_bytes(4));
+$tmp = tempDir('dirstats');
 mkdir($tmp . '/nested', 0777, true);
 file_put_contents($tmp . '/a.txt', '12345');
 file_put_contents($tmp . '/nested/b.txt', 'xy');

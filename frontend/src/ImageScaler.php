@@ -73,11 +73,16 @@ final class ImageScaler
             return null;
         }
         $dir = dirname($dest);
-        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
-            return null;
+        $lockDir = $this->cacheDir . '/locks';
+        foreach ([$dir, $lockDir] as $d) {
+            if (!is_dir($d) && !@mkdir($d, 0775, true) && !is_dir($d)) {
+                return null;
+            }
         }
-        $lockPath = $dest . '.lock';
-        $lock = @fopen($lockPath, 'c');
+        // The lock file stays in place: unlinking it would let a waiting process
+        // and a newcomer lock different inodes and encode at the same time. It
+        // lives outside img/ so nginx never serves it.
+        $lock = @fopen($lockDir . '/' . $id . '-' . $width . '.' . $format . '.lock', 'c');
         if ($lock === false) {
             return null;
         }
@@ -86,14 +91,10 @@ final class ImageScaler
             if (is_file($dest) && filesize($dest) > 32) {
                 return $dest;
             }
-            if (!$this->writeVariant($source, $dest, $width, $format)) {
-                return null;
-            }
-            return $dest;
+            return $this->writeVariant($source, $dest, $width, $format) ? $dest : null;
         } finally {
             flock($lock, LOCK_UN);
             fclose($lock);
-            @unlink($lockPath);
         }
     }
 
@@ -126,7 +127,7 @@ final class ImageScaler
         if ($dst === false) {
             return false;
         }
-        $tmp = $dest . '.tmp';
+        $tmp = $dest . '.' . bin2hex(random_bytes(6)) . '.tmp';
         $ok = $format === 'webp'
             ? imagewebp($dst, $tmp, self::WEBP_QUALITY)
             : imagejpeg($dst, $tmp, self::JPEG_QUALITY);

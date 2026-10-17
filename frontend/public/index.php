@@ -6,4 +6,4 @@ use Drumeo\App\Http;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-Http::boot()->run();
+Http::main();

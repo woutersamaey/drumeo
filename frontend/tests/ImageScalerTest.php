@@ -6,24 +6,13 @@ namespace Drumeo\App\Tests;
 
 use Drumeo\App\ImageScaler;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
-
-function fail(string $msg): never
-{
-    fwrite(STDERR, "FAIL: $msg\n");
-    exit(1);
-}
-
-function ok(string $msg): void
-{
-    fwrite(STDOUT, "ok: $msg\n");
-}
+require __DIR__ . '/helpers.php';
 
 if (!extension_loaded('gd')) {
     fail('gd extension required');
 }
 
-$tmp = sys_get_temp_dir() . '/imgscale-' . bin2hex(random_bytes(4));
+$tmp = tempDir('imgscale');
 mkdir($tmp . '/src', 0777, true);
 mkdir($tmp . '/cache', 0777, true);
 
@@ -88,6 +77,10 @@ if ($fin === false || $fin[0] !== 400) {
     fail('must not upscale, expected 400 got ' . json_encode($fin));
 }
 ok('no upscale');
+
+check(!glob($tmp . '/cache/img/abc123/*.lock') && !glob($tmp . '/cache/img/abc123/*.tmp'), 'no lock or tmp files inside img/');
+check(is_file($tmp . '/cache/locks/abc123-160.jpg.lock'), 'lock file kept outside img/');
+ok('locks live outside the served tree');
 
 $thumbs = $tmp . '/thumbs';
 mkdir($thumbs, 0777, true);

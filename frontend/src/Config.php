@@ -21,9 +21,12 @@ final class Config
         public readonly string $notationPath,
         public readonly string $cookieName = 'drumeo_profile',
         public readonly string $cookieMateName = 'drumeo_mate',
-        public readonly string $videoApiUrl = 'http://nginx',
+        public readonly string $cookieAdminName = 'drumeo_admin',
+        public readonly string $videoApiUrl = 'http://nginx:8080',
         public readonly string $adminToken = '',
         public readonly string $apiToken = '',
+        /** Empty disables the admin login. */
+        public readonly string $adminPassword = '',
     ) {
     }
 
@@ -43,9 +46,10 @@ final class Config
             mediaDir: self::env('MEDIA_DIR', '/media/nas'),
             imageCacheDir: self::env('IMAGE_CACHE_DIR', '/media/img-cache'),
             notationPath: self::env('NOTATION_PATH', $root . '/notation.pdf'),
-            videoApiUrl: rtrim(self::env('VIDEO_API_URL', 'http://nginx'), '/'),
+            videoApiUrl: rtrim(self::env('VIDEO_API_URL', 'http://nginx:8080'), '/'),
             adminToken: self::env('ADMIN_TOKEN', ''),
             apiToken: self::env('API_TOKEN', ''),
+            adminPassword: self::env('ADMIN_PASSWORD', ''),
         );
     }
 

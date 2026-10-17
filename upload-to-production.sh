@@ -41,8 +41,13 @@ rsync -az --delete --stats \
   --exclude '*.log' \
   "$ROOT/" "$HOST:$REMOTE_DIR/"
 
+# Beheer uses the same password as locally. It goes over stdin, not argv.
+LOCAL_ADMIN_PASSWORD="$(awk -F= '/^ADMIN_PASSWORD=/{print substr($0, index($0, "=") + 1); exit}' .env 2>/dev/null || true)"
+
 log "Compose op de host"
-ssh "$HOST" "cd $(printf %q "$REMOTE_DIR") && REMOTE_MEDIA=$(printf %q "${DRUMEO_MEDIA:-}") bash -s" <<'REMOTE'
+{
+printf 'REMOTE_ADMIN_PASSWORD=%q\n' "$LOCAL_ADMIN_PASSWORD"
+cat <<'REMOTE'
 set -euo pipefail
 
 if [[ ! -f .env ]]; then
@@ -60,7 +65,30 @@ if [[ -n "${REMOTE_MEDIA:-}" ]]; then
   fi
 fi
 
-media="$(awk -F= '/^DRUMEO_MEDIA=/{print $2; exit}' .env | tr -d '"' | tr -d "'")"
+env_value() { awk -v k="$1" -F= '$1 == k {print substr($0, index($0, "=") + 1); exit}' .env | tr -d '"' | tr -d "'"; }
+set_env() {
+  if grep -q "^$1=" .env; then
+    sed -i "s|^$1=.*|$1=$2|" .env
+  else
+    printf '\n%s=%s\n' "$1" "$2" >> .env
+  fi
+}
+
+token="$(env_value ADMIN_TOKEN)"
+if [[ -z "$token" || "$token" == drumeo-admin ]]; then
+  set_env ADMIN_TOKEN "$(od -An -N32 -tx1 /dev/urandom | tr -d " \n")"
+  echo "Nieuw ADMIN_TOKEN in .env gezet."
+fi
+if [[ -z "$(env_value ADMIN_PASSWORD)" ]]; then
+  if [[ -n "${REMOTE_ADMIN_PASSWORD:-}" ]]; then
+    set_env ADMIN_PASSWORD "$REMOTE_ADMIN_PASSWORD"
+    echo "ADMIN_PASSWORD uit de lokale .env overgenomen."
+  else
+    echo "Let op: geen ADMIN_PASSWORD in .env; Beheer blijft dicht." >&2
+  fi
+fi
+
+media="$(env_value DRUMEO_MEDIA)"
 if [[ -z "$media" || "$media" == /Volumes/* ]]; then
   echo "Zet DRUMEO_MEDIA in $PWD/.env naar het NAS-pad op deze host." >&2
   echo "Lokaal: DRUMEO_MEDIA=/mnt/drumeo ./upload-to-production.sh" >&2
@@ -99,8 +127,8 @@ if [[ "$ok" -ne 1 ]]; then
   exit 1
 fi
 
-docker compose "${files[@]}" exec -T redis redis-cli DEL catalog:v3 catalog:v4 catalog:v5 catalog:v6 catalog:v7 catalog:v8 media-index:v1 media-index:v2 media-index:v3 >/dev/null || true
 docker compose "${files[@]}" ps
 REMOTE
+} | ssh "$HOST" "cd $(printf %q "$REMOTE_DIR") && REMOTE_MEDIA=$(printf %q "${DRUMEO_MEDIA:-}") bash -s"
 
 log "Klaar. Intern http://192.168.0.188:5050 — publiek $PUBLIC_URL"
