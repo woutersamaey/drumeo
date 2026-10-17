@@ -119,10 +119,13 @@ services:
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
+    # Mount the directory, not the file: rsync and many editors replace
+    # nginx.conf with a new inode, which a single-file bind mount never sees.
+    command: ["nginx", "-c", "/etc/nginx/drumeo/nginx.conf", "-g", "daemon off;"]
     ports:
       - "5050:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx:/etc/nginx/drumeo:ro
       - ./frontend/public:/var/www/frontend:ro
       - video-cache:/media/cache:ro
       - image-cache:/media/img-cache:ro

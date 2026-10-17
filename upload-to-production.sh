@@ -109,7 +109,7 @@ docker compose "${files[@]}" up --build -d --remove-orphans
 
 # nginx often stays up while video-api and frontend get new addresses.
 # Reload picks up a new nginx.conf and refreshes names that are not on resolve yet.
-docker compose "${files[@]}" exec -T nginx nginx -s reload
+docker compose "${files[@]}" exec -T nginx nginx -c /etc/nginx/drumeo/nginx.conf -s reload
 
 echo "Wachten op nginx health…"
 ok=0
