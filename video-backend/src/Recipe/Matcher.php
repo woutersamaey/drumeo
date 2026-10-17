@@ -62,7 +62,6 @@ final class Matcher
         $fitsClient = $this->fitsMax($srcW, $srcH, $caps);
 
         $mustDownscale = $srcH > 1080 && $caps->maxHeight < $srcH;
-        $clientNeedsAvc1080 = $mustDownscale || ($srcCodec === 'hevc' && !$caps->allowsHevc());
 
         if ($remuxableVideo && $audioIsAac && $fitsClient && !$mustDownscale) {
             if ($srcCodec === 'hevc' && $caps->allowsHevc()) {
@@ -85,23 +84,7 @@ final class Matcher
             $out[] = $this->offer(Recipe::AVC_1080, 'avc_1080', 'avc1', $scaled[0], $scaled[1], $audio, 'aac');
         }
 
-        // If the client cannot take the copy path, avc_1080 is already added.
-        // Drop duplicate avc_1080 if somehow added twice.
-        $seen = [];
-        $uniq = [];
-        foreach ($out as $c) {
-            if (isset($seen[$c['recipe']])) {
-                continue;
-            }
-            $seen[$c['recipe']] = true;
-            $uniq[] = $c;
-        }
-
-        if ($clientNeedsAvc1080) {
-            // remux / audio_aac already excluded by mustDownscale / hevc checks
-        }
-
-        return $uniq;
+        return $out;
     }
 
     /**

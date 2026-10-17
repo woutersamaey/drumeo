@@ -33,7 +33,8 @@ final class MediaPlaylist
     {
         $contents = preg_replace('/#EXT-X-PLAYLIST-TYPE:\s*EVENT/i', '#EXT-X-PLAYLIST-TYPE:VOD', $contents) ?? $contents;
         if (!preg_match('/#EXT-X-PLAYLIST-TYPE:/i', $contents)) {
-            $contents = preg_replace('/(#EXTM3U\s*)/', "$1\n#EXT-X-PLAYLIST-TYPE:VOD", $contents, 1) ?? $contents;
+            // Own line directly after #EXTM3U; never glue it onto the next tag.
+            $contents = preg_replace('/^#EXTM3U[ \t]*(?:\r?\n|$)/', "#EXTM3U\n#EXT-X-PLAYLIST-TYPE:VOD\n", $contents, 1) ?? $contents;
         }
         if (!preg_match('/#EXT-X-START:/i', $contents)) {
             $contents = preg_replace(
@@ -47,6 +48,19 @@ final class MediaPlaylist
             $contents = rtrim($contents) . "\n#EXT-X-ENDLIST\n";
         }
         return $contents;
+    }
+
+    /**
+     * True when the playlist covers the source, allowing max(2s, 2%) slack for
+     * container vs. segment rounding (live caches differ by < 0.3s).
+     * An unknown source duration (0) cannot be checked and passes.
+     */
+    public static function coversDuration(float $playlistSec, float $sourceSec): bool
+    {
+        if ($sourceSec <= 0) {
+            return true;
+        }
+        return $playlistSec >= $sourceSec - max(2.0, 0.02 * $sourceSec);
     }
 
     /**

@@ -6,6 +6,8 @@ namespace Drumeo\Video\Store;
 
 use Drumeo\Video\Clock;
 use Drumeo\Video\Config;
+use Drumeo\Video\Hls\MediaPlaylist;
+use Drumeo\Video\Jobs\Lock;
 use Drumeo\Video\Probe\Probe;
 use Drumeo\Video\VideoId;
 
@@ -17,6 +19,7 @@ final class MetadataStore
         private readonly Probe $probe,
         private readonly Clock $clock,
         private readonly HlsCache $hls,
+        private readonly Lock $locks,
     ) {
     }
 
@@ -29,11 +32,12 @@ final class MetadataStore
     /** @return array<string,mixed>|null */
     public function read(string $id): ?array
     {
-        return AtomicJson::read($this->pathFor(VideoId::assert($id)));
+        return AtomicJson::read($this->pathFor($id));
     }
 
     /**
      * Load-or-probe. Returns metadata or null if the MKV is missing.
+     * ffprobe runs outside the metadata lock; its result is applied under it.
      *
      * @return array<string,mixed>|null
      */
@@ -44,94 +48,75 @@ final class MetadataStore
         if ($stat === null) {
             return null;
         }
-        $meta = $this->read($id);
-        if ($meta === null) {
-            $meta = $this->restoreFromCache($id, $stat) ?? $this->blank($id, $stat);
+        $snapshot = $this->read($id) ?? $this->initialMeta($id, $stat);
+        $sourceChanged = $this->sourceChanged($snapshot, $stat);
+        if ($sourceChanged && $this->locks->forVideo($id) !== []) {
+            // A job is still writing this video's cache; invalidate once it is done.
+            return $this->publicMeta($snapshot);
         }
 
-        $needProbe = $forceProbe
-            || empty($meta['video']['codec'])
-            || (int) ($meta['source']['mtimeMs'] ?? 0) !== $stat['mtimeMs']
-            || (int) ($meta['source']['size'] ?? 0) !== $stat['size'];
+        $failCount = $sourceChanged ? 0 : (int) ($snapshot['source']['failCount'] ?? 0);
+        $frozen = !$forceProbe && !$sourceChanged
+            && !empty($snapshot['source']['probeError'])
+            && $failCount >= $this->config->maxVariantFails;
+        $needProbe = !$frozen && ($forceProbe || $sourceChanged || empty($snapshot['video']['codec']));
 
-        $failCount = (int) ($meta['source']['failCount'] ?? 0);
-        $probeError = $meta['source']['probeError'] ?? null;
-        $sourceChanged = (int) ($meta['source']['mtimeMs'] ?? 0) !== $stat['mtimeMs']
-            || (int) ($meta['source']['size'] ?? 0) !== $stat['size'];
-
+        $probed = null;
+        $probeError = null;
         if ($needProbe) {
-            if (!$forceProbe && !$sourceChanged && $probeError && $failCount >= $this->config->maxVariantFails) {
-                // Frozen until force or mtime/size change.
-                return $this->publicMeta($meta);
-            }
-            if ($sourceChanged) {
-                $this->invalidateCaches($id);
-                $meta['variants'] = [];
-                $failCount = 0;
-                $probeError = null;
-            }
             try {
                 $probed = $this->probe->inspect($stat['path']);
-                $meta['id'] = $id;
-                $meta['source'] = [
-                    'mtimeMs' => $stat['mtimeMs'],
-                    'size' => $stat['size'],
-                    'probeError' => null,
-                    'failCount' => 0,
-                ];
-                $meta['durationSec'] = $probed['durationSec'];
-                $meta['video'] = [
-                    'index' => $probed['video']['index'],
-                    'codec' => $probed['video']['codec'],
-                    'width' => $probed['video']['width'],
-                    'height' => $probed['video']['height'],
-                    'pixFmt' => $probed['video']['pixFmt'],
-                    'bits' => $probed['video']['bits'],
-                    'hdr' => $probed['video']['hdr'],
-                    'fps' => $probed['video']['fps'],
-                ];
-                $meta['audioTracks'] = array_map(static function (array $t): array {
-                    return [
-                        'index' => $t['index'],
-                        'codec' => $t['codec'],
-                        'channels' => $t['channels'],
-                    ];
-                }, $probed['audioTracks']);
-                $this->write($id, $meta);
             } catch (\Throwable $e) {
-                $failCount++;
-                $meta['source'] = [
-                    'mtimeMs' => $stat['mtimeMs'],
-                    'size' => $stat['size'],
-                    'probeError' => $e->getMessage(),
-                    'failCount' => $failCount,
-                ];
-                $this->write($id, $meta);
+                $probeError = $e->getMessage();
             }
         }
 
-        $meta = $this->syncVariantsFromDisk($id, $meta);
+        $meta = $this->mutate($id, function (?array $current) use ($id, $stat, $probed, $probeError): array {
+            $restored = $current === null;
+            $meta = $current ?? $this->initialMeta($id, $stat);
+            if (!$restored && $this->sourceChanged($meta, $stat)) {
+                if ($this->locks->forVideo($id) !== []) {
+                    return $meta;
+                }
+                $this->hls->deleteAllFor($id);
+                $meta['variants'] = [];
+                $meta['source']['failCount'] = 0;
+                $meta['source']['probeError'] = null;
+            }
+            if ($probed !== null) {
+                $meta = $this->applyProbe($id, $meta, $stat, $probed);
+            } elseif ($probeError !== null) {
+                $meta['source'] = [
+                    'mtimeMs' => $stat['mtimeMs'],
+                    'size' => $stat['size'],
+                    'probeError' => $probeError,
+                    'failCount' => (int) ($meta['source']['failCount'] ?? 0) + 1,
+                ];
+            }
+            return $this->syncVariantsFromDisk($id, $meta);
+        });
         return $this->publicMeta($meta);
     }
 
     /**
+     * Locked read-modify-write. If the JSON is missing it starts from the cache on
+     * disk (or a blank record); it never probes.
+     *
      * @param callable(array):array $mutator
      * @return array<string,mixed>
      */
     public function update(string $id, callable $mutator): array
     {
-        $lock = $this->fileLock($id);
-        try {
-            $meta = $this->read($id) ?? $this->load($id);
-            if ($meta === null) {
-                throw new \RuntimeException('Video not found: ' . $id);
+        return $this->mutate($id, function (?array $current) use ($id, $mutator): array {
+            if ($current === null) {
+                $stat = $this->sources->stat($id);
+                if ($stat === null) {
+                    throw new \RuntimeException('Video not found: ' . $id);
+                }
+                $current = $this->initialMeta($id, $stat);
             }
-            $meta = $mutator($meta);
-            $this->write($id, $meta);
-            return $meta;
-        } finally {
-            $this->fileUnlock($lock);
-        }
+            return $mutator($current);
+        });
     }
 
     /** @param array<string,mixed> $meta */
@@ -205,6 +190,107 @@ final class MetadataStore
         AtomicJson::write($this->pathFor($id), $meta);
     }
 
+    /**
+     * @param callable(?array):array $fn
+     * @return array<string,mixed>
+     */
+    private function mutate(string $id, callable $fn): array
+    {
+        $id = VideoId::assert($id);
+        return FileMutex::run($this->config->lockDir() . '/meta-' . $id . '.lock', function () use ($id, $fn): array {
+            $current = $this->read($id);
+            $next = $fn($current);
+            $next['id'] = $id;
+            unset($next['sourcePath'], $next['_internal']);
+            if ($next !== $current) {
+                $this->write($id, $next);
+            }
+            return $next;
+        });
+    }
+
+    /**
+     * @param array<string,mixed> $meta
+     * @param array<string,mixed> $stat
+     */
+    private function sourceChanged(array $meta, array $stat): bool
+    {
+        return (int) ($meta['source']['mtimeMs'] ?? 0) !== $stat['mtimeMs']
+            || (int) ($meta['source']['size'] ?? 0) !== $stat['size'];
+    }
+
+    /**
+     * @param array<string,mixed> $meta
+     * @param array<string,mixed> $stat
+     * @param array<string,mixed> $probed
+     * @return array<string,mixed>
+     */
+    private function applyProbe(string $id, array $meta, array $stat, array $probed): array
+    {
+        $meta['id'] = $id;
+        $meta['source'] = [
+            'mtimeMs' => $stat['mtimeMs'],
+            'size' => $stat['size'],
+            'probeError' => null,
+            'failCount' => 0,
+        ];
+        $meta['durationSec'] = $probed['durationSec'];
+        $meta['video'] = [
+            'index' => $probed['video']['index'],
+            'codec' => $probed['video']['codec'],
+            'width' => $probed['video']['width'],
+            'height' => $probed['video']['height'],
+            'pixFmt' => $probed['video']['pixFmt'],
+            'bits' => $probed['video']['bits'],
+            'hdr' => $probed['video']['hdr'],
+            'fps' => $probed['video']['fps'],
+        ];
+        $meta['audioTracks'] = array_map(static fn (array $t): array => [
+            'index' => $t['index'],
+            'codec' => $t['codec'],
+            'channels' => $t['channels'],
+        ], $probed['audioTracks']);
+        return $meta;
+    }
+
+    /**
+     * Record for a video without JSON: blank, plus finished HLS variants found on disk.
+     *
+     * @param array<string,mixed> $stat
+     * @return array<string,mixed>
+     */
+    private function initialMeta(string $id, array $stat): array
+    {
+        $meta = $this->blank($id, $stat);
+        foreach ($this->hls->listVariantDirs() as $dir) {
+            if ($dir['id'] !== $id) {
+                continue;
+            }
+            $info = $this->hls->inspect($id, $dir['recipe'], $dir['audioIndex']);
+            if (!$info['hasEndlist'] || $info['segmentCount'] < 1) {
+                continue; // unfinished output has no proof of success: treat as missing
+            }
+            $meta['variants'][] = [
+                'recipe' => $dir['recipe'],
+                'audioIndex' => $dir['audioIndex'],
+                'state' => 'ready',
+                'mode' => $dir['recipe'],
+                'protocol' => 'hls',
+                'video' => ['codec' => '', 'width' => 0, 'height' => 0],
+                'audio' => ['index' => $dir['audioIndex'], 'codec' => 'aac', 'channels' => 2],
+                'playlistPath' => $this->hls->relativeMaster($id, $dir['recipe'], $dir['audioIndex']),
+                'segmentCount' => $info['segmentCount'],
+                'durationReadySec' => $info['durationReadySec'],
+                'lastAccessAt' => $this->clock->now(),
+                'readyAt' => $this->clock->now(),
+                'failCount' => 0,
+                'lastFailAt' => null,
+                'error' => null,
+            ];
+        }
+        return $meta;
+    }
+
     /** @return array<string,mixed> */
     private function blank(string $id, array $stat): array
     {
@@ -230,86 +316,44 @@ final class MetadataStore
         ];
     }
 
-    /** @param array<string,mixed> $stat */
-    private function restoreFromCache(string $id, array $stat): ?array
-    {
-        $dirs = $this->hls->listVariantDirs();
-        $mine = array_filter($dirs, fn ($d) => $d['id'] === $id);
-        if ($mine === []) {
-            return null;
-        }
-        $meta = $this->blank($id, $stat);
-        foreach ($mine as $dir) {
-            $info = $this->hls->inspect($id, $dir['recipe'], $dir['audioIndex']);
-            if (!$info['hasPlaylist']) {
-                continue;
-            }
-            $state = $info['hasEndlist'] ? 'ready' : 'running';
-            $meta['variants'][] = [
-                'recipe' => $dir['recipe'],
-                'audioIndex' => $dir['audioIndex'],
-                'state' => $state,
-                'mode' => $dir['recipe'] === 'remux' ? 'remux' : $dir['recipe'],
-                'protocol' => 'hls',
-                'video' => ['codec' => '', 'width' => 0, 'height' => 0],
-                'audio' => ['index' => $dir['audioIndex'], 'codec' => 'aac', 'channels' => 2],
-                'playlistPath' => $this->hls->relativeMaster($id, $dir['recipe'], $dir['audioIndex']),
-                'segmentCount' => $info['segmentCount'],
-                'durationReadySec' => $info['durationReadySec'],
-                'lastAccessAt' => $this->clock->now(),
-                'readyAt' => $state === 'ready' ? $this->clock->now() : null,
-                'failCount' => 0,
-                'lastFailAt' => null,
-                'error' => null,
-            ];
-        }
-        $this->write($id, $meta);
-        return $meta;
-    }
-
     /**
+     * Disk is leading for "does the output exist":
+     * - ready but playlist gone → drop the record (missing);
+     * - ready but shorter than the source → failed (encodes from before exit-code
+     *   and duration checks could be truncated).
+     * Promotion to ready is the worker's job; it knows the FFmpeg exit code.
+     *
      * @param array<string,mixed> $meta
      * @return array<string,mixed>
      */
     private function syncVariantsFromDisk(string $id, array $meta): array
     {
-        $changed = false;
+        $source = (float) ($meta['durationSec'] ?? 0);
         $variants = [];
         foreach ($meta['variants'] ?? [] as $variant) {
             if (!is_array($variant)) {
                 continue;
             }
+            if (($variant['state'] ?? '') !== 'ready') {
+                $variants[] = $variant;
+                continue;
+            }
             $recipe = (string) ($variant['recipe'] ?? '');
             $audio = (int) ($variant['audioIndex'] ?? 0);
             $info = $this->hls->inspect($id, $recipe, $audio);
-            if (($variant['state'] ?? '') === 'ready' && !$info['hasPlaylist']) {
-                $changed = true;
+            if (!$info['hasPlaylist']) {
                 continue;
             }
-            if ($info['hasPlaylist']) {
-                $variant['segmentCount'] = $info['segmentCount'];
-                $variant['durationReadySec'] = $info['durationReadySec'];
-                $variant['playlistPath'] = $this->hls->relativeMaster($id, $recipe, $audio);
-                if ($info['hasEndlist'] && ($variant['state'] ?? '') !== 'failed') {
-                    if (($variant['state'] ?? '') !== 'ready') {
-                        $variant['state'] = 'ready';
-                        $variant['readyAt'] = $variant['readyAt'] ?? $this->clock->now();
-                        $changed = true;
-                    }
-                }
+            if ($info['hasEndlist'] && !MediaPlaylist::coversDuration($info['durationReadySec'], $source)) {
+                $variant['state'] = 'failed';
+                $variant['failCount'] = (int) ($variant['failCount'] ?? 0) + 1;
+                $variant['lastFailAt'] = $this->clock->now();
+                $variant['error'] = sprintf('incomplete output: %.1fs of %.1fs', $info['durationReadySec'], $source);
             }
             $variants[] = $variant;
         }
-        if ($changed || count($variants) !== count($meta['variants'] ?? [])) {
-            $meta['variants'] = $variants;
-            $this->write($id, $meta);
-        }
+        $meta['variants'] = $variants;
         return $meta;
-    }
-
-    private function invalidateCaches(string $id): void
-    {
-        $this->hls->deleteAllFor($id);
     }
 
     /** @param array<string,mixed> $meta @return array<string,mixed> */
@@ -317,27 +361,5 @@ final class MetadataStore
     {
         unset($meta['sourcePath'], $meta['_internal']);
         return $meta;
-    }
-
-    /** @return array{fp:resource,path:string} */
-    private function fileLock(string $id): array
-    {
-        $path = $this->config->lockDir() . '/meta-' . $id . '.lock';
-        if (!is_dir($this->config->lockDir())) {
-            mkdir($this->config->lockDir(), 0775, true);
-        }
-        $fp = fopen($path, 'c+');
-        if ($fp === false) {
-            throw new \RuntimeException('Cannot open lock ' . $path);
-        }
-        flock($fp, LOCK_EX);
-        return ['fp' => $fp, 'path' => $path];
-    }
-
-    /** @param array{fp:resource,path:string} $lock */
-    private function fileUnlock(array $lock): void
-    {
-        flock($lock['fp'], LOCK_UN);
-        fclose($lock['fp']);
     }
 }

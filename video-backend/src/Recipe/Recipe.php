@@ -26,9 +26,4 @@ final class Recipe
             default => 99,
         };
     }
-
-    public static function isVideoTranscode(string $recipe): bool
-    {
-        return $recipe === self::AVC_1080;
-    }
 }

@@ -5,16 +5,24 @@ declare(strict_types=1);
 namespace Drumeo\Video\Jobs;
 
 use Drumeo\Video\Config;
+use Drumeo\Video\Process;
+use Drumeo\Video\Recipe\Matcher;
+use Drumeo\Video\Recipe\Recipe;
 use Drumeo\Video\Store\AtomicJson;
 
 /**
- * Picks a working H.264 encoder at startup.
+ * Picks a working H.264 encoder.
  * FFMPEG_VCODEC=auto (default) probes GPU then CPU.
- * An explicit value is used if it works, otherwise we fall back.
+ * An explicit value is used if it works, otherwise we fall back to libx264.
+ * Hardware candidates are smoke-tested with the real avc_1080 argv (FfmpegCommand)
+ * on a one-second H.264 sample, so "works here" means "works for jobs".
  */
 final class EncoderPicker
 {
     public const AUTO = 'auto';
+
+    /** Bump when the smoke test or the encoder argv changes, to drop old cache files. */
+    private const CACHE_VERSION = 2;
 
     /** Preferred order when auto-detecting. */
     public const CANDIDATES = [
@@ -26,6 +34,8 @@ final class EncoderPicker
     ];
 
     private ?array $cached = null;
+
+    private static ?bool $ffmpegAvailable = null;
 
     /** @var callable|null fn(list<string>): array{ok:bool, output:string} */
     private $runner;
@@ -56,6 +66,7 @@ final class EncoderPicker
         if (!$force) {
             $disk = $this->readCache();
             if (is_array($disk)
+                && ($disk['version'] ?? 0) === self::CACHE_VERSION
                 && ($disk['fingerprint'] ?? '') === $fp
                 && ($disk['requested'] ?? '') === $requested
                 && is_string($disk['encoder'] ?? null)
@@ -70,7 +81,6 @@ final class EncoderPicker
             : array_values(array_unique([$requested, 'libx264']));
 
         $picked = 'libx264';
-        $probed = $requested === self::AUTO;
         foreach ($order as $codec) {
             $tried[] = $codec;
             if ($this->works($codec, $codec !== 'libx264' || $requested === self::AUTO)) {
@@ -80,9 +90,10 @@ final class EncoderPicker
         }
 
         $result = [
+            'version' => self::CACHE_VERSION,
             'encoder' => $picked,
             'requested' => $requested,
-            'probed' => $probed,
+            'probed' => $requested === self::AUTO,
             'fingerprint' => $fp,
             'tried' => $tried,
             'probedAt' => gmdate('c'),
@@ -100,6 +111,24 @@ final class EncoderPicker
         return php_uname('n') . '|dri=' . $dri . '|nv=' . $nv . '|va=' . $render;
     }
 
+    public function ffmpegAvailable(): bool
+    {
+        if (self::$ffmpegAvailable === null) {
+            self::$ffmpegAvailable = $this->run([$this->config->ffmpegBin, '-version'], 5)['ok'];
+        }
+        return self::$ffmpegAvailable;
+    }
+
+    public function vaapiDevice(): ?string
+    {
+        foreach (['/dev/dri/renderD128', '/dev/dri/renderD129', '/dev/dri/card0'] as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        return null;
+    }
+
     private function works(string $codec, bool $smokeEncode): bool
     {
         if (!$this->encoderListed($codec)) {
@@ -113,60 +142,58 @@ final class EncoderPicker
 
     public function encoderListed(string $codec): bool
     {
-        $bin = $this->config->ffmpegBin;
-        $result = $this->run([$bin, '-hide_banner', '-encoders']);
+        $result = $this->run([$this->config->ffmpegBin, '-hide_banner', '-encoders']);
         if (!$result['ok']) {
             return $codec === 'libx264';
         }
         return (bool) preg_match('/\b' . preg_quote($codec, '/') . '\b/', $result['output']);
     }
 
+    /** Encode a one-second sample to HLS with the exact argv a job would use. */
     public function smoke(string $codec): bool
     {
-        $bin = $this->config->ffmpegBin;
-        $args = [
-            $bin,
-            '-hide_banner',
-            '-loglevel', 'error',
-            '-f', 'lavfi',
-            '-i', 'testsrc=size=128x72:rate=24',
-            '-t', '0.4',
-            '-an',
-        ];
-        $args = array_merge($args, $this->smokeCodecArgs($codec));
-        $args[] = '-f';
-        $args[] = 'null';
-        $args[] = '-';
-        $result = $this->run($args, 6);
-        return $result['ok'];
-    }
-
-    /** @return list<string> */
-    private function smokeCodecArgs(string $codec): array
-    {
-        return match ($codec) {
-            'h264_nvenc' => ['-c:v', 'h264_nvenc', '-preset', 'p4', '-b:v', '200k'],
-            'h264_qsv' => ['-c:v', 'h264_qsv', '-preset', 'veryfast', '-b:v', '200k'],
-            'h264_vaapi' => array_values(array_filter([
-                $this->vaapiDevice() ? '-vaapi_device' : null,
-                $this->vaapiDevice(),
-                '-vf', 'format=nv12,hwupload',
-                '-c:v', 'h264_vaapi',
-                '-b:v', '200k',
-            ])),
-            'h264_videotoolbox' => ['-c:v', 'h264_videotoolbox', '-b:v', '200k'],
-            default => ['-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency', '-b:v', '200k'],
-        };
-    }
-
-    private function vaapiDevice(): ?string
-    {
-        foreach (['/dev/dri/renderD128', '/dev/dri/renderD129', '/dev/dri/card0'] as $path) {
-            if (file_exists($path)) {
-                return $path;
-            }
+        $base = rtrim($this->config->tmpDir, '/');
+        $sample = $base . '/vb-smoke-sample.mkv';
+        if (!is_file($sample) && !$this->makeSample($sample)) {
+            return false;
         }
-        return null;
+        $outDir = $base . '/vb-smoke-' . bin2hex(random_bytes(4));
+        if (!@mkdir($outDir, 0775, true) && !is_dir($outDir)) {
+            return false;
+        }
+        try {
+            $meta = ['video' => ['codec' => 'h264', 'width' => 640, 'height' => 360, 'fps' => 24.0, 'pixFmt' => 'yuv420p']];
+            $command = new FfmpegCommand($this->config, new Matcher(), $this);
+            $args = $command->build($sample, $outDir, $meta, Recipe::AVC_1080, 0, $codec);
+            return $this->run($args, 20)['ok'];
+        } finally {
+            foreach (glob($outDir . '/*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($outDir);
+        }
+    }
+
+    private function makeSample(string $path): bool
+    {
+        $tmp = $path . '.' . bin2hex(random_bytes(4)) . '.mkv';
+        $ok = $this->run([
+            $this->config->ffmpegBin, '-hide_banner', '-loglevel', 'error', '-y',
+            '-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=24',
+            '-f', 'lavfi', '-i', 'sine=frequency=440:sample_rate=48000',
+            '-t', '1',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac',
+            $tmp,
+        ], 20)['ok'];
+        if ($this->runner !== null) {
+            return $ok; // fake runner in tests: no file is produced
+        }
+        if (!$ok || !is_file($tmp)) {
+            @unlink($tmp);
+            return false;
+        }
+        return rename($tmp, $path);
     }
 
     /** @return array<string,mixed>|null */
@@ -207,38 +234,7 @@ final class EncoderPicker
         if ($this->runner !== null) {
             return ($this->runner)($args);
         }
-        $spec = [
-            0 => ['file', '/dev/null', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-        $proc = @proc_open($args, $spec, $pipes, null, null, ['bypass_shell' => true]);
-        if (!is_resource($proc)) {
-            return ['ok' => false, 'output' => 'failed to start'];
-        }
-        stream_set_blocking($pipes[1], false);
-        stream_set_blocking($pipes[2], false);
-        $out = '';
-        $deadline = microtime(true) + $timeoutSec;
-        while (true) {
-            $status = proc_get_status($proc);
-            $out .= (string) stream_get_contents($pipes[1]);
-            $out .= (string) stream_get_contents($pipes[2]);
-            if (!$status['running']) {
-                break;
-            }
-            if (microtime(true) > $deadline) {
-                proc_terminate($proc, SIGKILL);
-                fclose($pipes[1]);
-                fclose($pipes[2]);
-                proc_close($proc);
-                return ['ok' => false, 'output' => 'timeout'];
-            }
-            usleep(50000);
-        }
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $code = proc_close($proc);
-        return ['ok' => $code === 0, 'output' => $out];
+        $result = Process::run($args, $timeoutSec);
+        return ['ok' => $result['ok'], 'output' => $result['stdout'] . $result['stderr']];
     }
 }

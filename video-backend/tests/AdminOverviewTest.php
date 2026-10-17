@@ -114,7 +114,6 @@ final class AdminOverviewTest extends TestCase
                 metadataDir: $c->metadataDir,
                 apiToken: 'secret',
                 tmpDir: $c->tmpDir,
-                playerHlsJsPath: $c->playerHlsJsPath,
                 ffmpegVcodec: 'libx264',
                 adminToken: 'adm',
             );

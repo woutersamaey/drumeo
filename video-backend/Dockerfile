@@ -4,7 +4,6 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ffmpeg \
         libfcgi-bin \
-        gosu \
         unzip \
         git \
     && rm -rf /var/lib/apt/lists/* \
@@ -18,19 +17,16 @@ RUN composer install --no-dev --no-interaction --prefer-dist --no-scripts --opti
 
 COPY . /app
 COPY docker/php.ini /usr/local/etc/php/conf.d/drumeo.ini
+COPY docker/zz-root.conf /usr/local/etc/php-fpm.d/zz-root.conf
 RUN composer dump-autoload --optimize --no-dev \
     && mkdir -p /media/bron /media/cache /media/meta \
     && chmod +x /app/docker/entrypoint.sh /app/bin/*.php \
-    && sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' /usr/local/etc/php-fpm.d/www.conf \
-    && sed -i 's/^pm.max_children = .*/pm.max_children = 16/; s/^pm.start_servers = .*/pm.start_servers = 4/; s/^pm.min_spare_servers = .*/pm.min_spare_servers = 2/; s/^pm.max_spare_servers = .*/pm.max_spare_servers = 8/' /usr/local/etc/php-fpm.d/www.conf \
-    && printf '\n[www]\nclear_env = no\ncatch_workers_output = yes\nphp_admin_flag[log_errors] = on\nphp_admin_value[error_log] = /proc/self/fd/2\n' >> /usr/local/etc/php-fpm.d/zz-docker.conf \
-    && chown -R www-data:www-data /media/cache /media/meta
+    && php-fpm -t -R
 
+# Runs as root (compose: user "0:0"), so no chown of the data directories.
 ENV SOURCE_DIR=/media/bron \
     CACHE_DIR=/media/cache \
     METADATA_DIR=/media/meta \
-    API_HOST=0.0.0.0 \
-    API_PORT=8080 \
     FFMPEG_VCODEC=libx264
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]

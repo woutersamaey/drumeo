@@ -32,11 +32,7 @@ final class Router
     public function dispatch(Request $request): Response
     {
         if ($request->method === 'OPTIONS') {
-            return Response::json(204, [], [
-                'Access-Control-Allow-Origin' => '*',
-                'Access-Control-Allow-Headers' => 'Authorization, Content-Type',
-                'Access-Control-Allow-Methods' => 'GET, POST, DELETE, OPTIONS',
-            ]);
+            return Response::json(204, []); // same-origin app: no CORS headers
         }
 
         foreach ($this->routes as $route) {

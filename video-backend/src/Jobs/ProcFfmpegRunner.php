@@ -4,23 +4,28 @@ declare(strict_types=1);
 
 namespace Drumeo\Video\Jobs;
 
+use Drumeo\Video\Process;
+
 final class ProcFfmpegRunner implements FfmpegRunner
 {
-    /** @var array<int,array{resource:resource,pipes:array}> */
+    /** @var array<int,resource> */
     private array $procs = [];
+
+    /** @var array<int,int> exit codes of processes that ended, until the pid is reused */
+    private array $exited = [];
 
     public function start(array $args, string $logFile): int
     {
         $dir = dirname($logFile);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new \RuntimeException('Cannot create log directory: ' . $dir);
         }
         $spec = [
             0 => ['file', '/dev/null', 'r'],
-            1 => ['file', $logFile, 'a'],
+            1 => ['file', $logFile, 'w'],
             2 => ['file', $logFile, 'a'],
         ];
-        $proc = proc_open($args, $spec, $pipes, null, null, ['bypass_shell' => true]);
+        $proc = proc_open($args, $spec, $pipes);
         if (!is_resource($proc)) {
             throw new \RuntimeException('Failed to start ffmpeg');
         }
@@ -30,53 +35,51 @@ final class ProcFfmpegRunner implements FfmpegRunner
             proc_close($proc);
             throw new \RuntimeException('ffmpeg started without pid');
         }
-        $this->procs[$pid] = ['resource' => $proc, 'pipes' => $pipes];
+        $this->procs[$pid] = $proc;
+        unset($this->exited[$pid]);
         return $pid;
-    }
-
-    public function running(int $pid): bool
-    {
-        return $this->poll($pid)['running'];
     }
 
     public function poll(int $pid): array
     {
-        if (isset($this->procs[$pid])) {
-            $status = proc_get_status($this->procs[$pid]['resource']);
-            if ($status['running']) {
-                return ['running' => true, 'exitCode' => null];
-            }
-            $exit = $status['exitcode'];
-            proc_close($this->procs[$pid]['resource']);
-            unset($this->procs[$pid]);
-            return ['running' => false, 'exitCode' => is_int($exit) ? $exit : 1];
+        if (isset($this->exited[$pid])) {
+            return ['running' => false, 'exitCode' => $this->exited[$pid]];
         }
-
-        if (function_exists('posix_kill') && @posix_kill($pid, 0)) {
+        if (!isset($this->procs[$pid])) {
+            return ['running' => false, 'exitCode' => null];
+        }
+        $status = proc_get_status($this->procs[$pid]);
+        if ($status['running']) {
             return ['running' => true, 'exitCode' => null];
         }
-        return ['running' => false, 'exitCode' => null];
+        // proc_get_status reports the real exit code only once; keep it.
+        $exit = is_int($status['exitcode']) && $status['exitcode'] >= 0 ? $status['exitcode'] : 1;
+        if ($status['signaled'] ?? false) {
+            $exit = 128 + (int) ($status['termsig'] ?? 0);
+        }
+        proc_close($this->procs[$pid]);
+        unset($this->procs[$pid]);
+        $this->exited[$pid] = $exit;
+        return ['running' => false, 'exitCode' => $exit];
     }
 
     public function stop(int $pid): void
     {
-        if (isset($this->procs[$pid])) {
-            proc_terminate($this->procs[$pid]['resource'], SIGTERM);
-            usleep(300000);
-            $status = proc_get_status($this->procs[$pid]['resource']);
-            if ($status['running']) {
-                proc_terminate($this->procs[$pid]['resource'], SIGKILL);
-            }
-            proc_close($this->procs[$pid]['resource']);
-            unset($this->procs[$pid]);
+        if (!isset($this->procs[$pid])) {
             return;
         }
-        if (function_exists('posix_kill')) {
-            @posix_kill($pid, SIGTERM);
-            usleep(200000);
-            if (@posix_kill($pid, 0)) {
-                @posix_kill($pid, SIGKILL);
+        $proc = $this->procs[$pid];
+        proc_terminate($proc, Process::SIGTERM);
+        for ($i = 0; $i < 30; $i++) {
+            usleep(100_000);
+            if (!proc_get_status($proc)['running']) {
+                break;
             }
         }
+        if (proc_get_status($proc)['running']) {
+            proc_terminate($proc, Process::SIGKILL);
+            usleep(100_000);
+        }
+        $this->poll($pid);
     }
 }

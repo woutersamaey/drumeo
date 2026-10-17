@@ -50,6 +50,11 @@ final class Response
         return self::json(409, ['error' => $error] + $extra);
     }
 
+    public static function serverError(): self
+    {
+        return self::json(500, ['error' => 'internal error']);
+    }
+
     public static function tooMany(string $error = 'queue full', int $retryAfter = 15): self
     {
         return self::json(429, ['error' => $error], ['Retry-After' => (string) $retryAfter]);
@@ -58,10 +63,13 @@ final class Response
     public function send(): void
     {
         http_response_code($this->status);
-        header('Content-Type: application/json; charset=utf-8');
         foreach ($this->headers as $name => $value) {
             header($name . ': ' . $value);
         }
+        if ($this->status === 204) {
+            return;
+        }
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode($this->body, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 }

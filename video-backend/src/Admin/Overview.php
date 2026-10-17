@@ -59,7 +59,7 @@ final class Overview
                 'vcodec' => $this->config->ffmpegVcodec,
             ],
             'encoder' => $this->encoder(),
-            'ffmpeg' => $this->ffmpegOk(),
+            'ffmpeg' => $this->encoders->ffmpegAvailable(),
             'disk' => [
                 'source' => $this->disk($this->config->sourceDir),
                 'cache' => $this->disk($this->config->cacheDir),
@@ -166,7 +166,7 @@ final class Overview
                 'bytes' => $bytes,
                 'state' => $state,
                 'lastPlayedAt' => $lastPlayed,
-                'ageDays' => $this->ageDays($meta, $variant, (int) $dir['mtime']),
+                'ageDays' => $this->ageDays($this->cleaner->ageUnix($meta, $variant, (int) $dir['mtime'])),
                 'hasSource' => $hasSource,
             ];
             $key = $id . '|' . $recipe . '|' . $audio;
@@ -286,19 +286,20 @@ final class Overview
     private function queue(): array
     {
         $out = [];
+        $now = $this->clock->unix();
         foreach ($this->locks->all() as $lock) {
             $pid = $lock['pid'] ?? null;
-            $state = (string) ($lock['state'] ?? '');
-            if ($state === '') {
-                $state = (is_int($pid) && $pid > 0) ? 'running' : 'queued';
-            }
+            $running = is_int($pid);
             $out[] = [
                 'videoId' => (string) ($lock['videoId'] ?? ''),
                 'recipe' => (string) ($lock['recipe'] ?? ''),
                 'audioIndex' => (int) ($lock['audioIndex'] ?? 0),
-                'state' => $state,
+                'state' => !empty($lock['cancel']) ? 'cancelling' : ($running ? 'running' : 'queued'),
                 'intent' => (string) ($lock['intent'] ?? ''),
-                'pid' => is_int($pid) ? $pid : null,
+                'encoder' => isset($lock['encoder']) ? (string) $lock['encoder'] : null,
+                'pid' => $running ? $pid : null,
+                'heartbeatAgeSec' => $running ? $now - Lock::heartbeatOf($lock) : null,
+                'stale' => !Lock::isFresh($lock, $now),
                 'startedAt' => isset($lock['startedAt']) && is_string($lock['startedAt']) ? $lock['startedAt'] : null,
                 'queuedAt' => isset($lock['queuedAt']) && is_string($lock['queuedAt']) ? $lock['queuedAt'] : null,
             ];
@@ -306,16 +307,28 @@ final class Overview
         return $out;
     }
 
-    /** @return array{active:list<array<string,mixed>>,recent:list<array<string,mixed>>} */
+    /**
+     * A job is active only while a lock refers to it; queued/running records
+     * without one are shown as abandoned (the worker prunes them).
+     *
+     * @return array{active:list<array<string,mixed>>,recent:list<array<string,mixed>>}
+     */
     private function jobSummary(): array
     {
+        $locked = [];
+        foreach ($this->locks->all() as $lock) {
+            if (!empty($lock['jobId'])) {
+                $locked[(string) $lock['jobId']] = true;
+            }
+        }
         $active = [];
         $done = [];
         foreach ($this->jobs->all() as $job) {
             $row = $this->publicJob($job);
-            $exit = $job['exitCode'] ?? null;
-            $state = (string) ($job['state'] ?? '');
-            $live = $exit === null && in_array($state, ['queued', 'running', 'starting'], true);
+            $live = isset($locked[$row['jobId']]);
+            if (!$live && in_array($row['state'], JobRegistry::LIVE_STATES, true)) {
+                $row['state'] = 'abandoned';
+            }
             if ($live) {
                 $active[] = $row;
             } else {
@@ -367,18 +380,6 @@ final class Overview
         }
     }
 
-    private function ffmpegOk(): bool
-    {
-        $bin = $this->config->ffmpegBin;
-        if ($bin === '' || !function_exists('exec')) {
-            return false;
-        }
-        $out = [];
-        $code = 1;
-        @exec(escapeshellcmd($bin) . ' -version 2>&1', $out, $code);
-        return $code === 0;
-    }
-
     /** @return array{exists:bool,freeBytes:?int,totalBytes:?int} */
     private function disk(string $dir): array
     {
@@ -402,14 +403,18 @@ final class Overview
         }
         $bytes = 0;
         $files = 0;
-        $it = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
-        );
-        foreach ($it as $file) {
-            if ($file->isFile()) {
-                $bytes += $file->getSize();
-                $files++;
+        try {
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($it as $file) {
+                if ($file->isFile()) {
+                    $bytes += $file->getSize();
+                    $files++;
+                }
             }
+        } catch (\UnexpectedValueException|\RuntimeException) {
+            // a file vanished mid-scan; partial numbers are fine for a dashboard
         }
         return ['bytes' => $bytes, 'files' => $files, 'exists' => true];
     }
@@ -428,24 +433,8 @@ final class Overview
         return $cache[$id];
     }
 
-    /** @param array<string,mixed>|null $meta @param array<string,mixed>|null $variant */
-    private function ageDays(?array $meta, ?array $variant, int $mtime): int
+    private function ageDays(int $unix): int
     {
-        $unix = $mtime;
-        $iso = is_array($meta) ? ($meta['lastPlayedAt'] ?? null) : null;
-        if (!is_string($iso) || $iso === '') {
-            $iso = is_array($variant) ? ($variant['lastAccessAt'] ?? null) : null;
-        }
-        if (is_string($iso) && $iso !== '') {
-            $t = strtotime($iso);
-            if ($t !== false) {
-                $unix = $t;
-            }
-        }
-        $age = $this->clock->unix() - $unix;
-        if ($age < 0) {
-            return 0;
-        }
-        return (int) floor($age / 86400);
+        return max(0, (int) floor(($this->clock->unix() - $unix) / 86400));
     }
 }

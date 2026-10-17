@@ -18,7 +18,6 @@ use Drumeo\Video\Jobs\Lock;
 use Drumeo\Video\Jobs\ProcFfmpegRunner;
 use Drumeo\Video\Jobs\Worker;
 use Drumeo\Video\Playback\PlaybackService;
-use Drumeo\Video\Playback\PlayerRenderer;
 use Drumeo\Video\Probe\Probe;
 use Drumeo\Video\Recipe\Matcher;
 use Drumeo\Video\Store\HlsCache;
@@ -41,6 +40,7 @@ final class App
         public readonly Clock $clock,
         public readonly EncoderPicker $encoders,
         public readonly Overview $overview,
+        public readonly Lock $locks,
     ) {
     }
 
@@ -52,19 +52,18 @@ final class App
         $sources = new SourceStore($config);
         $probe = new Probe($config);
         $hls = new HlsCache($config);
-        $meta = new MetadataStore($config, $sources, $probe, $clock, $hls);
-        $matcher = new Matcher();
         $locks = new Lock($config);
+        $meta = new MetadataStore($config, $sources, $probe, $clock, $hls, $locks);
+        $matcher = new Matcher();
         $jobs = new JobRegistry($config);
         $encoders = new EncoderPicker($config);
         $commands = new FfmpegCommand($config, $matcher, $encoders);
         $runner ??= new ProcFfmpegRunner();
-        $worker = new Worker($config, $meta, $sources, $hls, $locks, $jobs, $commands, $runner, $clock);
-        $player = new PlayerRenderer($config);
-        $playback = new PlaybackService($config, $sources, $meta, $hls, $matcher, $worker, $clock, $player, $encoders);
-        $cleaner = new Cleaner($config, $meta, $hls, $clock);
+        $cleaner = new Cleaner($config, $meta, $hls, $clock, $locks);
+        $worker = new Worker($config, $meta, $sources, $hls, $locks, $jobs, $commands, $runner, $clock, $encoders, $cleaner);
+        $playback = new PlaybackService($config, $sources, $meta, $hls, $matcher, $worker, $clock, $encoders, $locks);
         $overview = new Overview($config, $sources, $meta, $hls, $cleaner, $jobs, $locks, $encoders, $clock);
-        return new self($config, $sources, $meta, $hls, $matcher, $worker, $playback, $jobs, $cleaner, $probe, $clock, $encoders, $overview);
+        return new self($config, $sources, $meta, $hls, $matcher, $worker, $playback, $jobs, $cleaner, $probe, $clock, $encoders, $overview, $locks);
     }
 
     public function handle(Request $request): Response
@@ -75,6 +74,18 @@ final class App
             return $denied;
         }
 
+        try {
+            return $this->router($auth)->dispatch($request);
+        } catch (\InvalidArgumentException $e) {
+            return Response::badRequest($e->getMessage());
+        } catch (\Throwable $e) {
+            error_log(sprintf('[api] %s %s: %s', $request->method, $request->path, $e));
+            return Response::serverError();
+        }
+    }
+
+    private function router(Auth $auth): Router
+    {
         $router = new Router();
         $p = $this->playback;
 
@@ -84,7 +95,16 @@ final class App
             return $p->getVideo($params['id']);
         });
         $router->post('/api/playback/query', fn (Request $req) => $p->query($req->json));
-        $router->post('/api/playback/prepare', fn (Request $req) => $p->prepare($req->json));
+        $router->post('/api/playback/prepare', function (Request $req) use ($p, $auth) {
+            // force deletes a cache and resets the fail counter: admin only.
+            if ((bool) ($req->json['force'] ?? false)) {
+                $admin = $auth->requireAdmin($req);
+                if ($admin) {
+                    return $admin;
+                }
+            }
+            return $p->prepare($req->json);
+        });
         $router->get('/api/playback/status', function (Request $req) use ($p) {
             return $p->status(
                 (string) $req->query('videoId', ''),
@@ -95,13 +115,6 @@ final class App
         });
         $router->get('/api/playback/playlist', function (Request $req) use ($p) {
             return $p->playlist(
-                (string) $req->query('videoId', ''),
-                (string) $req->query('recipe', ''),
-                (string) $req->query('audioIndex', ''),
-            );
-        });
-        $router->get('/api/playback/player', function (Request $req) use ($p) {
-            return $p->player(
                 (string) $req->query('videoId', ''),
                 (string) $req->query('recipe', ''),
                 (string) $req->query('audioIndex', ''),
@@ -120,11 +133,16 @@ final class App
                 'pid' => $job['pid'] ?? null,
                 'mode' => $job['mode'] ?? null,
                 'intent' => $job['intent'] ?? null,
+                'state' => $job['state'] ?? null,
                 'startedAt' => $job['startedAt'] ?? null,
                 'exitCode' => $job['exitCode'] ?? null,
             ]);
         });
-        $router->delete('/api/videos/{id}/cache', function (Request $req, array $params) use ($p) {
+        $router->delete('/api/videos/{id}/cache', function (Request $req, array $params) use ($p, $auth) {
+            $admin = $auth->requireAdmin($req);
+            if ($admin) {
+                return $admin;
+            }
             return $p->deleteCache(
                 $params['id'],
                 $req->query('recipe'),
@@ -156,13 +174,6 @@ final class App
                 'bytes' => $bytes,
             ]);
         });
-
-        $response = $router->dispatch($request);
-        $headers = $response->headers + [
-            'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Headers' => 'Authorization, Content-Type',
-            'Access-Control-Allow-Methods' => 'GET, POST, DELETE, OPTIONS',
-        ];
-        return new Response($response->status, $response->body, $headers);
+        return $router;
     }
 }

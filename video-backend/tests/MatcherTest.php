@@ -146,7 +146,6 @@ final class MatcherTest extends TestCase
             'maxWidth' => 3840,
             'maxHeight' => 2160,
             'hdr' => false,
-            'nativeHls' => true,
         ]);
     }
 
@@ -158,7 +157,6 @@ final class MatcherTest extends TestCase
             'audioCodecs' => ['mp4a.40.2'],
             'maxWidth' => 1920,
             'maxHeight' => 1080,
-            'nativeHls' => true,
         ]);
     }
 }

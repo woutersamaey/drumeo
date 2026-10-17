@@ -7,6 +7,7 @@ namespace Drumeo\Video\Store;
 use Drumeo\Video\Config;
 use Drumeo\Video\Hls\MasterPlaylist;
 use Drumeo\Video\Hls\MediaPlaylist;
+use Drumeo\Video\Recipe\Recipe;
 use Drumeo\Video\VideoId;
 
 final class HlsCache
@@ -80,13 +81,13 @@ final class HlsCache
         return $info;
     }
 
+    /**
+     * The files form a finished playlist. Whether the encode succeeded is the
+     * variant state in the metadata JSON, which only the worker sets to ready.
+     */
     public function playable(string $id, string $recipe, int $audioIndex): bool
     {
         $info = $this->inspect($id, $recipe, $audioIndex);
-        if ($info['hasEndlist']) {
-            $this->finalizeForVod($id, $recipe, $audioIndex);
-            $info = $this->inspect($id, $recipe, $audioIndex);
-        }
         return $info['hasPlaylist'] && $info['hasEndlist'] && $info['segmentCount'] >= 1;
     }
 
@@ -114,7 +115,7 @@ final class HlsCache
             $vod = MediaPlaylist::withSegmentVersion($vod, $token);
         }
         if ($vod !== $raw) {
-            file_put_contents($path, $vod);
+            AtomicJson::writeFile($path, $vod);
         }
         $this->bustMasterUri($id, $recipe, $audioIndex);
     }
@@ -150,13 +151,14 @@ final class HlsCache
         $uri = 'index.m3u8?v=' . (int) filemtime($index);
         $updated = MasterPlaylist::withMediaUri($raw, $uri);
         if ($updated !== $raw) {
-            file_put_contents($master, $updated);
+            AtomicJson::writeFile($master, $updated);
         }
     }
 
     public function deleteVariant(string $id, string $recipe, int $audioIndex): void
     {
         $dir = $this->variantDir($id, $recipe, $audioIndex);
+        $this->assertDeletable($dir);
         $this->rmTree($dir);
         $recipeDir = dirname($dir);
         $this->removeIfEmpty($recipeDir);
@@ -167,7 +169,38 @@ final class HlsCache
     {
         VideoId::assert($id);
         $dir = rtrim($this->config->cacheDir, '/') . '/' . $id;
+        $this->assertDeletable($dir);
         $this->rmTree($dir);
+    }
+
+    /** @return list<int> audio indexes that have a cache directory for this recipe */
+    public function audioIndexesOnDisk(string $id, string $recipe): array
+    {
+        VideoId::assert($id);
+        $this->assertRecipe($recipe);
+        $out = [];
+        foreach ($this->scandir(rtrim($this->config->cacheDir, '/') . '/' . $id . '/' . $recipe) as $audio) {
+            if (ctype_digit($audio)) {
+                $out[] = (int) $audio;
+            }
+        }
+        sort($out);
+        return $out;
+    }
+
+    /**
+     * Older builds wrote ffmpeg.log next to the segments (publicly served).
+     * Logs now live in METADATA_DIR/logs; remove the leftovers.
+     */
+    public function removeLegacyLogs(): int
+    {
+        $n = 0;
+        foreach ($this->listVariantDirs() as $dir) {
+            if (is_file($dir['path'] . '/ffmpeg.log') && @unlink($dir['path'] . '/ffmpeg.log')) {
+                $n++;
+            }
+        }
+        return $n;
     }
 
     public function cacheBytes(): int
@@ -227,6 +260,39 @@ final class HlsCache
         return $n;
     }
 
+    /**
+     * Deletion targets must sit strictly inside CACHE_DIR and never inside or
+     * above SOURCE_DIR, whatever the mounts or symlinks look like.
+     */
+    private function assertDeletable(string $path): void
+    {
+        $cache = realpath($this->config->cacheDir);
+        if ($cache === false) {
+            throw new \RuntimeException('Cache directory missing');
+        }
+        if (!file_exists($path) && !is_link($path)) {
+            return; // nothing on disk to delete
+        }
+        $parent = realpath(dirname($path));
+        if ($parent === false) {
+            return;
+        }
+        // Where the entry itself lives; a final symlink is not followed (rmTree unlinks links).
+        $target = $parent . '/' . basename($path);
+        if (is_dir($target) && !is_link($target)) {
+            $target = realpath($target) ?: $target;
+        }
+        if ($target === $cache || !str_starts_with($target . '/', $cache . '/')) {
+            throw new \RuntimeException('Refusing to delete outside CACHE_DIR: ' . $path);
+        }
+        $source = realpath($this->config->sourceDir);
+        if ($source !== false
+            && (str_starts_with($target . '/', $source . '/') || str_starts_with($source . '/', $target . '/'))
+        ) {
+            throw new \RuntimeException('Refusing to delete inside SOURCE_DIR: ' . $path);
+        }
+    }
+
     private function rmTree(string $path): void
     {
         if (is_file($path) || is_link($path)) {
@@ -270,13 +336,17 @@ final class HlsCache
             return 0;
         }
         $bytes = 0;
-        $it = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
-        );
-        foreach ($it as $file) {
-            if ($file->isFile()) {
-                $bytes += $file->getSize();
+        try {
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($it as $file) {
+                if ($file->isFile()) {
+                    $bytes += $file->getSize();
+                }
             }
+        } catch (\UnexpectedValueException|\RuntimeException) {
+            // directory removed while counting (cleanup or a rebuild); partial count is fine
         }
         return $bytes;
     }
@@ -300,6 +370,6 @@ final class HlsCache
 
     private function isRecipe(string $recipe): bool
     {
-        return in_array($recipe, ['remux', 'audio_aac', 'avc_1080'], true);
+        return Recipe::isValid($recipe);
     }
 }

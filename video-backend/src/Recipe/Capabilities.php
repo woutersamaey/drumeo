@@ -18,11 +18,14 @@ final class Capabilities
         public readonly int $maxWidth,
         public readonly int $maxHeight,
         public readonly bool $hdr,
-        public readonly bool $nativeHls,
     ) {
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * Unknown keys are ignored (older frontends also sent `nativeHls`).
+     *
+     * @param array<string,mixed> $data
+     */
     public static function fromArray(array $data): self
     {
         $protocols = self::stringList($data['protocols'] ?? ['hls']);
@@ -38,7 +41,6 @@ final class Capabilities
             maxWidth: (int) ($data['maxWidth'] ?? 1920),
             maxHeight: (int) ($data['maxHeight'] ?? 1080),
             hdr: (bool) ($data['hdr'] ?? false),
-            nativeHls: (bool) ($data['nativeHls'] ?? false),
         );
     }
 

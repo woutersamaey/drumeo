@@ -14,7 +14,8 @@ final class TestHarness
     public string $root;
     public Config $config;
     public FakeClock $clock;
-    public FakeFfmpegRunner $runner;
+    /** A FakeFfmpegRunner unless a real runner was passed in. */
+    public FfmpegRunner $runner;
     public App $app;
 
     public function __construct(?FfmpegRunner $runner = null, ?Clock $clock = null, string $adminToken = '')
@@ -24,14 +25,12 @@ final class TestHarness
             mkdir($this->root . '/' . $d, 0777, true);
         }
         $this->clock = $clock instanceof FakeClock ? $clock : new FakeClock();
-        $this->runner = $runner instanceof FakeFfmpegRunner ? $runner : new FakeFfmpegRunner();
-        $hlsJs = dirname(__DIR__) . '/resources/player/hls.min.js';
+        $this->runner = $runner ?? new FakeFfmpegRunner();
         $this->config = new Config(
             sourceDir: $this->root . '/bron',
             cacheDir: $this->root . '/cache',
             metadataDir: $this->root . '/meta',
             tmpDir: $this->root . '/tmp',
-            playerHlsJsPath: is_file($hlsJs) ? $hlsJs : '',
             ffmpegBin: 'ffmpeg',
             ffprobeBin: 'ffprobe',
             ffmpegVcodec: 'libx264',
@@ -57,6 +56,62 @@ final class TestHarness
         $dest = $this->root . '/bron/clip [' . $id . '].mkv';
         file_put_contents($dest, $contents);
         return $dest;
+    }
+
+    /**
+     * Probed metadata for {id}.mkv (a fake file), with optional variants.
+     *
+     * @param list<array<string,mixed>> $variants
+     */
+    public function seedProbed(string $id, float $durationSec = 12.0, array $variants = [], string $vcodec = 'hevc', int $w = 1280, int $h = 720): void
+    {
+        $path = $this->root . '/bron/' . $id . '.mkv';
+        file_put_contents($path, 'fake');
+        $stat = stat($path);
+        $this->app->meta->write($id, [
+            'id' => $id,
+            'source' => [
+                'mtimeMs' => (int) round($stat['mtime'] * 1000),
+                'size' => $stat['size'],
+                'probeError' => null,
+                'failCount' => 0,
+            ],
+            'durationSec' => $durationSec,
+            'video' => ['index' => 0, 'codec' => $vcodec, 'width' => $w, 'height' => $h, 'pixFmt' => 'yuv420p', 'bits' => 8, 'hdr' => false, 'fps' => 24],
+            'audioTracks' => [['index' => 0, 'codec' => 'aac', 'channels' => 2]],
+            'lastPlayedAt' => null,
+            'variants' => $variants,
+        ]);
+        $this->app->sources->refresh();
+    }
+
+    /** @return array<string,mixed> */
+    public static function variant(string $recipe, int $audio, string $state, array $extra = []): array
+    {
+        return $extra + [
+            'recipe' => $recipe,
+            'audioIndex' => $audio,
+            'state' => $state,
+            'mode' => $recipe,
+            'protocol' => 'hls',
+            'video' => ['codec' => 'hvc1', 'width' => 1280, 'height' => 720],
+            'audio' => ['index' => $audio, 'codec' => 'aac', 'channels' => 2],
+            'playlistPath' => '',
+            'failCount' => 0,
+            'error' => null,
+        ];
+    }
+
+    /** @param array<string,mixed> $json */
+    public function post(string $path, array $json, array $headers = []): \Drumeo\Video\Http\Request
+    {
+        return new \Drumeo\Video\Http\Request('POST', $path, [], ['content-type' => 'application/json'] + $headers, $json, json_encode($json) ?: '');
+    }
+
+    /** @param array<string,string> $query */
+    public function get(string $path, array $query = [], array $headers = []): \Drumeo\Video\Http\Request
+    {
+        return new \Drumeo\Video\Http\Request('GET', $path, $query, $headers, [], '');
     }
 
     public function plantHls(string $id, string $recipe, int $audio, int $segments, bool $endlist): void

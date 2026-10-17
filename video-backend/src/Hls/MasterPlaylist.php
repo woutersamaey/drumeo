@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drumeo\Video\Hls;
 
+use Drumeo\Video\Store\AtomicJson;
+
 final class MasterPlaylist
 {
     public static function write(
@@ -26,11 +28,7 @@ final class MasterPlaylist
             . ',CODECS="' . $codecs . '"'
             . ",VIDEO-RANGE=SDR\n"
             . "index.m3u8\n";
-        $dir = dirname($path);
-        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-            throw new \RuntimeException('Cannot create HLS directory: ' . $dir);
-        }
-        file_put_contents($path, $body);
+        AtomicJson::writeFile($path, $body);
     }
 
     public static function withMediaUri(string $contents, string $uri): string

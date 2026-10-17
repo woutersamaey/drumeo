@@ -67,7 +67,7 @@ final class PrepareAndFailTest extends TestCase
 
     public function testThreeFailsBlockPrepareWithoutForce(): void
     {
-        $h = new TestHarness();
+        $h = new TestHarness(adminToken: 'adm');
         try {
             $this->seedProbed($h, 'film1');
             $h->app->meta->update('film1', function (array $m) {
@@ -90,7 +90,10 @@ final class PrepareAndFailTest extends TestCase
             $this->assertSame(0, $h->runner->starts);
             $force = $this->prepareBody('film1', 'play');
             $force['force'] = true;
-            $r2 = $h->app->handle($this->post('/api/playback/prepare', $force));
+            $anon = $h->app->handle($this->post('/api/playback/prepare', $force));
+            $this->assertSame(401, $anon->status, 'force is admin-only');
+            $this->assertSame(0, $h->runner->starts);
+            $r2 = $h->app->handle($h->post('/api/playback/prepare', $force, ['x-drumeo-admin' => 'adm']));
             $this->assertSame(202, $r2->status);
         } finally {
             $h->destroy();
@@ -272,7 +275,6 @@ final class PrepareAndFailTest extends TestCase
                 metadataDir: $h->config->metadataDir,
                 apiToken: 'secret',
                 tmpDir: $h->config->tmpDir,
-                playerHlsJsPath: $h->config->playerHlsJsPath,
                 ffmpegVcodec: 'libx264',
             );
             $h->app = \Drumeo\Video\App::build($h->config, $h->runner, $h->clock);

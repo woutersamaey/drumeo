@@ -13,6 +13,8 @@ final class FakeFfmpegRunner implements FfmpegRunner
     public array $commands = [];
     /** @var array<int,array{running:bool,exitCode:?int,args:list<string>}> */
     public array $procs = [];
+    /** @var list<int> */
+    public array $stopped = [];
     private int $nextPid = 1000;
     public bool $autoFinish = false;
     public int $autoSegments = 4;
@@ -31,26 +33,28 @@ final class FakeFfmpegRunner implements FfmpegRunner
         return $pid;
     }
 
-    public function running(int $pid): bool
-    {
-        return $this->poll($pid)['running'];
-    }
-
     public function poll(int $pid): array
     {
-        $p = $this->procs[$pid] ?? ['running' => false, 'exitCode' => 1];
+        $p = $this->procs[$pid] ?? ['running' => false, 'exitCode' => null];
         return ['running' => $p['running'], 'exitCode' => $p['exitCode']];
     }
 
     public function stop(int $pid): void
     {
+        $this->stopped[] = $pid;
         if (isset($this->procs[$pid])) {
             $this->procs[$pid]['running'] = false;
-            $this->procs[$pid]['exitCode'] = 1;
+            $this->procs[$pid]['exitCode'] = 255;
         }
     }
 
     public function finish(int $pid, int $exit = 0): void
+    {
+        $this->finishWith($pid, $exit, max($this->autoSegments, 4), $exit === 0);
+    }
+
+    /** End a process with any exit code and any playlist on disk. */
+    public function finishWith(int $pid, int $exit, int $segments, bool $endlist): void
     {
         if (!isset($this->procs[$pid])) {
             return;
@@ -58,8 +62,8 @@ final class FakeFfmpegRunner implements FfmpegRunner
         $this->procs[$pid]['running'] = false;
         $this->procs[$pid]['exitCode'] = $exit;
         $outDir = $this->outDirFromArgs($this->procs[$pid]['args']);
-        if ($outDir !== null && $exit === 0) {
-            $this->writeFakeHls($outDir, max($this->autoSegments, 4), true);
+        if ($outDir !== null) {
+            $this->writeFakeHls($outDir, $segments, $endlist);
         }
     }
 
@@ -70,6 +74,11 @@ final class FakeFfmpegRunner implements FfmpegRunner
                 $this->finish($pid, $exit);
             }
         }
+    }
+
+    public function lastPid(): int
+    {
+        return $this->nextPid - 1;
     }
 
     /** @param list<string> $args */
@@ -87,7 +96,8 @@ final class FakeFfmpegRunner implements FfmpegRunner
         if (!is_dir($dir)) {
             mkdir($dir, 0777, true);
         }
-        $body = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:6\n#EXT-X-PLAYLIST-TYPE:" . ($endlist ? 'VOD' : 'EVENT') . "\n";
+        // Like FFmpeg with -hls_playlist_type event: EVENT while running, + ENDLIST at the end.
+        $body = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:6\n#EXT-X-PLAYLIST-TYPE:EVENT\n";
         for ($i = 0; $i < $segments; $i++) {
             $name = 'seg_' . sprintf('%03d', $i) . '.ts';
             $body .= "#EXTINF:6.0,\n{$name}\n";

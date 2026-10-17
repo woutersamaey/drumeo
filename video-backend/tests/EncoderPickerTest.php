@@ -29,8 +29,11 @@ final class EncoderPickerTest extends TestCase
             if (str_contains($flat, '-encoders')) {
                 return ['ok' => true, 'output' => " V..... h264_nvenc\n V..... libx264\n"];
             }
-            if (str_contains($flat, 'h264_nvenc') && str_contains($flat, 'testsrc')) {
-                return ['ok' => true, 'output' => ''];
+            if (str_contains($flat, 'testsrc')) {
+                return ['ok' => true, 'output' => '']; // one-second sample clip
+            }
+            if (str_contains($flat, 'h264_nvenc') && str_contains($flat, 'vb-smoke-sample.mkv') && str_contains($flat, '-f hls')) {
+                return ['ok' => true, 'output' => '']; // smoke uses the real avc_1080 HLS argv
             }
             return ['ok' => false, 'output' => 'no'];
         });
@@ -103,7 +106,7 @@ final class EncoderPickerTest extends TestCase
             if (str_contains($flat, '-encoders')) {
                 return ['ok' => true, 'output' => " V..... h264_qsv\n V..... libx264\n"];
             }
-            if (str_contains($flat, 'h264_qsv')) {
+            if (str_contains($flat, 'h264_qsv') || str_contains($flat, 'testsrc')) {
                 return ['ok' => true, 'output' => ''];
             }
             return ['ok' => false, 'output' => ''];

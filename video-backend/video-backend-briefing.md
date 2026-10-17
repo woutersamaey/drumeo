@@ -1,5 +1,7 @@
 # Technische briefing — homelab video-backend
 
+> **Let op:** dit is de oorspronkelijke briefing en wordt niet bijgewerkt. Waar code en deze tekst verschillen, is [`README.md`](README.md) leidend (o.a. ready-criteria, admin-only `force`/DELETE, locks in `$TMPDIR`, automatische cleanup). Het player-endpoint (`GET /api/playback/player`, §11/§14) bestaat niet meer: de site speelt HLS zelf met hls.js als statisch frontend-bestand.
+
 Oorspronkelijk ontwerpcontract. Operationele docs: [`README.md`](README.md) en de stack-README in de repo-root.
 
 Bindend voor de coding agent. Geen extra productfeatures buiten deze tekst. Geen database.

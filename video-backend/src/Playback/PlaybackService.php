@@ -8,6 +8,7 @@ use Drumeo\Video\Clock;
 use Drumeo\Video\Config;
 use Drumeo\Video\Http\Response;
 use Drumeo\Video\Jobs\EncoderPicker;
+use Drumeo\Video\Jobs\Lock;
 use Drumeo\Video\Jobs\Worker;
 use Drumeo\Video\Recipe\Capabilities;
 use Drumeo\Video\Recipe\Matcher;
@@ -17,6 +18,10 @@ use Drumeo\Video\Store\MetadataStore;
 use Drumeo\Video\Store\SourceStore;
 use Drumeo\Video\VideoId;
 
+/**
+ * "ready" comes only from the metadata JSON (set by the worker after checking the
+ * FFmpeg exit code and output duration); a playlist with ENDLIST is not enough.
+ */
 final class PlaybackService
 {
     public function __construct(
@@ -27,18 +32,17 @@ final class PlaybackService
         private readonly Matcher $matcher,
         private readonly Worker $worker,
         private readonly Clock $clock,
-        private readonly PlayerRenderer $player,
         private readonly EncoderPicker $encoders,
+        private readonly Lock $locks,
     ) {
     }
 
     public function health(): Response
     {
-        $ffmpeg = $this->ffmpegOk();
         $choice = $this->encoders->choice();
         return Response::ok([
             'ok' => true,
-            'ffmpeg' => $ffmpeg,
+            'ffmpeg' => $this->encoders->ffmpegAvailable(),
             'encoder' => $choice['encoder'],
             'encoderRequested' => $choice['requested'],
         ]);
@@ -120,12 +124,11 @@ final class PlaybackService
         if (!empty($meta['source']['probeError']) && empty($meta['video']['codec'])) {
             return Response::badRequest('probe failed', ['source' => $meta['source']]);
         }
-        $audioIndex = array_key_exists('audioIndex', $body) ? (int) $body['audioIndex'] : 0;
-        $caps = Capabilities::fromArray(is_array($body['capabilities'] ?? null) ? $body['capabilities'] : []);
-        $available = $this->matcher->availableAudioIndexes($meta);
-        if ($this->matcher->audioTrack($meta['audioTracks'] ?? [], $audioIndex) === null) {
-            return Response::badRequest('invalid audioIndex', ['available' => $available]);
+        $audioIndex = self::parseAudioIndex($body['audioIndex'] ?? 0);
+        if ($audioIndex === null || $this->matcher->audioTrack($meta['audioTracks'] ?? [], $audioIndex) === null) {
+            return Response::badRequest('invalid audioIndex', ['available' => $this->matcher->availableAudioIndexes($meta)]);
         }
+        $caps = Capabilities::fromArray(is_array($body['capabilities'] ?? null) ? $body['capabilities'] : []);
         $offer = $this->matcher->match($meta, $caps, $audioIndex, $meta['variants'] ?? []);
         if ($offer === null) {
             return Response::badRequest('no matching recipe');
@@ -133,6 +136,7 @@ final class PlaybackService
         return Response::ok($this->statusPayload($id, $meta, $offer['recipe'], $audioIndex, $offer, false));
     }
 
+    /** `force` is admin-only; App checks the admin header before calling this. */
     public function prepare(array $body): Response
     {
         $id = (string) ($body['videoId'] ?? '');
@@ -146,7 +150,10 @@ final class PlaybackService
         if ($meta === null) {
             return Response::notFound('source missing');
         }
-        $audioIndex = array_key_exists('audioIndex', $body) ? (int) $body['audioIndex'] : 0;
+        $audioIndex = self::parseAudioIndex($body['audioIndex'] ?? 0);
+        if ($audioIndex === null || $this->matcher->audioTrack($meta['audioTracks'] ?? [], $audioIndex) === null) {
+            return Response::badRequest('invalid audioIndex', ['available' => $this->matcher->availableAudioIndexes($meta)]);
+        }
         $intent = (string) ($body['intent'] ?? 'play');
         if ($intent !== 'play' && $intent !== 'prefetch') {
             return Response::badRequest('invalid intent');
@@ -160,18 +167,10 @@ final class PlaybackService
             }
             $offer = $this->offerFromRecipe($meta, $recipe, $audioIndex);
             if ($offer === null) {
-                $available = $this->matcher->availableAudioIndexes($meta);
-                if ($this->matcher->audioTrack($meta['audioTracks'] ?? [], $audioIndex) === null) {
-                    return Response::badRequest('invalid audioIndex', ['available' => $available]);
-                }
                 return Response::badRequest('no matching recipe');
             }
         } else {
             $caps = Capabilities::fromArray(is_array($body['capabilities'] ?? null) ? $body['capabilities'] : []);
-            $available = $this->matcher->availableAudioIndexes($meta);
-            if ($this->matcher->audioTrack($meta['audioTracks'] ?? [], $audioIndex) === null) {
-                return Response::badRequest('invalid audioIndex', ['available' => $available]);
-            }
             $offer = $this->matcher->match($meta, $caps, $audioIndex, $meta['variants'] ?? []);
             if ($offer === null) {
                 return Response::badRequest('no matching recipe');
@@ -180,6 +179,10 @@ final class PlaybackService
         }
 
         if ($force) {
+            if ($this->worker->hasLock($id, $recipe, $audioIndex)) {
+                // Deleting files under a running FFmpeg corrupts both; cancel via DELETE first.
+                return Response::conflict('busy', $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, false));
+            }
             $this->hls->deleteVariant($id, $recipe, $audioIndex);
             $meta = $this->meta->update($id, function (array $m) use ($recipe, $audioIndex) {
                 $variant = $this->meta->findVariant($m, $recipe, $audioIndex);
@@ -195,18 +198,16 @@ final class PlaybackService
         }
 
         $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
-        if ($variant && ($variant['state'] ?? '') === 'failed' && !$force) {
+        if ($variant && ($variant['state'] ?? '') === 'failed') {
             $fails = (int) ($variant['failCount'] ?? 0);
-            $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, false);
             if ($intent === 'prefetch' || $fails >= $this->config->maxVariantFails) {
+                $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, false);
                 $this->logPrepare($intent, $id, $recipe, $audioIndex, 'failed', $payload);
                 return Response::conflict('failed', $payload);
             }
         }
 
-        $meta = $this->syncDisk($id, $meta, $recipe, $audioIndex);
-        $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
-        if ($variant && ($variant['state'] ?? '') === 'ready' && $this->hls->playable($id, $recipe, $audioIndex)) {
+        if ($variant && $this->servable($id, $variant, $recipe, $audioIndex)) {
             $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $intent === 'play');
             $this->logPrepare($intent, $id, $recipe, $audioIndex, 'ready', $payload);
             return Response::ok($payload);
@@ -226,8 +227,13 @@ final class PlaybackService
             return Response::tooMany('queue full', 15);
         }
 
-        $this->meta->update($id, function (array $m) use ($recipe, $audioIndex, $offer) {
+        $becameReady = false;
+        $meta = $this->meta->update($id, function (array $m) use ($recipe, $audioIndex, $offer, &$becameReady) {
             $variant = $this->meta->findVariant($m, $recipe, $audioIndex) ?? [];
+            if (($variant['state'] ?? '') === 'ready' && $this->hls->playable($m['id'], $recipe, $audioIndex)) {
+                $becameReady = true; // the worker finished it meanwhile; do not re-encode
+                return $m;
+            }
             $variant['recipe'] = $recipe;
             $variant['audioIndex'] = $audioIndex;
             $variant['state'] = 'starting';
@@ -245,6 +251,10 @@ final class PlaybackService
             $variant['error'] = $variant['error'] ?? null;
             return $this->meta->upsertVariant($m, $variant);
         });
+        if ($becameReady) {
+            $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $intent === 'play');
+            return Response::ok($payload);
+        }
 
         $this->worker->enqueue($id, $recipe, $audioIndex, $intent, $offer);
         $meta = $this->meta->read($id) ?? $meta;
@@ -256,12 +266,11 @@ final class PlaybackService
     /** @param array<string,mixed> $payload */
     private function logPrepare(string $intent, string $id, string $recipe, int $audio, string $result, array $payload = []): void
     {
-        if ($intent === 'play' && $result === 'ready') {
-            return;
+        if ($result === 'ready' || $result === 'active') {
+            return; // repeated prefetch polls are no-ops; keep the log for state changes
         }
         $state = (string) ($payload['state'] ?? '');
         $ready = $payload['durationReadySec'] ?? '';
-        $queue = $this->worker->queuedOrRunningCount();
         error_log(sprintf(
             '[playback] prepare intent=%s id=%s recipe=%s audio=%d result=%s state=%s readySec=%s queue=%d',
             $intent,
@@ -271,7 +280,7 @@ final class PlaybackService
             $result,
             $state,
             is_numeric($ready) ? (string) $ready : '',
-            $queue,
+            $this->worker->queuedOrRunningCount(),
         ));
     }
 
@@ -280,10 +289,10 @@ final class PlaybackService
         if (!VideoId::isValid($id) || !Recipe::isValid($recipe)) {
             return Response::badRequest('invalid id or recipe');
         }
-        if (!preg_match('/^-?\d+$/', $audioRaw)) {
+        $audioIndex = self::parseAudioIndex($audioRaw);
+        if ($audioIndex === null) {
             return Response::badRequest('invalid audioIndex');
         }
-        $audioIndex = (int) $audioRaw;
         if (!$this->sources->exists($id)) {
             return Response::notFound('source missing');
         }
@@ -291,7 +300,6 @@ final class PlaybackService
         if ($meta === null) {
             return Response::notFound('source missing');
         }
-        $meta = $this->syncDisk($id, $meta, $recipe, $audioIndex);
         $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
         $offer = $variant ? [
             'recipe' => $recipe,
@@ -302,27 +310,16 @@ final class PlaybackService
         if ($offer === null) {
             return Response::badRequest('unknown variant');
         }
-        $payload = $this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $playIntent);
-        return Response::ok($payload);
+        return Response::ok($this->statusPayload($id, $meta, $recipe, $audioIndex, $offer, $playIntent));
     }
 
     public function playlist(string $id, string $recipe, string $audioRaw): Response
     {
-        if (!VideoId::isValid($id) || !Recipe::isValid($recipe)) {
-            return Response::badRequest('invalid id or recipe');
+        $ready = $this->readyVariant($id, $recipe, $audioRaw);
+        if ($ready instanceof Response) {
+            return $ready;
         }
-        $audioIndex = (int) $audioRaw;
-        $meta = $this->meta->load($id);
-        if ($meta === null) {
-            return Response::notFound('source missing');
-        }
-        $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
-        if (!$variant || ($variant['state'] ?? '') === 'failed') {
-            return Response::conflict($variant['state'] ?? 'not_prepared');
-        }
-        if (!$this->hls->playable($id, $recipe, $audioIndex)) {
-            return Response::conflict('not_prepared');
-        }
+        [$audioIndex] = $ready;
         $this->touchPlay($id, $recipe, $audioIndex, true);
         return Response::ok([
             'playlistUrl' => $this->hls->publicUrl($id, $recipe, $audioIndex),
@@ -330,72 +327,74 @@ final class PlaybackService
         ]);
     }
 
-    public function player(string $id, string $recipe, string $audioRaw): Response
-    {
-        if (!VideoId::isValid($id) || !Recipe::isValid($recipe)) {
-            return Response::badRequest('invalid id or recipe');
-        }
-        $audioIndex = (int) $audioRaw;
-        $meta = $this->meta->load($id);
-        if ($meta === null) {
-            return Response::notFound('source missing');
-        }
-        if (!$this->hls->playable($id, $recipe, $audioIndex)) {
-            return Response::conflict('not_prepared');
-        }
-        $this->touchPlay($id, $recipe, $audioIndex, true);
-        $url = $this->hls->publicUrl($id, $recipe, $audioIndex);
-        return Response::ok($this->player->render($id, $recipe, $audioIndex, $url));
-    }
-
-    public function job(string $jobId): Response
-    {
-        // accessed via worker registry through a thin wrapper in Kernel
-        return Response::notFound('not found');
-    }
-
+    /**
+     * Admin-only (App checks the header). Cancels jobs for the affected variants,
+     * removes their cache directories and variant records. Never the MKV.
+     */
     public function deleteCache(string $id, ?string $recipe, ?string $audioRaw): Response
     {
         if (!VideoId::isValid($id)) {
             return Response::badRequest('invalid id');
         }
-        if ($recipe !== null && $recipe !== '') {
-            if (!Recipe::isValid($recipe)) {
-                return Response::badRequest('invalid recipe');
-            }
-            $audioIndex = $audioRaw !== null && $audioRaw !== '' ? (int) $audioRaw : null;
+        if ($recipe !== null && $recipe !== '' && !Recipe::isValid($recipe)) {
+            return Response::badRequest('invalid recipe');
+        }
+        $recipe = $recipe === '' ? null : $recipe;
+        $audioIndex = null;
+        if ($audioRaw !== null && $audioRaw !== '') {
+            $audioIndex = self::parseAudioIndex($audioRaw);
             if ($audioIndex === null) {
-                foreach (['0', '1', '2', '3', '4', '5', '6', '7'] as $idx) {
-                    $this->hls->deleteVariant($id, $recipe, (int) $idx);
-                }
-                if ($this->meta->read($id)) {
-                    $this->meta->update($id, function (array $m) use ($recipe) {
-                        $keep = [];
-                        foreach ($m['variants'] ?? [] as $v) {
-                            if (($v['recipe'] ?? '') !== $recipe) {
-                                $keep[] = $v;
-                            }
-                        }
-                        $m['variants'] = $keep;
-                        return $m;
-                    });
-                }
-            } else {
-                $this->hls->deleteVariant($id, $recipe, $audioIndex);
-                if ($this->meta->read($id)) {
-                    $this->meta->update($id, fn (array $m) => $this->meta->removeVariant($m, $recipe, $audioIndex));
-                }
-            }
-        } else {
-            $this->hls->deleteAllFor($id);
-            if ($this->meta->read($id)) {
-                $this->meta->update($id, function (array $m) {
-                    $m['variants'] = [];
-                    return $m;
-                });
+                return Response::badRequest('invalid audioIndex');
             }
         }
-        return Response::ok(['ok' => true]);
+
+        $meta = $this->meta->read($id);
+        $targets = [];
+        foreach ($recipe === null ? Recipe::ALL : [$recipe] as $r) {
+            foreach ($this->hls->audioIndexesOnDisk($id, $r) as $a) {
+                $targets[$r . '|' . $a] = [$r, $a];
+            }
+        }
+        foreach ($meta['variants'] ?? [] as $v) {
+            if (is_array($v) && Recipe::isValid((string) ($v['recipe'] ?? '')) && ($recipe === null || $v['recipe'] === $recipe)) {
+                $targets[$v['recipe'] . '|' . (int) $v['audioIndex']] = [(string) $v['recipe'], (int) $v['audioIndex']];
+            }
+        }
+        foreach ($this->locks->forVideo($id) as $lock) {
+            $r = (string) ($lock['recipe'] ?? '');
+            if (Recipe::isValid($r) && ($recipe === null || $r === $recipe) && is_int($lock['audioIndex'] ?? null)) {
+                $targets[$r . '|' . $lock['audioIndex']] = [$r, $lock['audioIndex']];
+            }
+        }
+        if ($audioIndex !== null) {
+            $targets = array_filter($targets, static fn (array $t): bool => $t[1] === $audioIndex);
+            if ($recipe !== null) {
+                $targets[$recipe . '|' . $audioIndex] = [$recipe, $audioIndex];
+            }
+        }
+
+        foreach ($targets as [$r, $a]) {
+            $this->worker->cancel($id, $r, $a);
+            $this->hls->deleteVariant($id, $r, $a);
+        }
+        if ($recipe === null && $audioIndex === null) {
+            $this->hls->deleteAllFor($id);
+        }
+        if ($meta !== null) {
+            $this->meta->update($id, function (array $m) use ($recipe, $audioIndex) {
+                $keep = [];
+                foreach ($m['variants'] ?? [] as $v) {
+                    $matches = ($recipe === null || ($v['recipe'] ?? '') === $recipe)
+                        && ($audioIndex === null || (int) ($v['audioIndex'] ?? -1) === $audioIndex);
+                    if (!$matches) {
+                        $keep[] = $v;
+                    }
+                }
+                $m['variants'] = $keep;
+                return $m;
+            });
+        }
+        return Response::ok(['ok' => true, 'deleted' => count($targets)]);
     }
 
     /**
@@ -405,19 +404,13 @@ final class PlaybackService
      */
     public function statusPayload(string $id, array $meta, string $recipe, int $audioIndex, array $offer, bool $playIntent): array
     {
-        $info = $this->hls->inspect($id, $recipe, $audioIndex);
-        if ($info['hasEndlist']) {
-            $this->hls->finalizeForVod($id, $recipe, $audioIndex);
-            $info = $this->hls->inspect($id, $recipe, $audioIndex);
-        }
         $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
-        $state = $variant['state'] ?? ($info['hasEndlist'] ? 'ready' : ($info['hasPlaylist'] ? 'running' : 'missing'));
-        if ($info['hasEndlist']) {
-            $state = 'ready';
-        } elseif (in_array($state, ['ready'], true)) {
+        $state = (string) ($variant['state'] ?? 'missing');
+        $playable = $variant !== null && $this->servable($id, $variant, $recipe, $audioIndex);
+        $info = $this->hls->inspect($id, $recipe, $audioIndex);
+        if ($state === 'ready' && !$playable) {
             $state = $info['hasPlaylist'] ? 'running' : 'missing';
         }
-        $playable = $info['hasEndlist'] && $info['hasPlaylist'] && $info['segmentCount'] >= 1;
         $playlistUrl = $playable ? $this->hls->publicUrl($id, $recipe, $audioIndex) : null;
 
         if ($playIntent && $playlistUrl) {
@@ -437,9 +430,6 @@ final class PlaybackService
             'video' => $offer['video'] ?? ($variant['video'] ?? ['codec' => '', 'width' => 0, 'height' => 0]),
             'audio' => $offer['audio'] ?? ($variant['audio'] ?? ['index' => $audioIndex, 'codec' => 'aac', 'channels' => 2]),
             'playlistUrl' => $playlistUrl,
-            'playerUrl' => '/api/playback/player?videoId=' . rawurlencode($id)
-                . '&recipe=' . rawurlencode($recipe)
-                . '&audioIndex=' . $audioIndex,
             'playlistPath' => $this->hls->relativeMaster($id, $recipe, $audioIndex),
             'segmentCount' => $info['segmentCount'],
             'durationReadySec' => $info['durationReadySec'],
@@ -456,6 +446,60 @@ final class PlaybackService
         return $payload;
     }
 
+    /** Non-negative integer (int or digit string), else null. */
+    public static function parseAudioIndex(mixed $raw): ?int
+    {
+        if (is_int($raw)) {
+            return $raw >= 0 ? $raw : null;
+        }
+        if (is_string($raw) && preg_match('/^\d{1,4}$/', $raw) === 1) {
+            return (int) $raw;
+        }
+        return null;
+    }
+
+    /**
+     * State ready (worker-verified) and a finished playlist on disk. Finalizing is
+     * idempotent; it migrates caches written before segment URLs were versioned.
+     *
+     * @param array<string,mixed> $variant
+     */
+    private function servable(string $id, array $variant, string $recipe, int $audioIndex): bool
+    {
+        if (($variant['state'] ?? '') !== 'ready' || !$this->hls->playable($id, $recipe, $audioIndex)) {
+            return false;
+        }
+        $this->hls->finalizeForVod($id, $recipe, $audioIndex);
+        return true;
+    }
+
+    /** @return array{0:int}|Response */
+    private function readyVariant(string $id, string $recipe, string $audioRaw): array|Response
+    {
+        if (!VideoId::isValid($id) || !Recipe::isValid($recipe)) {
+            return Response::badRequest('invalid id or recipe');
+        }
+        $audioIndex = self::parseAudioIndex($audioRaw);
+        if ($audioIndex === null) {
+            return Response::badRequest('invalid audioIndex');
+        }
+        $meta = $this->meta->load($id);
+        if ($meta === null) {
+            return Response::notFound('source missing');
+        }
+        $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
+        if ($variant === null) {
+            return Response::conflict('not_prepared');
+        }
+        if (($variant['state'] ?? '') === 'failed') {
+            return Response::conflict('failed');
+        }
+        if (!$this->servable($id, $variant, $recipe, $audioIndex)) {
+            return Response::conflict('not_prepared');
+        }
+        return [$audioIndex];
+    }
+
     /** @param array<string,mixed> $meta */
     private function offerFromRecipe(array $meta, string $recipe, int $audioIndex): ?array
     {
@@ -464,7 +508,7 @@ final class PlaybackService
             return null;
         }
         $video = is_array($meta['video'] ?? null) ? $meta['video'] : [];
-        $caps = new Capabilities(['hls'], ['avc1', 'hvc1'], ['mp4a.40.2'], 7680, 4320, false, true);
+        $caps = new Capabilities(['hls'], ['avc1', 'hvc1'], ['mp4a.40.2'], 7680, 4320, false);
         foreach ($this->matcher->candidates($video, $audio, $caps, (int) ($video['width'] ?? 0), (int) ($video['height'] ?? 0)) as $c) {
             if ($c['recipe'] === $recipe) {
                 return $c;
@@ -482,17 +526,6 @@ final class PlaybackService
         return null;
     }
 
-    /** @param array<string,mixed> $meta @return array<string,mixed> */
-    private function syncDisk(string $id, array $meta, string $recipe, int $audioIndex): array
-    {
-        $info = $this->hls->inspect($id, $recipe, $audioIndex);
-        $variant = $this->meta->findVariant($meta, $recipe, $audioIndex);
-        if ($variant && ($variant['state'] ?? '') === 'ready' && !$info['hasPlaylist']) {
-            $meta = $this->meta->update($id, fn (array $m) => $this->meta->removeVariant($m, $recipe, $audioIndex));
-        }
-        return $meta;
-    }
-
     private function touchPlay(string $id, string $recipe, int $audioIndex, bool $asPlay): void
     {
         $this->meta->update($id, function (array $m) use ($recipe, $audioIndex, $asPlay) {
@@ -508,29 +541,17 @@ final class PlaybackService
         });
     }
 
+    /** lastAccessAt only feeds cleanup age; refresh at most once a minute so polls stay read-only. */
     private function touchAccess(string $id, string $recipe, int $audioIndex): void
     {
         $this->meta->update($id, function (array $m) use ($recipe, $audioIndex) {
             $variant = $this->meta->findVariant($m, $recipe, $audioIndex);
-            if ($variant) {
+            $last = strtotime((string) ($variant['lastAccessAt'] ?? '')) ?: 0;
+            if ($variant && $this->clock->unix() - $last >= 60) {
                 $variant['lastAccessAt'] = $this->clock->now();
                 $m = $this->meta->upsertVariant($m, $variant);
             }
             return $m;
         });
-    }
-
-    private static ?bool $ffmpegCached = null;
-
-    private function ffmpegOk(): bool
-    {
-        if (self::$ffmpegCached !== null) {
-            return self::$ffmpegCached;
-        }
-        $out = [];
-        $code = 0;
-        exec(escapeshellcmd($this->config->ffmpegBin) . ' -version 2>&1', $out, $code);
-        self::$ffmpegCached = $code === 0;
-        return self::$ffmpegCached;
     }
 }

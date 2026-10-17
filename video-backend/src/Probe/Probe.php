@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drumeo\Video\Probe;
 
 use Drumeo\Video\Config;
+use Drumeo\Video\Process;
 
 final class Probe
 {
@@ -28,37 +29,19 @@ final class Probe
             '-of', 'json',
             $path,
         ];
-        $proc = proc_open($cmd, [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ], $pipes);
-        if (!is_resource($proc)) {
-            throw new \RuntimeException('ffprobe failed to start');
+        // A stalled NAS read must not pin a php-fpm worker forever.
+        $result = Process::run($cmd, max(1, $this->config->ffprobeTimeoutSeconds));
+        if ($result['timedOut']) {
+            throw new \RuntimeException('ffprobe timed out after ' . $this->config->ffprobeTimeoutSeconds . 's');
         }
-        fclose($pipes[0]);
-        $stdout = stream_get_contents($pipes[1]) ?: '';
-        $stderr = stream_get_contents($pipes[2]) ?: '';
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $code = proc_close($proc);
-        if ($code !== 0) {
-            throw new \RuntimeException('ffprobe exit ' . $code . ': ' . trim($stderr));
+        if (!$result['ok']) {
+            throw new \RuntimeException('ffprobe exit ' . $result['code'] . ': ' . trim($result['stderr']));
         }
-        $data = json_decode($stdout, true);
+        $data = json_decode($result['stdout'], true);
         if (!is_array($data)) {
             throw new \RuntimeException('ffprobe returned invalid JSON');
         }
         return $this->parse($data);
-    }
-
-    public function ffmpegAvailable(): bool
-    {
-        $bin = $this->config->ffmpegBin;
-        $out = [];
-        $code = 0;
-        exec(escapeshellcmd($bin) . ' -version 2>&1', $out, $code);
-        return $code === 0;
     }
 
     /** @param array<string,mixed> $data */

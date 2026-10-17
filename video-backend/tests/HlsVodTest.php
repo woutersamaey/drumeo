@@ -66,7 +66,7 @@ final class HlsVodTest extends TestCase
     {
         $h = new TestHarness();
         try {
-            $this->seed($h, 'film1');
+            $this->seed($h, 'film1', 'ready');
             $h->plantHls('film1', 'remux', 0, 4, true);
             $res = $h->app->handle(new Request('GET', '/api/playback/status', [
                 'videoId' => 'film1',
@@ -88,13 +88,13 @@ final class HlsVodTest extends TestCase
         }
     }
 
-    public function testPlayer409WhileEventPlaylistIsStillGrowing(): void
+    public function testPlaylist409WhileEventPlaylistIsStillGrowing(): void
     {
         $h = new TestHarness();
         try {
             $this->seed($h, 'film1');
             $h->plantHls('film1', 'remux', 0, 6, false);
-            $res = $h->app->handle(new Request('GET', '/api/playback/player', [
+            $res = $h->app->handle(new Request('GET', '/api/playback/playlist', [
                 'videoId' => 'film1',
                 'recipe' => 'remux',
                 'audioIndex' => '0',
@@ -134,7 +134,7 @@ final class HlsVodTest extends TestCase
         }
     }
 
-    private function seed(TestHarness $h, string $id): void
+    private function seed(TestHarness $h, string $id, string $state = 'running'): void
     {
         $path = $h->writeNamedSource($id, 'x');
         $stat = stat($path);
@@ -146,14 +146,14 @@ final class HlsVodTest extends TestCase
                 'probeError' => null,
                 'failCount' => 0,
             ],
-            'durationSec' => 48,
+            'durationSec' => 24,
             'video' => ['index' => 0, 'codec' => 'hevc', 'width' => 1280, 'height' => 720, 'pixFmt' => 'yuv420p'],
             'audioTracks' => [['index' => 0, 'codec' => 'aac', 'channels' => 2]],
             'lastPlayedAt' => null,
             'variants' => [[
                 'recipe' => 'remux',
                 'audioIndex' => 0,
-                'state' => 'running',
+                'state' => $state,
                 'mode' => 'remux',
                 'protocol' => 'hls',
                 'video' => ['codec' => 'hvc1', 'width' => 1280, 'height' => 720],
