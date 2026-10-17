@@ -59,13 +59,7 @@ Voeg een object toe aan de `loose`-array in `catalog.json`. Niet aan `lessons` o
 
 ## Lokaal laten zien
 
-`Catalog.php` onthoudt de catalogus in het PHP-proces én in Redis (`catalog:v8`, `media-index:v3`). Na de JSON-wijziging:
-
-```bash
-docker compose exec -T redis redis-cli DEL catalog:v8 media-index:v3
-docker kill --signal=USR2 drumeo-frontend-1
-docker compose exec -T frontend rm -f /tmp/drumeo-media-index-v3.json
-```
+De Redis-keys volgen de bestanden zelf (`catalog:v9:<hash van catalog.json>`, `media-index:v4:<mtime van de mediamap>`). Na de JSON-wijziging en het nieuwe MKV hoeft er niets gewist of herstart te worden.
 
 Controleer met het profielcookie `drumeo_profile=wouter`:
 

@@ -4,13 +4,14 @@ Lokale lesomgeving voor *The Drumeo Method*: 322 lessen in 9 hoofdstukken, Netfl
 
 - Lokaal: [http://localhost:5050](http://localhost:5050)
 - Productie: [https://drumeo.storefront.be](https://drumeo.storefront.be) (intern `192.168.0.188:5050`)
-- Profielen: **Vic**, **Lenn**, **Wouter** (geen wachtwoord)
+- Profielen: **Vic**, **Lenn**, **Wouter**, **Arthur** (geen wachtwoord). Alleen **Beheer** vraagt een wachtwoord.
 
 ## Starten
 
 ```bash
 cp .env.example .env
 # pas DRUMEO_MEDIA aan als de NAS ergens anders hangt
+# zet ADMIN_TOKEN (openssl rand -hex 32) en ADMIN_PASSWORD voor Beheer
 docker compose up --build
 ```
 
@@ -20,13 +21,17 @@ GPU-encode (Intel/AMD via `/dev/dri`):
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 ```
 
+Op het LAN is alles open (de kids kiezen een profiel, geen wachtwoord). Van buitenaf zit er htpasswd op de storefront-proxy. Alleen Beheer en de destructieve video-API (`/api/admin`, `force`, cache wissen) zijn afgeschermd: de publieke nginx stuurt de admin-header nooit door.
+
+Database-migraties draaien één keer (`schema_version`-tabel, `Schema.php`), niet per request. `sql/schema.sql` is het volledige schema voor een verse installatie.
+
 Open [http://localhost:5050](http://localhost:5050). CSS/JS in `frontend/public/assets` zijn bind-mounts: wijzigingen zijn meteen live. PHP in `frontend/src` zit **in de image** — zie [PHP wijzigen](#php-wijzigen).
 
 ## Architectuur
 
 | Service | Rol |
 |---|---|
-| `nginx` | `/` SPA, `/assets`, `/img` (thumbs), `/app` frontend-API, `/api` + `/hls` video |
+| `nginx` | `:80` publiek: `/` SPA, `/assets`, `/img` (thumbs), `/app` frontend-API, `/api` + `/hls` video. `:8080` intern (niet gepubliceerd): alleen `/api/admin` voor de frontend |
 | `frontend` | PHP 8.4: catalogus, profielen, voortgang, image-scaler |
 | `video-api` + `video-worker` | Probe, receptkeuze, FFmpeg, HLS. Geen database. |
 | `mysql` | Profielen, voortgang, scores, notities, week-statistiek |
@@ -59,7 +64,7 @@ Eén bestand: [`catalog.json`](catalog.json) (~224 KB). Geen `lessons/`-map, gee
 - `paths[].packs` groepeert dezelfde lessen per skill (horizontale rijen).
 - `thumb` is `thumbs/{vimeoId}.jpg` — lokaal, nooit een remote URL.
 - `loose` is een lijst losse oefeningen. Die zitten niet in `order`, hebben geen lesnummer en starten de volgende video niet vanzelf.
-- Redis-cache: `catalog:v8` (10 min). Na catalogus- of PHP-wijziging: `docker compose exec redis redis-cli DEL catalog:v7 catalog:v8 media-index:v2 media-index:v3`.
+- Redis-cache: `catalog:v9:<hash>` (10 min). De hash volgt mtime en grootte van `catalog.json` en `Catalog.php`, dus na een wijziging hoeft er niets gewist te worden.
 
 `Catalog.php` nummert bij het laden:
 
@@ -71,11 +76,12 @@ Het lesnummer hoort **voor de titel** in de tekst (`3. De hi-hat en snare`), nie
 ## UI
 
 - Header: Drumeo-wordmark (SVG in `frontend/public/assets/logo-drumeo.svg`) · Home · Hoofdstukken · Losse lessen · Oefenen · Geschiedenis · Statistieken. Desktop-nav vanaf `lg` (1024px) zodat iPad-portrait niet overloopt.
-- **Beheer** (`/admin`) is alleen zichtbaar en bereikbaar voor profiel Wouter: bron-opslag, geschaalde 1080p-cache, HLS-totaal, schijfruimte, encodes, catalogusgaten en een opruimknop.
+- **Beheer** (`/admin`): bron-opslag, geschaalde 1080p-cache, HLS-totaal, schijfruimte, encodes, catalogusgaten en een opruimknop. De link staat bij profiel Wouter; openen vraagt `ADMIN_PASSWORD`. Daarna onthoudt dat toestel het een jaar (ondertekende HttpOnly-cookie `drumeo_admin`; een nieuw wachtwoord maakt alle cookies ongeldig). **Vergrendel** logt uit. Na 10 foute pogingen in 15 min: even wachten. Zonder `ADMIN_PASSWORD` is Beheer uit.
 - Mobiel: Hoofdstukken in de header, dock onderaan (Home / Oefenen / Geschiedenis / Stats / Profiel).
 - Taal (EN/NL) is de audiostream: index `0` Engels, `1` Nederlands. Sommige MKV’s hebben geen `nl` of heten de Engelse track `Original` i.p.v. `en`.
 - Padweergave per profiel: **Lesvolgorde** (grid in Method-order, default) of **Per skill** (horizontale packs). `POST /app/path-view`.
-- “Watched” = tot 15 s voor het einde. Resume springt nooit in de laatste 5 s van een afgewezen les; dan de volgende ongeziene.
+- “Watched” = 85% van de les echt afgespeeld, geteld in blokjes van 3 s (vooruitspoelen telt niet). Duur en video-id komen uit de catalogus, niet uit de browser. Resume springt nooit in de laatste 5 s van een afgewezen les; dan de volgende ongeziene.
+- Oefentijd (vandaag, week, totaal) komt uit `play_events`. Een sessie van 0 s telt niet als oefendag. “Gezien” telt alleen Method-lessen, geen losse lessen.
 - Score na afloop: 🤩😊😕😢, alle ratings blijven bewaard (opnieuw kijken mag). Oefenen = lessen zonder top-score.
 - Notities per les/profiel. Notatiesleutel: [`/app/notation.pdf`](http://localhost:5050/app/notation.pdf) (`drumeo-method-notation-key.pdf`).
 - CSS/JS cache-bust: SHA1 van het bestand als `?v=`.
@@ -91,14 +97,14 @@ Na ontbrekende thumbs: het JPG in `thumbs/` zetten en eventueel de image-cache v
 
 ## Video (HLS)
 
-MKV blijft archief; de browser speelt HLS. De backend kiest remux of transcode op basis van client-capabilities. Cache per `(bron, recept, audioIndex)`. Safari speelt native HLS; andere browsers krijgen hls.js **in de API-response**, niet als aparte `/assets`-script.
+MKV blijft archief; de browser speelt HLS. De backend kiest remux of transcode op basis van client-capabilities. Cache per `(bron, recept, audioIndex)`. Safari/iOS speelt native HLS; andere browsers laden hls.js pas bij het afspelen, als statisch bestand `/assets/vendor/hls-<versie>.min.js` (de versie in de naam is de cache-bust). Een nieuwe hls.js: nieuw bestand met de nieuwe versie, en `HLS_JS_SRC` in `app.js` aanpassen.
 
 ```
 FFMPEG_VCODEC=auto   # NVENC → QSV → VAAPI → VideoToolbox → libx264
 GET /api/health      # encoder + encoderRequested
 ```
 
-HLS-cache opruimen (raakt `SOURCE_DIR` nooit). Dezelfde regels zitten achter de knop op `/admin`: varianten ouder dan `MAX_AGE_DAYS` (90), mislukte encodes, en de oudste als de cache boven `MAX_CACHE_GB` (80) zit. `ADMIN_TOKEN` (compose-default `drumeo-admin`) gaat alleen van de frontend naar de video-API.
+HLS-cache opruimen (raakt `SOURCE_DIR` nooit). Dezelfde regels zitten achter de knop op `/admin`: varianten ouder dan `MAX_AGE_DAYS` (90), mislukte encodes, en de oudste als de cache boven `MAX_CACHE_GB` (80) zit. `ADMIN_TOKEN` is het gedeelde geheim tussen frontend en video-API; die praten via nginx `:8080`, dat niet buiten Docker bereikbaar is. Zonder `ADMIN_TOKEN` is de admin-API dicht.
 
 ```bash
 docker compose exec video-worker php /app/bin/cleanup.php --dry-run
@@ -136,10 +142,7 @@ Sommige clips hebben geen `en` maar `Original`, of geen Nederlands. Bestandsnaam
 `frontend/src/*.php` zit in de image, niet in een bind-mount. Na `docker compose up --build` is de image leidend. Tussendoor, zonder rebuild:
 
 ```bash
-docker compose cp frontend/src/Catalog.php frontend:/app/src/Catalog.php
-docker compose cp frontend/src/Http.php frontend:/app/src/Http.php
-docker compose cp frontend/src/Progress.php frontend:/app/src/Progress.php
-docker compose exec redis redis-cli DEL catalog:v7 catalog:v8 media-index:v2 media-index:v3
+docker compose cp frontend/src/. frontend:/app/src/
 docker compose exec frontend kill -USR2 1
 ```
 
@@ -157,23 +160,24 @@ CSS herbouwen:
 DRUMEO_MEDIA=/mnt/drumeo ./upload-to-production.sh
 ```
 
-Host `root@192.168.0.188`, map `/home/wouter/drumeo`. Extern Nginx (storefront) doet TLS; deze stack luistert op `:5050`. Het script compileert CSS, rsync’t (zonder `.git`, `node_modules`, `vendor`, screenshots), start compose (GPU-overlay als `/dev/dri` of NVIDIA bestaat) en legt `catalog:v8` + `media-index:v3` leeg.
+Host `root@192.168.0.188`, map `/home/wouter/drumeo`. Extern Nginx (storefront) doet TLS; deze stack luistert op `:5050`. Het script compileert CSS, rsync’t (zonder `.git`, `node_modules`, `vendor`, screenshots), start compose (GPU-overlay als `/dev/dri` of NVIDIA bestaat) en herlaadt nginx. Ontbreekt `ADMIN_TOKEN` op de host (of is het nog `drumeo-admin`), dan maakt het er een aan; ontbreekt `ADMIN_PASSWORD`, dan neemt het dat over uit je lokale `.env` (via stdin, niet als argument).
 
 ## Redis-sleutels
 
 | Key | TTL | Inhoud |
 |---|---|---|
-| `catalog:v8` | 600 s | Gebouwde catalogus + `n` / prev/next + losse lessen |
-| `media-index:v3` | 900 s | Video-id → NAS-pad (alleen `.mkv`) |
+| `catalog:v9:<hash>` | 600 s | Gebouwde catalogus + `n` / prev/next + losse lessen. Hash van `catalog.json` en `Catalog.php` |
+| `media-index:v4:<mtime>` | 900 s | Video-id → NAS-pad (alleen `.mkv`). Een MKV erbij of weg verandert de mtime van de map. Een lege of mislukte scan wordt niet gecachet |
+| `admin:login-failures` | 900 s | Foute Beheer-logins |
+| `admin:video:v1` | 20 s | Video-overzicht voor Beheer |
 
-Oude keys (`catalog:v3` … `v6`) mogen weg.
+Wissen is nooit nodig; oude keys verlopen vanzelf.
 
 ## Tests
 
 ```bash
 # frontend (GD)
-php frontend/tests/ImageScalerTest.php
-php frontend/tests/AdminDashboardTest.php
+for t in frontend/tests/*Test.php; do php "$t" || break; done
 
 # video-backend
 (cd video-backend && ./vendor/bin/phpunit)
