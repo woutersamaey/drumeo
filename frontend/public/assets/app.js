@@ -2,34 +2,64 @@
   const $ = (sel, el = document) => el.querySelector(sel);
   const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 
+  // Timings and thresholds. Seconds unless the name ends in _MS.
+  const LESSONS_PAGE_SIZE = 12;
+  const IDLE_MS = 60 * 60 * 1000;          // lock to the profile screen after an hour away
+  const SAVE_EVERY_MS = 4000;              // progress save throttle while playing
+  const PREP_POLL_MS = 1000;               // status poll while the current lesson is prepared
+  const PREFETCH_POLL_MS = 5000;           // re-prepare poll for the next lesson
+  const NEXT_POLL_MS = 3000;               // score dialog: poll until the next lesson is ready
+  const POLL_MAX_MISSES = 5;               // consecutive network/5xx errors a poll loop tolerates
+  const NEXT_COUNTDOWN_SEC = 5;
+  const LOOSE_REPLAY_SEC = 10;
+  const LOOSE_AUTO_REPLAYS = 3;            // automatic loose replays before waiting for a tap
+  const PREFETCH_AFTER_SEC = 15;
+  const NATIVE_PREFETCH_AHEAD = 6;         // Safari: segments warmed ahead of the playhead
+  const END_TOLERANCE_SEC = 1.5;           // this close to the end counts as "ended"
+  const RESUME_TAIL_SEC = 5;               // never resume inside the last seconds
+  const WATCH_BUCKET_SEC = 3;              // must match Progress::BUCKET_SEC on the server
+  const MAX_TICK_GAP_SEC = 30;             // iPad fullscreen can report 5–15 s between timeupdates
+  const SEEK_SLACK_SEC = 2.5;              // a jump this far beyond wall time is a seek
+  const PLAY_SLACK_SEC = 0.75;
+  const FOLLOWED_RATIO = 0.33;             // history lists lessons watched at least a third
+  const FS_EXIT_WAIT_MS = 700;
+  const FS_RETRY_MS = 300;
+  const WEEK_FADE_MS = 220;
+  const TOAST_MS = 4500;
+  const HLS_NET_RETRIES = 4;
+  const HLS_RETRY_MS = 1500;
+  const HLS_JS_SRC = "/assets/vendor/hls-1.5.20.min.js";
+
   const state = {
     bootstrap: null,
     route: { name: "profiles", params: {} },
+    renderGen: 0,              // bumps on every render; async renders bail out when stale
     lessonCache: {},
-    prepareTimers: {},
-    prefetch: null,
-    player: { video: null, lesson: null, recipe: null },
-    saving: false,
-    lastSave: 0,
-    overlay: null,
-    countdown: null,
-    pendingNext: null,
+    audioResolved: {},         // videoId → { preferred, index } after an NL→EN fallback
+    avcOnly: false,
+    player: emptyPlayer(),     // the current playback session; disposePlayback() ends it
+    prefetch: null,            // AbortController of the next-lesson prefetch loop
     nextPrep: null,
-    logAt: {},
-    playGen: 0,
-    weekDay: null,
+    endFlow: null,             // score dialog: { ac, timer, ready, left, next }
+    ratePicked: {},
+    looseAutoReplays: 0,
+    replaying: false,
     pendingFullscreen: false,
     hadFullscreenThisClip: false,
     fsRestoreArmed: false,
-    fsListener: null,
+    fsRestoreGen: 0,
+    fsTransferring: false,
     keepWatchStage: false,
+    savedStage: null,
+    modalReturnFocus: null,
+    logAt: {},
+    weekDay: null,
     lessonsShown: 0,
     lessonsObserver: null,
-    lessonsLoading: false,
-    ratePicked: {},
+    looseKey: null,
+    looseOrder: null,
+    admin: null,
   };
-
-  const LESSONS_PAGE_SIZE = 12;
 
   const COLORS = { vic: "bg-vic", lenn: "bg-lenn", wouter: "bg-wouter", arthur: "bg-arthur" };
   const LANGS = [
@@ -130,17 +160,17 @@
     const methodLabel = isNl() ? "Hoofdstukken" : "The Method";
     return `
       <div class="relative flex items-center" data-menu="method">
-        <button type="button" data-action="method-menu" class="px-3 py-2 rounded-lg tap nav-hover flex items-center gap-1 ${onMethod ? "bg-card font-semibold" : ""}" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(methodLabel)}">
+        <button type="button" data-action="method-menu" class="px-3 py-2 rounded-lg tap nav-hover flex items-center gap-1 ${onMethod ? "bg-card font-semibold" : ""}" aria-expanded="false" aria-controls="method-menu" aria-label="${esc(methodLabel)}">
           <span ${locAttr("The Method", "Hoofdstukken")}</span>
           <span class="text-muted text-xs leading-none">▾</span>
         </button>
-        <div id="method-menu" data-menu-panel class="nav-drop hidden" role="menu">
+        <div id="method-menu" data-menu-panel class="nav-drop hidden">
           ${paths.map((p, i) => {
             const on = p.slug === current;
             const diffEn = p.difficulty || "";
             const diffNl = p.difficultyNl || diffEn;
             const num = p.n || i + 1;
-            return `<a href="/path/${esc(p.slug)}" data-link role="menuitem"
+            return `<a href="/path/${esc(p.slug)}" data-link
               class="tap flex gap-2.5 w-full rounded-lg px-3 py-2 text-left nav-hover ${on ? "bg-card font-bold" : ""}"
               ${on ? 'aria-current="page"' : ""}>
               <span class="text-sm text-muted tabular-nums w-5 shrink-0 text-right pt-px">${num}</span>
@@ -158,16 +188,16 @@
     const cur = langMeta();
     return `
       <div id="lang-wrap" class="relative shrink-0" data-menu="lang">
-        <button type="button" data-action="lang-menu" class="tap text-sm font-bold flex items-center gap-1 px-3 py-2 rounded-lg nav-hover" aria-haspopup="listbox" aria-expanded="false" aria-label="Taal">
+        <button type="button" data-action="lang-menu" class="tap text-sm font-bold flex items-center gap-1 px-3 py-2 rounded-lg nav-hover" aria-expanded="false" aria-controls="lang-menu" aria-label="Taal">
           <span data-lang-short>${esc(cur.short)}</span>
           <span class="text-muted text-xs">▾</span>
         </button>
-        <div id="lang-menu" data-menu-panel class="hidden absolute right-0 mt-1 z-40 min-w-[11rem] rounded-xl bg-panel border border-line p-1 shadow-lg" role="listbox">
+        <div id="lang-menu" data-menu-panel class="hidden absolute right-0 mt-1 z-40 min-w-[11rem] rounded-xl bg-panel border border-line p-1 shadow-lg">
           ${LANGS.map((l) => {
             const on = l.index === cur.index;
-            return `<button type="button" data-action="audio" data-index="${l.index}" role="option"
+            return `<button type="button" data-action="audio" data-index="${l.index}"
               class="tap flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm text-left ${on ? "bg-card font-bold" : "text-muted"}"
-              aria-selected="${on ? "true" : "false"}">
+              aria-pressed="${on ? "true" : "false"}">
               <span>${esc(l.label)}</span>
               <span class="text-xs font-bold">${on ? "✓" : esc(l.short)}</span>
             </button>`;
@@ -212,7 +242,6 @@
     window.scrollTo(0, 0);
   }
 
-  const IDLE_MS = 60 * 60 * 1000;
   const IDLE_KEY = "drumeo_last_active";
 
   function lastActiveMs() {
@@ -244,8 +273,7 @@
   function lockIfIdle() {
     if (!isSessionIdle()) return false;
     if (onProfilesScreen()) return true;
-    teardownPlayer();
-    go("/profiles", true);
+    go("/profiles", true); // render() disposes the playback and saves its progress
     return true;
   }
 
@@ -477,7 +505,7 @@
     if (progress.watched) return true;
     const dur = progress.duration || lesson?.seconds || 0;
     const pos = progress.position || 0;
-    return dur > 0 && pos / dur >= 0.33;
+    return dur > 0 && pos / dur >= FOLLOWED_RATIO;
   }
 
   function noteOf(id) {
@@ -567,8 +595,10 @@
     return [profile, mate].filter(Boolean);
   }
 
+  // Re-render around the running player (same lesson) instead of restarting it.
   function keepWatchIfPlaying() {
-    if (state.route.name === "watch" && $("#stage") && state.player.video) {
+    const s = state.player;
+    if (state.route.name === "watch" && $("#stage") && s.video && sameId(s.lesson?.id, state.route.params.id)) {
       state.keepWatchStage = true;
     }
   }
@@ -593,11 +623,11 @@
     return `
       <div class="header-players">
         <div class="relative" data-menu="mate">
-          <button type="button" data-action="mate-menu" class="header-add tap" aria-haspopup="menu" aria-expanded="false" aria-label="Medespeler toevoegen" title="Medespeler toevoegen">+</button>
-          <div id="mate-menu" data-menu-panel class="mate-menu hidden" role="menu">
+          <button type="button" data-action="mate-menu" class="header-add tap" aria-expanded="false" aria-controls="mate-menu" aria-label="Medespeler toevoegen" title="Medespeler toevoegen">+</button>
+          <div id="mate-menu" data-menu-panel class="mate-menu hidden">
             <p class="mate-menu-title">Medespeler toevoegen</p>
             ${others.map((p) => `
-              <button type="button" data-action="add-mate" data-slug="${esc(p.slug)}" role="menuitem" class="mate-menu-item tap">
+              <button type="button" data-action="add-mate" data-slug="${esc(p.slug)}" class="mate-menu-item tap">
                 <span class="mate-menu-face ${COLORS[p.slug] || "bg-accent"}">${esc(p.name[0])}</span>
                 <span class="mate-menu-name">${esc(p.name)}</span>
               </button>`).join("")}
@@ -613,7 +643,7 @@
       <p class="text-muted">${prompt}</p>
       <div class="grid grid-cols-4 gap-3 my-4">
         ${SCORE_CHOICES.map(([s, e, l]) => `
-          <button type="button" data-action="rate" data-score="${s}" data-slug="${esc(player.slug)}" class="tap rounded-2xl bg-card border border-line py-5 text-4xl">
+          <button type="button" data-action="rate" data-score="${s}" data-slug="${esc(player.slug)}" aria-pressed="false" class="tap rounded-2xl bg-card border border-line py-5 text-4xl">
             <div>${e}</div><div class="text-xs mt-2 text-muted">${l}</div>
           </button>`).join("")}
       </div>
@@ -726,74 +756,160 @@
     levelLoadingMaxRetry: 6,
   };
 
-  function stopNativePrefetch(video) {
-    if (!video?._vbPrefetch) return;
-    try { video._vbPrefetch.abort(); } catch {}
-    video._vbPrefetch = null;
+  // hls.js error details that mean "this browser cannot decode the stream".
+  const HLS_CODEC_ERRORS = new Set(["manifestIncompatibleCodecsError", "bufferAddCodecError", "bufferIncompatibleCodecsError"]);
+  const HLS_MANIFEST_ERRORS = new Set(["manifestLoadError", "manifestLoadTimeOut", "manifestParsingError"]);
+
+  let hlsJsLoad = null;
+
+  // hls.js is only fetched where the browser cannot play HLS itself.
+  function loadHlsJs() {
+    if (usesNativeHls()) return Promise.resolve(null);
+    if (window.Hls) return Promise.resolve(window.Hls);
+    if (!hlsJsLoad) {
+      hlsJsLoad = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = HLS_JS_SRC;
+        script.async = true;
+        script.onload = () => resolve(window.Hls || null);
+        script.onerror = () => {
+          hlsJsLoad = null;
+          script.remove();
+          reject(new Error("hls.js kon niet laden"));
+        };
+        document.head.appendChild(script);
+      });
+    }
+    return hlsJsLoad;
   }
 
-  function startNativePrefetch(video, playlistUrl, signal) {
-    stopNativePrefetch(video);
-    if (!video || !playlistUrl || !usesNativeHls()) return;
-    const ac = new AbortController();
-    video._vbPrefetch = ac;
-    if (signal) {
-      if (signal.aborted) {
-        ac.abort();
+  function destroyHls(video) {
+    if (!video?._vbHls) return;
+    try { video._vbHls.destroy(); } catch {}
+    video._vbHls = null;
+  }
+
+  function createVideo(slot) {
+    slot.innerHTML = `<div class="vp"><video controls playsinline webkit-playsinline x-webkit-airplay="allow" preload="auto"></video></div>`;
+    return slot.querySelector("video");
+  }
+
+  // The only way a playlist reaches a <video>: native HLS on Apple, hls.js elsewhere.
+  // onCodecError returns true when it took over (a retry with a safer profile).
+  function attachPlaylist(video, url, { signal, onCodecError, onFatal } = {}) {
+    destroyHls(video);
+    video.preload = "auto";
+    video.setAttribute("data-playlist", url);
+    const Hls = window.Hls;
+    if (usesNativeHls() || !Hls || !Hls.isSupported()) {
+      video.src = url;
+      return;
+    }
+    const hls = new Hls(HLS_JS_CONFIG);
+    video._vbHls = hls;
+    let netRetries = 0;
+    let mediaRecovered = false;
+    const live = () => video._vbHls === hls && !signal?.aborted;
+    const fatal = (data) => { if (!onCodecError?.(data)) onFatal?.(data); };
+    hls.on(Hls.Events.FRAG_LOADED, () => { netRetries = 0; });
+    hls.on(Hls.Events.ERROR, (_evt, data) => {
+      if (!data?.fatal || !live()) return;
+      if (HLS_CODEC_ERRORS.has(data.details)) {
+        fatal(data);
         return;
       }
-      signal.addEventListener("abort", () => ac.abort(), { once: true });
-    }
-    const run = async () => {
-      const masterUrl = new URL(playlistUrl, location.href).href;
-      const masterTxt = await fetch(masterUrl, { signal: ac.signal, cache: "force-cache" }).then((r) => r.text());
-      const mediaRel = masterTxt.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("#"));
-      if (!mediaRel) return;
-      const mediaUrl = new URL(mediaRel, masterUrl).href;
-      const mediaTxt = await fetch(mediaUrl, { signal: ac.signal, cache: "force-cache" }).then((r) => r.text());
-      const segs = mediaTxt.split("\n").map((l) => l.trim()).filter((l) => l && !l.startsWith("#")).map((l) => new URL(l, mediaUrl).href);
-      // Player already pulls the first seconds; warm the HTTP cache for the rest.
-      for (let i = 3; i < segs.length; i += 1) {
-        if (ac.signal.aborted) return;
-        const res = await fetch(segs[i], { signal: ac.signal, cache: "force-cache", credentials: "same-origin" });
-        if (res.body) {
-          const reader = res.body.getReader();
-          while (true) {
-            const { done } = await reader.read();
-            if (done) break;
-          }
-        } else {
-          await res.arrayBuffer();
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        if (netRetries >= HLS_NET_RETRIES) {
+          onFatal?.(data);
+          return;
         }
+        netRetries += 1;
+        setTimeout(() => {
+          if (!live()) return;
+          if (HLS_MANIFEST_ERRORS.has(data.details)) hls.loadSource(url);
+          else hls.startLoad();
+        }, HLS_RETRY_MS * netRetries);
+        return;
       }
-    };
-    const kick = () => { run().catch(() => {}); };
-    if (!video.paused && video.readyState >= 2) kick();
-    else video.addEventListener("playing", kick, { once: true, signal: ac.signal });
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !mediaRecovered) {
+        mediaRecovered = true;
+        hls.recoverMediaError();
+        return;
+      }
+      fatal(data);
+    });
+    hls.loadSource(url);
+    hls.attachMedia(video);
   }
 
-  function attachPlaylist(video, url) {
-    if (!video || !url) return;
-    stopNativePrefetch(video);
-    if (video._vbHls) {
-      try { video._vbHls.destroy(); } catch {}
-      video._vbHls = null;
+  async function drainResponse(res) {
+    if (res.body?.getReader) {
+      const reader = res.body.getReader();
+      while (!(await reader.read()).done) { /* discard */ }
+    } else {
+      await res.arrayBuffer();
     }
-    video.preload = "auto";
-    if (usesNativeHls()) {
-      video.src = url;
-      video.setAttribute("data-playlist", url);
-      return;
-    }
-    const HlsClass = window.Hls;
-    if (HlsClass && HlsClass.isSupported()) {
-      const hls = new HlsClass(HLS_JS_CONFIG);
-      video._vbHls = hls;
-      hls.loadSource(url);
-      hls.attachMedia(video);
-      return;
-    }
-    video.src = url;
+  }
+
+  // Safari plays HLS itself. Warm the HTTP cache for the next few segments
+  // after the playhead only, never the whole lesson.
+  function startNativePrefetch(video, playlistUrl, signal) {
+    if (!video || !playlistUrl || !signal || signal.aborted || !usesNativeHls()) return;
+    const get = (url) => fetch(url, { signal, credentials: "same-origin" });
+    let segments = null;
+    let busy = false;
+    const fetched = new Set();
+    const loadSegments = async () => {
+      const masterUrl = new URL(playlistUrl, location.href).href;
+      let url = masterUrl;
+      let text = await get(url).then((r) => r.text());
+      if (!/#EXTINF/.test(text)) {
+        const rel = text.split("\n").map((l) => l.trim()).find((l) => l && !l.startsWith("#"));
+        if (!rel) return [];
+        url = new URL(rel, masterUrl).href;
+        text = await get(url).then((r) => r.text());
+      }
+      const out = [];
+      let at = 0;
+      let dur = 0;
+      for (const raw of text.split("\n")) {
+        const line = raw.trim();
+        if (line.startsWith("#EXTINF:")) {
+          dur = parseFloat(line.slice(8)) || 0;
+        } else if (line && !line.startsWith("#")) {
+          at += dur;
+          out.push({ url: new URL(line, url).href, end: at });
+          dur = 0;
+        }
+      }
+      return out;
+    };
+    const pump = async () => {
+      if (busy || signal.aborted || video.paused) return;
+      busy = true;
+      try {
+        if (!segments) {
+          segments = [];
+          segments = await loadSegments();
+        }
+        const t = Number(video.currentTime) || 0;
+        const cur = segments.findIndex((seg) => t < seg.end);
+        if (cur < 0) return;
+        const last = Math.min(segments.length - 1, cur + NATIVE_PREFETCH_AHEAD);
+        for (let i = cur + 1; i <= last; i += 1) {
+          if (signal.aborted) return;
+          if (fetched.has(i)) continue;
+          fetched.add(i);
+          await drainResponse(await get(segments[i].url));
+        }
+      } catch {
+        // Best effort: the player loads what it needs anyway.
+      } finally {
+        busy = false;
+      }
+    };
+    video.addEventListener("playing", pump, { signal });
+    video.addEventListener("timeupdate", pump, { signal });
   }
 
   function hevcOk() {
@@ -814,30 +930,21 @@
   }
 
   function capabilities(safe) {
-    const apple = isApple();
     // Phones/tablets (including the 2017 iPad Pro) get 1080p AVC: 4K remux is
     // 15–25 Mbps with 20 MB segments, which stalls Wi-Fi and breaks AirPlay TVs.
     const hevc = !safe && !wantsSafeProfile() && hevcOk() && !isHandheld();
-    if (hevc) {
-      return {
-        protocols: ["hls"],
-        videoCodecs: ["hvc1", "avc1"],
-        audioCodecs: ["mp4a.40.2"],
-        maxWidth: 3840,
-        maxHeight: 2160,
-        hdr: false,
-        nativeHls: apple,
-      };
-    }
     return {
       protocols: ["hls"],
-      videoCodecs: ["avc1"],
+      videoCodecs: hevc ? ["hvc1", "avc1"] : ["avc1"],
       audioCodecs: ["mp4a.40.2"],
-      maxWidth: 1920,
-      maxHeight: 1080,
+      maxWidth: hevc ? 3840 : 1920,
+      maxHeight: hevc ? 2160 : 1080,
       hdr: false,
-      nativeHls: apple,
     };
+  }
+
+  function capsAllowHevc(caps) {
+    return !!caps?.videoCodecs?.includes("hvc1");
   }
 
   function navLink(href, label, { mobile = false, cls = "" } = {}) {
@@ -930,7 +1037,7 @@
     const have = available(lesson.vimeoId);
     const w = wide ? "min-w-[280px] w-[280px] sm:w-[320px]" : "w-full";
     return `
-      <a href="/watch/${lesson.id}" data-link class="card-hover block ${w} rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} transition-transform">
+      <a href="/watch/${esc(lesson.id)}" data-link class="card-hover block ${w} rounded-2xl overflow-hidden bg-card border ${watched ? "card-watched" : "border-line"} transition-transform">
         <div class="relative aspect-video thumb overflow-hidden${watched ? " thumb-watched" : ""}">
           ${thumbPic(lesson.vimeoId, { sizes: wide ? "(min-width: 640px) 320px, 85vw" : "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw", alt: disp(lesson) })}
           ${thumbBadges(lesson.id, { watched })}
@@ -954,49 +1061,6 @@
     const h = Math.floor(m / 60);
     const rm = m % 60;
     return rm ? `${h} u ${rm} min` : `${h} u`;
-  }
-
-  const WATCH_BUCKET_SEC = 3;
-
-  function noteSeenBuckets(video) {
-    if (!state.player) return;
-    const pos = Number(video?.currentTime) || 0;
-    const duration = Number(video?.duration);
-    const prev = state.player.lastTickPos;
-    state.player.lastTickPos = pos;
-    if (prev == null || Number.isNaN(prev)) return;
-    const delta = pos - prev;
-    if (delta <= 0 || delta > 30) return;
-    if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
-    const end = (isFinite(duration) && duration > 0) ? duration : pos;
-    const from = Math.floor(Math.min(prev, end) / WATCH_BUCKET_SEC);
-    const to = Math.floor(Math.min(pos, end) / WATCH_BUCKET_SEC);
-    for (let b = from; b <= to; b++) {
-      if (b >= 0) state.player.seenBuckets.add(b);
-    }
-  }
-
-  function takePlayedDelta(video) {
-    const pos = Number(video?.currentTime) || 0;
-    const now = Date.now();
-    if (state.player && (state.player.lastSavedPos == null || Number.isNaN(state.player.lastSavedPos))) {
-      state.player.lastSavedPos = pos;
-      state.player.lastSavedWall = now;
-      return 0;
-    }
-    const prev = Number(state.player?.lastSavedPos) || 0;
-    let delta = pos - prev;
-    if (delta < 0) delta = 0;
-    const wall = Math.max(0, (now - (Number(state.player?.lastSavedWall) || now)) / 1000);
-    // A jump bigger than the wall clock is a seek, not playback. iPad fullscreen
-    // often delivers 5–15s timeupdates; those must still count.
-    if (delta > wall + 2.5) delta = 0;
-    else delta = Math.min(delta, wall + 0.75);
-    if (state.player) {
-      state.player.lastSavedPos = pos;
-      state.player.lastSavedWall = now;
-    }
-    return Math.round(delta * 1000) / 1000;
   }
 
   function relativePlayed(unix) {
@@ -1377,13 +1441,50 @@
           <h1 class="text-3xl sm:text-4xl font-black">Beheer</h1>
           <p class="text-muted mt-2">Technisch overzicht van video, cache en diensten.${when ? ` Bijgewerkt ${esc(when)}.` : ""}</p>
         </div>
-        <button type="button" data-action="admin-refresh" class="admin-ghost tap rounded-xl px-4 py-3 font-semibold" ${ui.busy ? "disabled" : ""}>${ui.busy ? "Bezig…" : "Ververs"}</button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-action="admin-refresh" class="admin-ghost tap rounded-xl px-4 py-3 font-semibold" ${ui.busy ? "disabled" : ""}>${ui.busy ? "Bezig…" : "Ververs"}</button>
+          <button type="button" data-action="admin-logout" class="admin-ghost tap rounded-xl px-4 py-3 font-semibold" ${ui.busy ? "disabled" : ""}>Vergrendel</button>
+        </div>
       </div>
       ${ui.notice ? `<div class="${noticeCls} mb-6">${esc(ui.notice)}</div>` : ""}
       ${d.videoError ? `<div class="admin-note admin-warn mb-6">Video-API: ${esc(d.videoError)}</div>` : ""}
       ${d.video ? adminStorage(d.video) + adminCleanupBlock(d.video, ui) + adminJobs(d.video) + adminCatalog(d.catalog) : ""}
       ${adminServices(d)}
     </div>`;
+  }
+
+  function isAdminLoginError(err) {
+    return err?.status === 401 && !!err?.body?.login;
+  }
+
+  function lockAdmin() {
+    if (state.bootstrap) state.bootstrap.adminUnlocked = false;
+    state.admin = null;
+  }
+
+  function adminLoginHtml() {
+    if (state.bootstrap?.adminLogin === false) {
+      return `<div class="max-w-md mx-auto px-4 pt-10">
+        <h1 class="text-3xl font-black">Beheer</h1>
+        <div class="admin-note admin-warn mt-6">Beheer is uitgeschakeld: zet ADMIN_PASSWORD in .env</div>
+      </div>`;
+    }
+    return `<div class="max-w-md mx-auto px-4 pt-10">
+      <h1 class="text-3xl font-black">Beheer</h1>
+      <p class="text-muted mt-2">Technisch overzicht van video, cache en diensten. Vul het beheerwachtwoord in.</p>
+      <form id="admin-login" class="mt-6 rounded-2xl bg-card border border-line p-5" novalidate>
+        <input type="text" name="username" value="beheer" autocomplete="username" class="hidden">
+        <label for="admin-password" class="block text-sm font-semibold mb-2">Wachtwoord</label>
+        <input id="admin-password" name="password" type="password" autocomplete="current-password" required data-autofocus
+          class="w-full rounded-xl bg-ink border border-line px-4 py-3 text-base text-white outline-none focus:border-accent">
+        <p id="admin-login-error" class="hidden text-sm mt-2 text-warn" role="alert"></p>
+        <button type="submit" class="tap mt-4 rounded-full bg-white text-ink font-bold px-5 py-3">Ontgrendel</button>
+      </form>
+    </div>`;
+  }
+
+  function paintAdminLogin() {
+    $("#app").innerHTML = layout(adminLoginHtml());
   }
 
   function paintAdmin() {
@@ -1400,13 +1501,11 @@
     if (y) window.scrollTo(0, y);
   }
 
-  async function renderAdmin() {
-    if (!state.bootstrap?.admin) {
-      $("#app").innerHTML = layout(`
-        <div class="max-w-3xl mx-auto px-4 pt-10">
-          <h1 class="text-3xl font-black">Beheer</h1>
-          <p class="text-muted mt-3">Dit overzicht is alleen voor Wouter.</p>
-        </div>`);
+  // Locked → password form. Unknown (older server) → try the overview; a 401 locks.
+  async function renderAdmin(stale = () => false) {
+    const b = state.bootstrap || {};
+    if (b.adminUnlocked !== true && (b.adminLogin === false || b.adminUnlocked === false)) {
+      paintAdminLogin();
       return;
     }
     const prev = state.admin;
@@ -1418,8 +1517,15 @@
       }
       try {
         const data = await api("/app/admin/overview" + (prev?.reload ? "?fresh=1" : ""));
+        if (stale()) return;
         state.admin = { data, error: null, confirm: false, busy: false, notice, noticeWarn, reload: false };
       } catch (e) {
+        if (stale()) return;
+        if (isAdminLoginError(e)) {
+          lockAdmin();
+          paintAdminLogin();
+          return;
+        }
         state.admin = {
           data: prev?.data || null,
           error: prev?.data ? null : (e.message || "Kon het overzicht niet laden"),
@@ -1434,43 +1540,83 @@
     paintAdmin();
   }
 
-  async function onAdminAction(action) {
-    if (!state.bootstrap?.admin) return;
-    if (!state.admin) state.admin = {};
-    if (action === "admin-confirm") {
-      state.admin.confirm = true;
-      paintAdmin();
-      bind();
+  async function onAdminLogin(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const input = form.querySelector("#admin-password");
+    const errEl = form.querySelector("#admin-login-error");
+    const btn = form.querySelector("button[type=submit]");
+    const showError = (text) => {
+      if (errEl) {
+        errEl.textContent = text;
+        errEl.classList.remove("hidden");
+      }
+      try { input?.select(); input?.focus(); } catch {}
+    };
+    const password = input?.value || "";
+    if (!password) {
+      showError("Vul het wachtwoord in.");
       return;
     }
-    if (action === "admin-cancel") {
-      state.admin.confirm = false;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Bezig…";
+    }
+    try {
+      await api("/app/admin/login", { method: "POST", body: JSON.stringify({ password }) });
+    } catch (err) {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Ontgrendel";
+      }
+      showError(errorText(err));
+      return;
+    }
+    try { await refresh(); } catch {}
+    if (state.bootstrap) {
+      state.bootstrap.adminUnlocked = true;
+      state.bootstrap.admin = true;
+    }
+    state.admin = null;
+    if (state.route.name === "admin") render();
+  }
+
+  async function onAdminAction(action) {
+    if (!state.admin) state.admin = {};
+    const gen = state.renderGen;
+    const stale = () => gen !== state.renderGen || state.route.name !== "admin";
+    const repaint = () => {
+      if (stale()) return;
       paintAdmin();
       bind();
+    };
+    if (action === "admin-logout") {
+      await api("/app/admin/logout", { method: "POST", body: "{}" });
+      try { await refresh(); } catch {}
+      lockAdmin();
+      if (!stale()) render();
+      return;
+    }
+    if (action === "admin-confirm" || action === "admin-cancel") {
+      state.admin.confirm = action === "admin-confirm";
+      repaint();
       return;
     }
     if (action === "admin-refresh") {
-      state.admin.notice = null;
-      state.admin.noticeWarn = false;
-      state.admin.confirm = false;
-      state.admin.busy = true;
-      if (state.admin.data) {
-        paintAdmin();
-        bind();
-      }
+      Object.assign(state.admin, { notice: null, noticeWarn: false, confirm: false, busy: true });
+      if (state.admin.data) repaint();
       state.admin.reload = true;
-      await renderAdmin();
-      bind();
+      await renderAdmin(stale);
+      if (!stale()) bind();
       return;
     }
     if (action === "admin-cleanup") {
       if (state.admin.busy) return;
-      state.admin.busy = true;
-      state.admin.confirm = false;
-      paintAdmin();
-      bind();
+      Object.assign(state.admin, { busy: true, confirm: false });
+      repaint();
       try {
         const res = await api("/app/admin/cleanup", { method: "POST", body: JSON.stringify({ confirm: true }) });
+        if (stale()) return;
         const n = Number(res.count) || 0;
         state.admin = {
           data: state.admin?.data || null,
@@ -1481,14 +1627,21 @@
           busy: false,
           error: null,
         };
-        await renderAdmin();
-        bind();
+        await renderAdmin(stale);
+        if (!stale()) bind();
       } catch (e) {
+        if (stale()) return;
+        if (isAdminLoginError(e)) {
+          lockAdmin();
+          paintAdminLogin();
+          bind();
+          focusMain();
+          return;
+        }
         state.admin.busy = false;
         state.admin.notice = e.message || "Opruimen mislukt";
         state.admin.noticeWarn = true;
-        paintAdmin();
-        bind();
+        repaint();
       }
     }
   }
@@ -1507,7 +1660,7 @@
               const done = Number(p.watchedCount) || 0;
               const pctDone = total ? Math.round((done / total) * 100) : 0;
               return `
-              <button data-action="pick-profile" data-slug="${p.slug}" class="tap rounded-3xl bg-card border border-line p-8 hover:border-accent transition text-center">
+              <button data-action="pick-profile" data-slug="${esc(p.slug)}" class="tap rounded-3xl bg-card border border-line p-8 hover:border-accent transition text-center">
                 <span class="mx-auto w-28 h-28 rounded-full ${COLORS[p.slug] || "bg-accent"} grid place-items-center text-5xl font-black shadow-lg">${esc(p.name[0])}</span>
                 <div class="mt-5 text-2xl font-bold">${esc(p.name)}</div>
                 <div class="mt-2 text-muted text-sm">${lastPlayedLabel(p.lastPlayed)}</div>
@@ -1566,7 +1719,7 @@
   }
 
   function loadMoreLessons() {
-    if (state.route.name !== "lessons" || state.lessonsLoading) return;
+    if (state.route.name !== "lessons") return;
     const all = previousLessons(resumeLesson());
     const from = state.lessonsShown || 0;
     if (from >= all.length) {
@@ -1574,7 +1727,6 @@
       $("#lessons-more")?.remove();
       return;
     }
-    state.lessonsLoading = true;
     const to = Math.min(from + LESSONS_PAGE_SIZE, all.length);
     const extra = all.slice(from, to);
     state.lessonsShown = to;
@@ -1590,7 +1742,6 @@
         grid.appendChild(node);
       }
     }
-    state.lessonsLoading = false;
     if (to >= all.length) {
       unwireLessonsScroll();
       $("#lessons-more")?.remove();
@@ -1691,7 +1842,9 @@
     }
     state.weekDay = date;
     $$("[data-action=week-day]").forEach((btn) => {
-      btn.classList.toggle("is-on", btn.dataset.date === date);
+      const on = btn.dataset.date === date;
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
     const panel = $("#week-day-panel");
     if (!panel) return;
@@ -1716,7 +1869,7 @@
     };
     panel.classList.add("is-out");
     panel.addEventListener("transitionend", finish);
-    setTimeout(finish, 220);
+    setTimeout(finish, WEEK_FADE_MS);
   }
 
   function renderHome() {
@@ -1758,7 +1911,7 @@
             const on = selectedDate === d.date;
             const emojis = [...new Set((d.scores || []).map((s) => SCORE_EMOJI[s]).filter(Boolean))];
             const cls = `week-day${d.played ? " is-played" : ""}${d.isToday ? " is-today" : ""}${on ? " is-on" : ""}`;
-            return `<button type="button" data-action="week-day" data-date="${esc(d.date)}" class="${cls}">
+            return `<button type="button" data-action="week-day" data-date="${esc(d.date)}" class="${cls}" aria-pressed="${on ? "true" : "false"}">
               <span class="week-dot"></span>
               <span class="week-emojis">${emojis.length ? emojis.map((e) => `<span>${e}</span>`).join("") : "&nbsp;"}</span>
               <span class="week-label"><span class="week-full">${esc(d.label)}</span><span class="week-short">${esc(d.labelShort || d.label)}</span></span>
@@ -1789,7 +1942,7 @@
             const pctDone = p.videoCount ? Math.round((watched / p.videoCount) * 100) : 0;
             const num = p.n || i + 1;
             return `
-              <a href="/path/${p.slug}" data-link class="card-hover block rounded-2xl overflow-hidden bg-card border border-line">
+              <a href="/path/${esc(p.slug)}" data-link class="card-hover block rounded-2xl overflow-hidden bg-card border border-line">
                 <div class="relative aspect-video thumb overflow-hidden">
                   ${thumbPic(poster, { sizes: "(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw", alt: disp(p) })}
                   <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
@@ -1877,8 +2030,8 @@
         <a href="/home" data-link class="text-muted text-sm">← Home</a>
         <div class="path-head">
           <div class="min-w-0">
-            <h1 class="text-3xl sm:text-4xl font-black">${path.n ? `${path.n}. ` : ""}${esc(disp(path))}</h1>
-            <p class="text-muted mt-2">${esc(disp(path, "difficulty"))} · ${path.videoCount} lessen</p>
+            <h1 class="text-3xl sm:text-4xl font-black">${path.n ? `${esc(path.n)}. ` : ""}${esc(disp(path))}</h1>
+            <p class="text-muted mt-2">${esc(disp(path, "difficulty"))} · ${esc(path.videoCount)} lessen</p>
           </div>
           ${pathViewToggle()}
         </div>
@@ -1990,14 +2143,16 @@
     return `Nog ${fmtPractice(gap)} tot ${esc(lead.name)}. Dat is één les extra.`;
   }
 
-  async function renderStats() {
+  async function renderStats(stale = () => false) {
     $("#app").innerHTML = layout(`<div class="grid place-items-center min-h-[50vh] text-muted">Laden…</div>`);
     let stats;
     try { stats = await api("/app/stats"); }
     catch (e) {
+      if (stale()) return;
       $("#app").innerHTML = layout(`<div class="p-8">Kon statistieken niet laden. ${esc(e.message)}</div>`);
       return;
     }
+    if (stale()) return;
     const me = stats.me || {};
     const em = me.emojis || {};
     const profiles = stats.profiles || [];
@@ -2186,32 +2341,38 @@
       </div>
       ${items.map((l) => {
         const on = sameId(l.id, current.id);
-        const w = progressOf(l.id)?.watched;
-        const body = `
-          <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
-            ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
-            ${thumbBadges(l.id, { watched: w, compact: true })}
-            ${on ? `<span class="absolute inset-0 rounded-lg ring-2 ring-accent"></span>` : ""}
-          </div>
-          <div class="min-w-0">
-            <div class="text-[11px] uppercase tracking-wide ${on ? "text-accent" : "text-muted"}">${on ? "Nu aan het kijken" : "Oefening"}</div>
-            <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}"><span ${locAttr(l.title, l.titleNl)}</span></div>
-            <div class="text-muted text-xs mt-1">${esc(l.length || "")}</div>
-          </div>`;
-        const cls = `flex gap-3 p-3 border-b border-line ${on ? "bg-ink" : "tap"}`;
-        return on
-          ? `<div class="${cls}" aria-current="true">${body}</div>`
-          : `<a href="/watch/${l.id}" data-link class="${cls}">${body}</a>`;
+        return asideItem(l, { on, label: on ? "Nu aan het kijken" : "Oefening", numbered: false });
       }).join("")}
       <a href="/loose" data-link class="block p-4 text-sm text-accent tap">Alle losse lessen →</a>`;
   }
 
-  async function renderWatch() {
+  // One row in the watch-page sidebar (chapter neighbours or loose lessons).
+  function asideItem(l, { on, label, numbered }) {
+    const w = progressOf(l.id)?.watched;
+    const body = `
+      <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
+        ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
+        ${thumbBadges(l.id, { watched: w, compact: true })}
+        ${on ? `<span class="absolute inset-0 rounded-lg ring-2 ring-accent"></span>` : ""}
+      </div>
+      <div class="min-w-0">
+        <div class="text-[11px] uppercase tracking-wide ${on ? "text-accent" : "text-muted"}">${esc(label)}</div>
+        <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}">${numbered ? lessonNumHtml(l) : ""}<span ${locAttr(l.title, l.titleNl)}</span></div>
+        <div class="text-muted text-xs mt-1">${esc(l.length || "")}</div>
+      </div>`;
+    const cls = `flex gap-3 p-3 border-b border-line ${on ? "bg-ink" : "tap"}`;
+    return on
+      ? `<div class="${cls}" aria-current="true">${body}</div>`
+      : `<a href="/watch/${esc(l.id)}" data-link class="${cls}">${body}</a>`;
+  }
+
+  async function renderWatch(stale = () => false) {
     const id = state.route.params.id;
     let lesson = state.lessonCache[id] || lessonById(id);
     if (!lesson || !lesson.vimeoId) {
       try { lesson = await api(`/app/lesson/${id}`); state.lessonCache[id] = lesson; }
       catch { lesson = lessonById(id); }
+      if (stale()) return;
     }
     if (!lesson) {
       $("#app").innerHTML = layout(`<div class="p-8">Les niet gevonden.</div>`);
@@ -2249,10 +2410,10 @@
                 <a href="/loose" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line">Alle losse lessen</a>
               ` : `
               ${prevLesson
-                ? `<a href="/watch/${prevLesson.id}" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line inline-flex items-center gap-2">${skipPrevIcon()} Vorige</a>`
+                ? `<a href="/watch/${esc(prevLesson.id)}" data-link class="tap rounded-full bg-card px-4 py-2 text-sm border border-line inline-flex items-center gap-2">${skipPrevIcon()} Vorige</a>`
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">${skipPrevIcon()} Vorige</span>`}
               ${nextLesson
-                ? `<a href="/watch/${nextLesson.id}" data-link class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm inline-flex items-center gap-2">Volgende ${skipNextIcon()}</a>`
+                ? `<a href="/watch/${esc(nextLesson.id)}" data-link class="tap rounded-full bg-white text-ink font-bold px-4 py-2 text-sm inline-flex items-center gap-2">Volgende ${skipNextIcon()}</a>`
                 : `<span class="rounded-full bg-card px-4 py-2 text-sm border border-line text-muted inline-flex items-center gap-2">Volgende ${skipNextIcon()}</span>`}
               `}
             </div>
@@ -2266,27 +2427,10 @@
               <div class="progress-bar mt-2" style="height:6px" role="progressbar" aria-valuenow="${chapter.globalN}" aria-valuemin="1" aria-valuemax="${chapter.globalTotal}" aria-label="Les ${chapter.globalN} van ${chapter.globalTotal}"><span style="width:${chapter.pct}%"></span></div>
             </div>
             ${chapter.nearby.map((item) => {
-              const l = item.lesson;
-              const on = item.role === "nu";
-              const w = progressOf(l.id)?.watched;
               const roleLabel = item.role === "eerder" ? "2 geleden" : item.role === "vorige" ? "Vorige" : item.role === "nu" ? "Nu aan het kijken" : item.role === "volgende" ? "Volgende" : "Over 2";
-              const body = `
-                <div class="w-24 shrink-0 aspect-video rounded-lg thumb relative overflow-hidden${w ? " thumb-watched" : ""}">
-                  ${thumbPic(l.vimeoId, { sizes: "96px", alt: disp(l) })}
-                  ${thumbBadges(l.id, { watched: w, compact: true })}
-                  ${on ? `<span class="absolute inset-0 rounded-lg ring-2 ring-accent"></span>` : ""}
-                </div>
-                <div class="min-w-0">
-                  <div class="text-[11px] uppercase tracking-wide ${on ? "text-accent" : "text-muted"}">${roleLabel}</div>
-                  <div class="font-semibold text-sm line-clamp-2 mt-0.5${w ? " watched-title" : ""}">${lessonNumHtml(l)}<span ${locAttr(l.title, l.titleNl)}</span></div>
-                  <div class="text-muted text-xs mt-1">${esc(l.length || "")}</div>
-                </div>`;
-              const cls = `flex gap-3 p-3 border-b border-line ${on ? "bg-ink" : "tap"}`;
-              return on
-                ? `<div class="${cls}" aria-current="true">${body}</div>`
-                : `<a href="/watch/${l.id}" data-link class="${cls}">${body}</a>`;
+              return asideItem(item.lesson, { on: item.role === "nu", label: roleLabel, numbered: true });
             }).join("")}
-            ${chapter.pathSlug ? `<a href="/path/${chapter.pathSlug}${chapter.packAnchor ? "#" + chapter.packAnchor : ""}" data-link class="block p-4 text-sm text-accent tap">Alle lessen in dit hoofdstuk →</a>` : ""}`}
+            ${chapter.pathSlug ? `<a href="/path/${esc(chapter.pathSlug)}${chapter.packAnchor ? "#" + esc(chapter.packAnchor) : ""}" data-link class="block p-4 text-sm text-accent tap">Alle lessen in dit hoofdstuk →</a>` : ""}`}
           </aside>
           <section class="pt-1">
             <div class="flex items-start gap-2">
@@ -2311,18 +2455,20 @@
             <p class="mt-4"><a href="/app/notation.pdf" class="text-sm text-accent tap inline-flex" target="_blank" rel="noopener">Notatiesleutel (PDF)</a></p>
           </section>
         </div>
-        <div id="next-modal" class="hidden fixed inset-0 z-50 bg-black/70 grid place-items-center p-4">
+        <div id="next-modal" class="hidden fixed inset-0 z-50 bg-black/70 grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="next-title">
           <div class="w-full max-w-lg rounded-3xl bg-panel border border-line p-6 text-center">
             ${nextModalRates()}
             <p id="next-title" class="font-bold text-lg"></p>
             <p id="next-wait" class="hidden text-muted text-sm mt-1"></p>
+            <p id="next-error" class="hidden text-sm mt-2 text-warn" role="alert"></p>
+            <p id="next-live" class="sr-only" aria-live="polite"></p>
             <div class="flex gap-3 justify-center mt-5">
               ${loose ? `
-                <button data-action="replay" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Opnieuw</button>
-                <button data-action="loose-done" class="tap rounded-full bg-card px-5 py-3 border border-line">Klaar</button>
+                <button type="button" data-action="replay" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Opnieuw</button>
+                <button type="button" data-action="loose-done" class="tap rounded-full bg-card px-5 py-3 border border-line">Klaar</button>
               ` : `
-                <button data-action="replay" class="tap rounded-full bg-card px-5 py-3 border border-line">Opnieuw</button>
-                <button data-action="play-next" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Volgende</button>
+                <button type="button" data-action="replay" class="tap rounded-full bg-card px-5 py-3 border border-line">Opnieuw</button>
+                <button type="button" data-action="play-next" class="tap rounded-full bg-white text-ink font-bold px-5 py-3">Volgende</button>
               `}
             </div>
           </div>
@@ -2331,62 +2477,202 @@
 
     const savedStage = state.savedStage;
     state.savedStage = null;
-    if (savedStage) {
-      const fresh = $("#stage");
-      if (fresh) fresh.replaceWith(savedStage);
-    }
-    const reuseVideo = savedStage ? savedStage.querySelector("video") : null;
-    const alreadyOn = state.player.video && state.player.lesson && sameId(state.player.lesson.id, lesson.id);
-    if (have && !alreadyOn) startPlayback(lesson, preferredAudio, undefined, reuseVideo);
-    else if (!have) {
+    if (savedStage) $("#stage")?.replaceWith(savedStage);
+    const s = state.player;
+    // A kept stage still belongs to the running session: nothing to restart.
+    if (s.video && sameId(s.lesson?.id, lesson.id)) return;
+    if (have) startPlayback(lesson, preferredAudio, undefined, savedStage?.querySelector("video") || null);
+    else {
       const d = $("#prep-detail");
       if (d) d.textContent = "Zodra het MKV-bestand binnen is, kun je hier kijken.";
     }
   }
 
-  async function startPlayback(lesson, audioIndex, startAt, reuseVideo) {
+  // ---------------------------------------------------------------------------
+  // Playback session. One object per started lesson; disposePlayback() is the
+  // only teardown and aborts everything the session owns via session.ac.
+
+  function emptyPlayer() {
+    return {
+      ac: null,
+      video: null,
+      lesson: null,
+      recipe: null,
+      audioIndex: 0,
+      caps: null,
+      hevc: false,
+      armed: false,
+      endHandled: false,
+      prefetchStarted: false,
+      didWatchRefresh: false,
+      tickPos: null,
+      tickWall: 0,
+      playedPending: 0,
+      seenBuckets: new Set(),
+      lastSaveAt: 0,
+      saveP: null,
+    };
+  }
+
+  function newSession(lesson) {
+    const s = emptyPlayer();
+    s.ac = new AbortController();
+    s.lesson = lesson;
+    state.player = s;
+    return s;
+  }
+
+  function isCurrent(s) {
+    return !!s?.ac && state.player === s && !s.ac.signal.aborted;
+  }
+
+  // Flush progress, then drop every listener, poll loop, timer and hls.js
+  // instance of the current session. `keep` is a <video> that will be reused.
+  function disposePlayback({ keep = null } = {}) {
+    const s = state.player;
+    if (s.video && s.armed) saveProgress(s, { force: true, keepalive: true });
+    s.ac?.abort();
+    stopPrefetch();
+    stopEndFlow();
+    state.nextPrep = null;
+    const video = s.video;
+    if (video) {
+      destroyHls(video);
+      if (video !== keep) {
+        try { video.pause(); video.removeAttribute("src"); video.load(); } catch {}
+      }
+    }
+    state.player = emptyPlayer();
+  }
+
+  function stopPrefetch() {
+    if (state.prefetch) state.prefetch.abort();
+    state.prefetch = null;
+  }
+
+  function stopEndFlow() {
+    const flow = state.endFlow;
+    state.endFlow = null;
+    if (!flow) return;
+    flow.ac.abort();
+    if (flow.timer) clearInterval(flow.timer);
+  }
+
+  function sleep(ms, signal) {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new DOMException("aborted", "AbortError"));
+        return;
+      }
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new DOMException("aborted", "AbortError"));
+      };
+      const timer = setTimeout(() => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      }, ms);
+      signal?.addEventListener("abort", onAbort, { once: true });
+    });
+  }
+
+  function isTransient(err) {
+    if (err?.name === "AbortError") return false;
+    const status = Number(err?.status) || 0;
+    return status === 0 || status === 429 || status >= 500;
+  }
+
+  // query → prepare → poll until ready, with the NL→EN fallback for clips
+  // without a Dutch track. Network/5xx errors are retried; aborts reject.
+  async function prepareUntilReady({ lesson, preferred, caps, intent, signal, pollMs, onStatus, onAudio, repost = false, maxMisses = POLL_MAX_MISSES, via = intent }) {
+    const videoId = String(lesson.vimeoId);
+    const want = Number(preferred) === 1 ? 1 : 0;
+    let audioIndex = preferredAudioIndex(videoId, want);
+    const call = async (fn) => {
+      for (let miss = 0; ; miss += 1) {
+        try {
+          return await fn();
+        } catch (err) {
+          if (!isTransient(err) || miss >= maxMisses) throw err;
+          await sleep(pollMs, signal);
+        }
+      }
+    };
+    const query = () => api("/api/playback/query", {
+      method: "POST",
+      body: JSON.stringify({ videoId, audioIndex, capabilities: caps }),
+      signal,
+    });
+    let q;
+    try {
+      q = await call(query);
+    } catch (err) {
+      const fb = englishFallbackIndex(err, audioIndex);
+      if (fb === null) throw err;
+      audioIndex = fb;
+      clientLog("play_audio_fallback", { videoId, lessonId: lesson.id, from: 1, to: 0, via });
+      q = await call(query);
+    }
+    rememberResolvedAudio(videoId, want, audioIndex);
+    onAudio?.(audioIndex);
+    const recipe = q.recipe;
+    const prepare = () => api("/api/playback/prepare", {
+      method: "POST",
+      body: JSON.stringify({ videoId, recipe, audioIndex, intent }),
+      signal,
+    });
+    const status = () => api(`/api/playback/status?videoId=${encodeURIComponent(videoId)}&recipe=${encodeURIComponent(recipe)}&audioIndex=${audioIndex}&intent=${intent}`, { signal });
+    let st;
+    try {
+      st = await call(prepare);
+    } catch (err) {
+      // 409 "failed": this variant gave up for good. Same as a failed status.
+      if (err?.status === 409 && err.body?.error === "failed") err.prepFailed = true;
+      throw err;
+    }
+    for (;;) {
+      if (signal?.aborted) throw new DOMException("aborted", "AbortError");
+      if (st) onStatus?.(st, audioIndex);
+      if (st?.state === "ready" && st.playlistUrl) return { st, audioIndex, recipe: st.recipe || recipe };
+      if (st?.state === "failed") throw Object.assign(new Error(st.error || "failed"), { body: st, prepFailed: true });
+      await sleep(pollMs, signal);
+      st = await call(repost ? prepare : status);
+    }
+  }
+
+  async function startPlayback(lesson, audioIndex, startAt, reuseVideo = null) {
     const slot = $("#player-slot");
+    if (!slot) return;
+    disposePlayback({ keep: reuseVideo });
+    if (!state.replaying) state.looseAutoReplays = 0;
+    const s = newSession(lesson);
+    const { signal } = s.ac;
     const prep = $("#prep");
     const detail = $("#prep-detail");
     const bar = $("#prep-bar");
-    if (!slot) return;
-    if (reuseVideo) {
-      if (reuseVideo._vbBind) {
-        try { reuseVideo._vbBind.abort(); } catch {}
-        reuseVideo._vbBind = null;
-      }
-      unbindFullscreenWatch();
-      if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-      state.playGen++;
-    } else {
-      teardownPlayer();
-    }
-    const gen = ++state.playGen;
     const resumeAt = startAt ?? 0;
-    let caps = capabilities(false);
-    let usedSafe = wantsSafeProfile();
-    let playIndex = preferredAudioIndex(lesson.vimeoId, audioIndex);
-    const paintPrepLang = () => {
+    const hlsReady = loadHlsJs();
+    hlsReady.catch(() => {});
+    const paintPrepLang = (playIndex) => {
       const title = prep?.querySelector(".text-lg");
       if (title) title.textContent = "Video wordt klaargezet in " + langMeta(playIndex).label + "…";
       setEnglishOnlyNote(Number(audioIndex) === 1 && playIndex === 0);
     };
-    if (prep) {
-      prep.classList.remove("hidden");
-      paintPrepLang();
-    }
+    if (prep) prep.classList.remove("hidden");
+    if (bar) bar.style.width = "0%";
+    if (detail) detail.textContent = "";
+    paintPrepLang(preferredAudioIndex(lesson.vimeoId, audioIndex));
 
     let loggedWait = false;
     const tickPrep = (st) => {
-      if (!detail) return;
       const done = st.state === "ready" && st.playlistUrl;
       const pctN = prepPct(st, lesson);
       if (bar) bar.style.width = pctN + "%";
-      detail.textContent = done
-        ? "Klaar om te spelen"
-        : (pctN > 0
-          ? "Bezig met klaarzetten · " + pctN + "%"
-          : "Bezig met klaarzetten…");
+      if (detail) {
+        detail.textContent = done
+          ? "Klaar om te spelen"
+          : (pctN > 0 ? "Bezig met klaarzetten · " + pctN + "%" : "Bezig met klaarzetten…");
+      }
       if (!done && !loggedWait) {
         loggedWait = true;
         clientLog("play_wait", {
@@ -2400,218 +2686,243 @@
     };
 
     try {
-      const run = async (c) => {
-        const queryAt = (idx) => api("/api/playback/query", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), audioIndex: idx, capabilities: c }) });
-        let q;
-        try {
-          q = await queryAt(playIndex);
-        } catch (err) {
-          const fb = englishFallbackIndex(err, playIndex);
-          if (fb === null) throw err;
-          playIndex = fb;
-          rememberResolvedAudio(lesson.vimeoId, audioIndex, fb);
-          paintPrepLang();
-          clientLog("play_audio_fallback", { videoId: String(lesson.vimeoId), lessonId: lesson.id, from: 1, to: 0 });
-          q = await queryAt(playIndex);
-        }
-        rememberResolvedAudio(lesson.vimeoId, audioIndex, playIndex);
-        let st = await api("/api/playback/prepare", { method: "POST", body: JSON.stringify({ videoId: String(lesson.vimeoId), recipe: q.recipe, audioIndex: playIndex, intent: "play" }) });
-        tickPrep(st);
-        while (!(st.state === "ready" && st.playlistUrl)) {
-          if (st.state === "failed") throw Object.assign(new Error(st.error || "failed"), { body: st });
-          await sleep(1000);
-          st = await api(`/api/playback/status?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${playIndex}&intent=play`);
-          tickPrep(st);
-        }
-        const player = await api(`/api/playback/player?videoId=${encodeURIComponent(lesson.vimeoId)}&recipe=${encodeURIComponent(st.recipe)}&audioIndex=${playIndex}`);
-        return { player, st };
-      };
-      if (gen !== state.playGen) return;
-
-      let result;
-      try { result = await run(caps); }
-      catch (err) {
-        if (!usedSafe) {
-          rememberSafeProfile();
-          usedSafe = true;
-          caps = capabilities(true);
-          result = await run(caps);
-        } else throw err;
+      const opts = { lesson, preferred: audioIndex, intent: "play", signal, pollMs: PREP_POLL_MS, onStatus: tickPrep, onAudio: paintPrepLang };
+      let caps = capabilities(false);
+      let ready;
+      try {
+        ready = await prepareUntilReady({ ...opts, caps });
+      } catch (err) {
+        // Only a failed encode of the 4K/HEVC recipe is worth a 1080p AVC retry.
+        if (!err?.prepFailed || !capsAllowHevc(caps) || !isCurrent(s)) throw err;
+        caps = capabilities(true);
+        clientLog("play_safe_retry", { videoId: String(lesson.vimeoId), lessonId: lesson.id, error: err.message || "" });
+        ready = await prepareUntilReady({ ...opts, caps });
       }
-
-      if (gen !== state.playGen) return;
-      let video = reuseVideo;
-      if (video) {
-        attachPlaylist(video, result.st.playlistUrl);
-      } else {
-        slot.innerHTML = result.player.html;
-        const script = document.createElement("script");
-        script.textContent = result.player.js;
-        slot.appendChild(script);
-        video = slot.querySelector("video");
-      }
-      if (!video) throw new Error("no video tag");
+      await hlsReady;
+      if (!isCurrent(s)) return;
+      const video = reuseVideo || createVideo(slot);
+      Object.assign(s, { video, recipe: ready.recipe, audioIndex: ready.audioIndex, caps, hevc: capsAllowHevc(caps) });
       const wantFs = !!state.pendingFullscreen;
       state.pendingFullscreen = false;
       state.hadFullscreenThisClip = false;
-      state.player = { video, lesson, recipe: result.st.recipe, audioIndex: playIndex, caps, safe: usedSafe, lastPos: null, lastTickPos: null, lastSavedPos: null, seenBuckets: new Set(), prefetchStarted: false };
+      attachPlaylist(video, ready.st.playlistUrl, {
+        signal,
+        onCodecError: () => codecFallback(s),
+        onFatal: (data) => showPlayError(s, data?.details || "hls"),
+      });
       if (prep) prep.classList.add("hidden");
       clientLog("play_ready", {
         videoId: String(lesson.vimeoId),
         lessonId: lesson.id,
-        recipe: result.st.recipe || "",
+        recipe: ready.recipe || "",
         waited: loggedWait,
       });
-      bindVideo(video, lesson, resumeAt, usedSafe, wantFs);
+      bindVideo(s, resumeAt, wantFs);
     } catch (err) {
-      if (detail) detail.textContent = "Kon de video niet klaarzetten: " + (err.body?.error || err.message);
+      if (!isCurrent(s) || err?.name === "AbortError") return;
+      if (prep) prep.classList.remove("hidden");
+      if (detail) detail.textContent = "Kon de video niet klaarzetten: " + errorText(err);
     }
   }
 
-  function bindVideo(video, lesson, resumeAt, alreadySafe, wantFs) {
-    if (video._vbBind) {
-      try { video._vbBind.abort(); } catch {}
-    }
-    const ac = new AbortController();
-    video._vbBind = ac;
-    const sig = { signal: ac.signal };
+  function showPlayError(s, what) {
+    if (!isCurrent(s)) return;
+    clientLog("play_error", { videoId: String(s.lesson?.vimeoId || ""), lessonId: s.lesson?.id, error: String(what || "") });
+    const prep = $("#prep");
+    const title = prep?.querySelector(".text-lg");
+    const detail = $("#prep-detail");
+    if (title) title.textContent = "Afspelen mislukt";
+    if (detail) detail.textContent = "Kies de les opnieuw of ververs de pagina.";
+    if (prep) prep.classList.remove("hidden");
+  }
+
+  // The browser cannot decode this stream (HEVC without a decoder): retry
+  // once as 1080p AVC and stay there for this browser session.
+  function codecFallback(s) {
+    if (!isCurrent(s) || !s.hevc) return false;
+    rememberSafeProfile();
+    clientLog("play_codec_fallback", { videoId: String(s.lesson.vimeoId), lessonId: s.lesson.id, recipe: s.recipe || "" });
+    startPlayback(s.lesson, currentAudioIndex(), Number(s.video?.currentTime) || 0);
+    return true;
+  }
+
+  // Near the end of the clip. Without a known duration, `unknown` decides.
+  function nearEnd(video, unknown = false) {
+    const dur = Number(video?.duration);
+    if (!Number.isFinite(dur) || dur <= 0) return unknown;
+    return (Number(video?.currentTime) || 0) >= dur - END_TOLERANCE_SEC;
+  }
+
+  function mediaDuration(video, lesson) {
+    const dur = Number(video?.duration);
+    return Number.isFinite(dur) && dur > 0 ? dur : (Number(lesson?.seconds) || 0);
+  }
+
+  // Counts real playback only: seeks and jumps beyond the wall clock are skipped,
+  // for watch time and for the "seen" buckets alike.
+  function trackPlayback(s) {
+    const video = s?.video;
+    if (!s?.armed || !video) return;
+    const pos = Number(video.currentTime) || 0;
+    const now = Date.now();
+    const prev = s.tickPos;
+    const prevWall = s.tickWall;
+    s.tickPos = pos;
+    s.tickWall = now;
+    if (prev == null || video.seeking) return;
+    const delta = pos - prev;
+    const wall = Math.max(0, (now - prevWall) / 1000);
+    if (delta <= 0 || delta > MAX_TICK_GAP_SEC || delta > wall + SEEK_SLACK_SEC) return;
+    s.playedPending += Math.min(delta, wall + PLAY_SLACK_SEC);
+    const dur = Number(video.duration);
+    const end = Number.isFinite(dur) && dur > 0 ? dur : pos;
+    const from = Math.floor(Math.min(prev, end) / WATCH_BUCKET_SEC);
+    const to = Math.floor(Math.min(pos, end) / WATCH_BUCKET_SEC);
+    for (let b = Math.max(0, from); b <= to; b += 1) s.seenBuckets.add(b);
+  }
+
+  function resetWatchTracking(s) {
+    s.seenBuckets = new Set();
+    s.playedPending = 0;
+    s.tickPos = null;
+    s.didWatchRefresh = false;
+    s.endHandled = false;
+  }
+
+  function progressPayload(s) {
+    const played = Math.round(s.playedPending * 1000) / 1000;
+    s.playedPending = 0;
+    return {
+      lessonId: s.lesson.id,
+      vimeoId: s.lesson.vimeoId,
+      position: Number(s.video.currentTime) || 0,
+      duration: mediaDuration(s.video, s.lesson),
+      playedDelta: played,
+      playedBuckets: [...s.seenBuckets],
+    };
+  }
+
+  function saveProgress(s, { force = false, keepalive = false } = {}) {
+    if (!s?.armed || !s.video || !s.lesson) return;
+    const now = Date.now();
+    if (!force && now - s.lastSaveAt < SAVE_EVERY_MS) return;
+    s.lastSaveAt = now;
+    trackPlayback(s);
+    const lesson = s.lesson;
+    const body = progressPayload(s);
+    const p = api("/app/progress", { method: "POST", body: JSON.stringify(body), keepalive });
+    s.saveP = p;
+    p.then(async (r) => {
+      const prev = progressOf(lesson.id);
+      const wasWatched = !!prev?.watched;
+      if (r?.watched && state.bootstrap?.progress) {
+        state.bootstrap.progress[String(lesson.id)] = { ...(prev || {}), watched: true, position: body.position, duration: body.duration };
+      }
+      if (r?.watched && !wasWatched && !s.didWatchRefresh) {
+        s.didWatchRefresh = true;
+        await refresh();
+        if (isCurrent(s)) startPrefetchNext(s);
+      }
+    }).catch(() => {
+      // Not saved: count that time with the next save instead.
+      s.playedPending += body.playedDelta;
+    });
+  }
+
+  function bindVideo(s, resumeAt, wantFs) {
+    const { video } = s;
+    const sig = { signal: s.ac.signal };
     video.preload = "auto";
     video.setAttribute("x-webkit-airplay", "allow");
-    startNativePrefetch(video, video.getAttribute("data-playlist") || video.src, ac.signal);
-    let armed = false;
-    const save = (force) => {
-      if (!armed) return;
-      const now = Date.now();
-      if (!force && now - state.lastSave < 4000) return;
-      state.lastSave = now;
-      const duration = video.duration && isFinite(video.duration) ? video.duration : lesson.seconds;
-      noteSeenBuckets(video);
-      const playedDelta = takePlayedDelta(video);
-      const playedBuckets = [...(state.player.seenBuckets || [])];
-      api("/app/progress", {
-        method: "POST",
-        body: JSON.stringify({ lessonId: lesson.id, vimeoId: lesson.vimeoId, position: video.currentTime || 0, duration, playedDelta, playedBuckets }),
-      }).then(async (r) => {
-        const prev = progressOf(lesson.id);
-        const wasWatched = !!prev?.watched;
-        if (r.watched && state.bootstrap.progress) {
-          state.bootstrap.progress[String(lesson.id)] = { ...(prev || {}), watched: true, position: video.currentTime, duration };
-        }
-        if (r.watched && !wasWatched && !state.player?.didWatchRefresh) {
-          if (state.player) state.player.didWatchRefresh = true;
-          await refresh();
-          const p = state.player;
-          if (p?.lesson) {
-            startPrefetchNext(p.lesson, currentAudioIndex(), capabilities(!!p.safe));
-          }
-        }
-      }).catch(() => {});
-    };
-
-    const tryResume = () => {
-      const duration = video.duration;
-      const seekable = isFinite(duration) && duration > 0;
-      if (!seekable) return;
-      if (resumeAt > 1 && resumeAt < duration - 5) {
+    startNativePrefetch(video, video.getAttribute("data-playlist"), s.ac.signal);
+    const arm = () => {
+      if (s.armed) return;
+      const duration = Number(video.duration);
+      if (!Number.isFinite(duration) || duration <= 0) return;
+      if (resumeAt > 1 && resumeAt < duration - RESUME_TAIL_SEC) {
         try { video.currentTime = resumeAt; } catch {}
       }
-      if (state.player) {
-        state.player.lastTickPos = video.currentTime || resumeAt || 0;
-        state.player.lastSavedPos = video.currentTime || resumeAt || 0;
-        state.player.lastSavedWall = Date.now();
-        if (!state.player.seenBuckets) state.player.seenBuckets = new Set();
-      }
-      armed = true;
+      s.tickPos = null;
+      s.armed = true;
       maybePrefetchNext();
     };
-    video.addEventListener("loadedmetadata", tryResume, sig);
-    video.addEventListener("durationchange", () => { if (!armed) tryResume(); }, sig);
+    video.addEventListener("loadedmetadata", arm, sig);
+    video.addEventListener("durationchange", arm, sig);
     video.addEventListener("timeupdate", () => {
-      noteSeenBuckets(video);
-      save(false);
+      trackPlayback(s);
+      saveProgress(s);
       maybePrefetchNext();
     }, sig);
+    video.addEventListener("seeking", () => { s.tickPos = null; }, sig);
     video.addEventListener("seeked", () => maybePrefetchNext(), sig);
-    video.addEventListener("pause", () => save(true), sig);
-    video._vbEndHandled = false;
-    const onClipEnd = () => {
-      if (video._vbEndHandled) return;
-      const dur = Number(video.duration) || 0;
-      const t = Number(video.currentTime) || 0;
-      if (Number.isFinite(dur) && dur > 0 && t < dur - 1.5) return;
-      video._vbEndHandled = true;
-      save(true);
-      state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
-      state.fsRestoreArmed = false;
-      // Stay fullscreen across the score dialog and the automatic replay.
-      // A fresh requestFullscreen after the 10s wait is rejected without a click.
-      if (isLoose(lesson) && state.pendingFullscreen) {
-        const open = () => {
-          if (!state.player || state.player.video !== video) return;
-          if (isVideoFullscreen(video)) parkLooseModalInStage();
-          showNext(lesson);
-        };
-        moveFullscreenToStage(video).then(open, open);
-        return;
-      }
-      whenExitedFullscreen(video, () => showNext(lesson));
-    };
-    video.addEventListener("ended", onClipEnd, sig);
+    video.addEventListener("pause", () => saveProgress(s, { force: true }), sig);
+    video.addEventListener("ended", () => onClipEnd(s), sig);
     video.addEventListener("webkitendfullscreen", () => {
-      if (video.ended) onClipEnd();
+      if (video.ended) onClipEnd(s);
       else noteFullscreen(video, false);
     }, sig);
     video.addEventListener("webkitbeginfullscreen", () => {
       noteFullscreen(video, true);
       moveFullscreenToStage(video);
     }, sig);
-    unbindFullscreenWatch();
-    state.fsListener = () => {
+    const onFullscreenChange = () => {
       const on = isVideoFullscreen(video);
       noteFullscreen(video, on);
       if (on) moveFullscreenToStage(video);
     };
-    document.addEventListener("fullscreenchange", state.fsListener);
-    document.addEventListener("webkitfullscreenchange", state.fsListener);
-    const fallback = () => {
-      if (alreadySafe || state.player?.safe) return;
-      rememberSafeProfile();
-      startPlayback(lesson, currentAudioIndex(), video.currentTime || 0);
-    };
-    video.addEventListener("error", fallback, sig);
-    window.addEventListener("pagehide", () => save(true), sig);
-    let programmaticPlay = false;
-    let firstPlayFsDone = false;
-    video.addEventListener("playing", () => {
-      const dur = Number(video.duration) || 0;
-      const t = Number(video.currentTime) || 0;
-      if (Number.isFinite(dur) && dur > 0 && t >= dur - 1.5) return;
-      video._vbEndHandled = false;
+    document.addEventListener("fullscreenchange", onFullscreenChange, sig);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange, sig);
+    video.addEventListener("error", () => {
+      // hls.js reports its own errors (and recovers where it can).
+      if (video._vbHls) return;
+      const code = Number(video.error?.code) || 0;
+      // 3 = decode, 4 = source not supported: codec trouble. 2 = network is not.
+      if ((code === 3 || code === 4) && codecFallback(s)) return;
+      showPlayError(s, "media-error-" + code);
     }, sig);
+    window.addEventListener("pagehide", () => saveProgress(s, { force: true, keepalive: true }), sig);
+    video.addEventListener("playing", () => {
+      if (!nearEnd(video)) s.endHandled = false;
+    }, sig);
+    let programmaticPlay = true;
+    let firstPlayFsDone = false;
     video.addEventListener("play", () => {
-      if (programmaticPlay) return;
-      if (firstPlayFsDone || !isHandheld()) return;
+      if (programmaticPlay || firstPlayFsDone || !isHandheld()) return;
       firstPlayFsDone = true;
       enterFullscreen(video);
     }, sig);
-    programmaticPlay = true;
-    const playP = video.play();
-    const clearProg = () => { programmaticPlay = false; };
-    if (playP && playP.finally) playP.finally(clearProg);
-    else setTimeout(clearProg, 50);
-    if (playP && playP.catch) playP.catch((err) => {
-      clearProg();
-      if (isAutoplayBlock(err)) return;
-      fallback(err);
+    Promise.resolve(video.play()).then(() => { programmaticPlay = false; }, (err) => {
+      programmaticPlay = false;
+      // AbortError: the request was cut short by our own teardown or a new load.
+      if (!isCurrent(s) || err?.name === "AbortError" || isAutoplayBlock(err)) return;
+      if (err?.name === "NotSupportedError") codecFallback(s);
     });
     if (wantFs) {
-      const goFs = () => {
-        if (state.player?.video !== video) return;
-        enterFullscreen(video);
-      };
-      video.addEventListener("playing", goFs, { once: true, signal: ac.signal });
+      const goFs = () => { if (isCurrent(s)) enterFullscreen(video); };
+      video.addEventListener("playing", goFs, { once: true, signal: s.ac.signal });
       if (!video.paused) goFs();
     }
+  }
+
+  function onClipEnd(s) {
+    const video = s.video;
+    if (!isCurrent(s) || s.endHandled || !nearEnd(video, true)) return;
+    s.endHandled = true;
+    saveProgress(s, { force: true });
+    state.pendingFullscreen = isVideoFullscreen(video) || !!state.hadFullscreenThisClip;
+    state.fsRestoreArmed = false;
+    // Stay fullscreen across the score dialog and the automatic replay.
+    // A fresh requestFullscreen after the 10s wait is rejected without a click.
+    if (isLoose(s.lesson) && state.pendingFullscreen) {
+      const open = () => {
+        if (!isCurrent(s)) return;
+        if (isVideoFullscreen(video)) parkLooseModalInStage();
+        showNext(s);
+      };
+      moveFullscreenToStage(video).then(open, open);
+      return;
+    }
+    whenExitedFullscreen(video, () => { if (isCurrent(s)) showNext(s); });
   }
 
   function fsElement() {
@@ -2632,9 +2943,7 @@
       state.hadFullscreenThisClip = true;
       return;
     }
-    const dur = Number(video?.duration) || 0;
-    const t = Number(video?.currentTime) || 0;
-    if (dur > 0 && t >= dur - 1.5) return;
+    if (nearEnd(video)) return;
     state.hadFullscreenThisClip = false;
   }
 
@@ -2669,7 +2978,7 @@
     document.addEventListener("fullscreenchange", finish);
     document.addEventListener("webkitfullscreenchange", finish);
     exitFullscreen(video);
-    setTimeout(finish, 700);
+    setTimeout(finish, FS_EXIT_WAIT_MS);
   }
 
   function requestDocFullscreen(video) {
@@ -2698,18 +3007,19 @@
       return;
     }
     setTimeout(() => {
-      if (state.player?.video === video && !isVideoFullscreen(video)) requestDocFullscreen(video);
-    }, 300);
+      if (state.player.video === video && !isVideoFullscreen(video)) requestDocFullscreen(video);
+    }, FS_RETRY_MS);
   }
 
-  function enterFullscreenWhenPlaying(video) {
+  function enterFullscreenWhenPlaying(s) {
+    const video = s.video;
     if (!video) return;
     const go = () => {
-      if (state.player?.video !== video || isVideoFullscreen(video)) return;
+      if (!isCurrent(s) || isVideoFullscreen(video)) return;
       enterFullscreen(video);
     };
     if (!video.paused && !video.ended) go();
-    video.addEventListener("playing", go, { once: true });
+    video.addEventListener("playing", go, { once: true, signal: s.ac.signal });
   }
 
   function stageHoldsFullscreen(video) {
@@ -2771,7 +3081,7 @@
   // player. The click is the only moment the browser still allows re-entry.
   function armFullscreenRestore() {
     if (!state.pendingFullscreen) return;
-    const video = state.player?.video;
+    const video = state.player.video;
     if (video && isVideoFullscreen(video)) {
       parkLooseModalInStage();
       return;
@@ -2784,7 +3094,7 @@
       return;
     }
     state.fsRestoreArmed = true;
-    const gen = (state.fsRestoreGen = (state.fsRestoreGen || 0) + 1);
+    const gen = (state.fsRestoreGen += 1);
     const dropWatch = () => {
       document.removeEventListener("fullscreenchange", onFs);
       document.removeEventListener("webkitfullscreenchange", onFs);
@@ -2823,13 +3133,6 @@
     }
   }
 
-  function unbindFullscreenWatch() {
-    if (!state.fsListener) return;
-    document.removeEventListener("fullscreenchange", state.fsListener);
-    document.removeEventListener("webkitfullscreenchange", state.fsListener);
-    state.fsListener = null;
-  }
-
   function nextIdOf(lesson) {
     if (isLoose(lesson)) return null;
     const order = methodSequence();
@@ -2837,25 +3140,24 @@
     return i >= 0 && order[i + 1] ? order[i + 1].id : null;
   }
 
-  const PREFETCH_AFTER_SEC = 15;
-
   function prefetchDue(video, lesson) {
     const t = Number(video?.currentTime) || 0;
     if (t >= PREFETCH_AFTER_SEC) return true;
     const dur = Number(video?.duration);
-    const total = (isFinite(dur) && dur > 0) ? dur : (Number(lesson?.seconds) || 0);
+    const total = (Number.isFinite(dur) && dur > 0) ? dur : (Number(lesson?.seconds) || 0);
     return total > 0 && total <= PREFETCH_AFTER_SEC;
   }
 
   function maybePrefetchNext() {
-    const p = state.player;
-    if (!p?.lesson || p.prefetchStarted) return;
-    if (!prefetchDue(p.video, p.lesson)) return;
-    p.prefetchStarted = true;
-    startPrefetchNext(p.lesson, currentAudioIndex(), p.caps);
+    const s = state.player;
+    if (!s.lesson || !s.video || s.prefetchStarted) return;
+    if (!prefetchDue(s.video, s.lesson)) return;
+    s.prefetchStarted = true;
+    startPrefetchNext(s);
   }
 
-  function startPrefetchNext(lesson, audioIndex, caps) {
+  function startPrefetchNext(s) {
+    const lesson = s.lesson;
     const nextId = nextIdOf(lesson);
     if (!nextId) {
       clientLog("prefetch_skip", { reason: "no-next", lessonId: lesson?.id });
@@ -2866,269 +3168,243 @@
       clientLog("prefetch_skip", { reason: "unavailable", nextId, lessonId: lesson?.id });
       return;
     }
-    const preferred = Number(audioIndex) === 1 ? 1 : 0;
-    let idx = preferredAudioIndex(next.vimeoId, preferred);
+    stopPrefetch();
+    const ac = new AbortController();
+    state.prefetch = ac;
+    const preferred = currentAudioIndex();
+    const videoId = String(next.vimeoId);
     clientLog("prefetch_start", {
       nextId: next.id,
-      videoId: String(next.vimeoId),
-      atSec: Math.round(Number(state.player?.video?.currentTime) || 0),
-      audioIndex: idx,
+      videoId,
+      atSec: Math.round(Number(s.video?.currentTime) || 0),
+      audioIndex: preferredAudioIndex(videoId, preferred),
     });
-    const tick = () => {
-      if (!state.player?.lesson || !sameId(state.player.lesson.id, lesson.id)) return;
-      const body = { videoId: String(next.vimeoId), audioIndex: idx, intent: "prefetch", capabilities: caps };
-      api("/api/playback/prepare", { method: "POST", body: JSON.stringify(body) })
-        .then((st) => {
-          rememberResolvedAudio(next.vimeoId, preferred, idx);
-          const pct = prepPct(st, next);
-          state.nextPrep = { ...st, pct, videoId: String(next.vimeoId), audioIndex: idx };
-          clientLog("prefetch_tick", {
-            nextId: next.id,
-            videoId: String(next.vimeoId),
-            state: st?.state || "",
-            pct,
-            recipe: st?.recipe || "",
-          }, 15000);
-          if (st?.state === "ready" || st?.state === "failed") {
-            if (st.state === "ready") {
-              clientLog("prefetch_ready", { nextId: next.id, videoId: String(next.vimeoId), recipe: st.recipe || "" });
-            }
-            if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-          }
-        })
-        .catch((err) => {
-          const fb = englishFallbackIndex(err, idx);
-          if (fb !== null) {
-            idx = fb;
-            rememberResolvedAudio(next.vimeoId, preferred, fb);
-            clientLog("play_audio_fallback", { videoId: String(next.vimeoId), lessonId: next.id, from: 1, to: 0, via: "prefetch" });
-            tick();
-            return;
-          }
-          clientLog("prefetch_error", {
-            nextId: next.id,
-            videoId: String(next.vimeoId),
-            status: err.status || 0,
-            error: err.message || "",
-          }, 10000);
-          if (err?.status === 409) {
-            if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-          }
-        });
-    };
-    tick();
-    if (state.prefetch) clearInterval(state.prefetch);
-    state.prefetch = setInterval(tick, 5000);
+    prepareUntilReady({
+      lesson: next,
+      preferred,
+      caps: s.caps || capabilities(false),
+      intent: "prefetch",
+      signal: ac.signal,
+      pollMs: PREFETCH_POLL_MS,
+      repost: true,              // a prefetch can be refused while the queue is full (429)
+      maxMisses: Infinity,
+      onStatus: (st, audioIndex) => {
+        const pct = prepPct(st, next);
+        state.nextPrep = { ...st, pct, videoId, audioIndex };
+        clientLog("prefetch_tick", { nextId: next.id, videoId, state: st.state || "", pct, recipe: st.recipe || "" }, 15000);
+      },
+    }).then((ready) => {
+      clientLog("prefetch_ready", { nextId: next.id, videoId, recipe: ready.recipe || "" });
+    }, (err) => {
+      if (err?.name === "AbortError") return;
+      clientLog("prefetch_error", { nextId: next.id, videoId, status: err.status || 0, error: err.message || "" }, 10000);
+    }).finally(() => {
+      if (state.prefetch === ac) state.prefetch = null;
+    });
   }
 
-  const NEXT_COUNTDOWN_SEC = 5;
-  const LOOSE_REPLAY_SEC = 10;
+  // ---------------------------------------------------------------------------
+  // End of a clip: score dialog, countdown to the next lesson, loose replays.
 
-  function stopCountdown() {
-    if (state.countdown) {
-      clearInterval(state.countdown);
-      state.countdown = null;
-    }
+  function setNextWait(text) {
+    const el = $("#next-wait");
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.toggle("hidden", !text);
   }
 
-  function showNext(lesson) {
+  function setNextError(text) {
+    const el = $("#next-error");
+    if (!el) return;
+    el.textContent = text || "";
+    el.classList.toggle("hidden", !text);
+  }
+
+  // Screen readers hear the countdown once, not every second.
+  function announceNext(text) {
+    const el = $("#next-live");
+    if (el) el.textContent = text;
+  }
+
+  function nextModalOpen() {
+    const modal = $("#next-modal");
+    return !!modal && !modal.classList.contains("hidden");
+  }
+
+  function openNextModal() {
     const modal = $("#next-modal");
     if (!modal) return;
+    if (modal.classList.contains("hidden")) {
+      const active = document.activeElement;
+      state.modalReturnFocus = active && active !== document.body ? active : null;
+    }
+    modal.classList.remove("hidden");
+    const first = modal.querySelector("[data-action=rate]:not([disabled])") || modal.querySelector("button");
+    try { first?.focus({ preventScroll: true }); } catch {}
+  }
+
+  function closeNextModal() {
+    const modal = $("#next-modal");
+    const wasOpen = nextModalOpen();
+    if (modal) modal.classList.add("hidden");
+    const back = state.modalReturnFocus;
+    state.modalReturnFocus = null;
+    if (!wasOpen) return;
+    const target = back?.isConnected ? back : (state.player.video || $("main"));
+    try { target?.focus({ preventScroll: true }); } catch {}
+  }
+
+  function showNext(s) {
+    const lesson = s.lesson;
+    if (!$("#next-modal")) return;
+    stopEndFlow();
     const nid = nextIdOf(lesson);
     const next = nid ? lessonById(nid) : null;
     const title = $("#next-title");
-    const waitEl = $("#next-wait");
-    if (title) title.textContent = next ? disp(next) : "Einde van The Method — goed gedaan!";
+    if (title) {
+      title.textContent = isLoose(lesson)
+        ? "Klaar met deze oefening"
+        : (next ? disp(next) : "Einde van The Method — goed gedaan!");
+    }
     $$("#next-modal [data-action=rate]").forEach((btn) => {
       btn.classList.remove("ring-2", "ring-accent");
+      btn.setAttribute("aria-pressed", "false");
     });
-    stopCountdown();
+    setNextWait("");
+    setNextError("");
+    announceNext("");
     state.ratePicked = {};
+    openNextModal();
     if (isLoose(lesson)) {
-      if (title) title.textContent = "Klaar met deze oefening";
-      state.pendingNext = null;
-      modal.classList.remove("hidden");
-      beginLooseReplay(lesson);
+      beginLooseReplay(s);
       return;
     }
-    state.pendingNext = next || null;
-    modal.classList.remove("hidden");
-    if (!next) {
-      if (waitEl) {
-        waitEl.textContent = "";
-        waitEl.classList.add("hidden");
-      }
-      return;
-    }
+    if (!next) return;
     clientLog("next_modal", {
       nextId: next.id,
       videoId: String(next.vimeoId),
       pct: state.nextPrep?.pct || 0,
       state: state.nextPrep?.state || null,
     });
-    beginNextHandoff(next);
+    beginNextHandoff(s, next);
   }
 
-  function startNextCountdown() {
-    const next = state.pendingNext;
-    if (!next) return;
-    if (!state.countdown) beginNextHandoff(next);
+  // Get the next lesson ready (polling stops once it is), then count down
+  // as soon as everyone has rated.
+  function beginNextHandoff(s, next) {
+    const flow = { ac: new AbortController(), timer: null, ready: false, left: NEXT_COUNTDOWN_SEC, next };
+    state.endFlow = flow;
+    const videoId = String(next.vimeoId);
+    const known = state.nextPrep && state.nextPrep.videoId === videoId ? state.nextPrep.pct : 0;
+    setNextWait(nextWaitText(false, known, 0));
+    prepareUntilReady({
+      lesson: next,
+      preferred: currentAudioIndex(),
+      caps: s.caps || capabilities(false),
+      intent: "play",
+      via: "next",
+      signal: flow.ac.signal,
+      pollMs: NEXT_POLL_MS,
+      onStatus: (st, audioIndex) => {
+        const pct = prepPct(st, next);
+        state.nextPrep = { ...st, pct, videoId, audioIndex };
+        if (st.state === "ready" && st.playlistUrl) return;
+        setNextWait(nextWaitText(false, pct, 0));
+        clientLog("next_wait", { nextId: next.id, videoId, pct, state: st.state || "unknown", recipe: st.recipe || "" }, 10000);
+      },
+    }).then(() => {
+      if (state.endFlow !== flow) return;
+      flow.ready = true;
+      clientLog("next_ready", { nextId: next.id, videoId, pct: 100 });
+      setNextWait("");
+      maybeStartNextCountdown();
+    }, (err) => {
+      if (err?.name === "AbortError" || state.endFlow !== flow) return;
+      clientLog("next_poll_error", { nextId: next.id, videoId, status: err.status || 0, error: err.message || "" }, 10000);
+      setNextWait("De volgende les kon niet klaargezet worden. Kies Volgende om het opnieuw te proberen.");
+    });
   }
 
-  function beginLooseReplay(lesson) {
-    stopCountdown();
-    const waitEl = $("#next-wait");
-    let left = LOOSE_REPLAY_SEC;
-    const tick = () => {
-      const modal = $("#next-modal");
-      if (!modal || modal.classList.contains("hidden")) {
-        stopCountdown();
+  function maybeStartNextCountdown() {
+    const flow = state.endFlow;
+    if (!flow?.next || !flow.ready || flow.timer || !everyoneRated()) return;
+    const paint = () => setNextWait(nextWaitText(true, 100, flow.left));
+    paint();
+    announceNext(isNl() ? `De volgende les start over ${flow.left} seconden.` : `The next lesson starts in ${flow.left} seconds.`);
+    flow.timer = setInterval(() => {
+      if (state.endFlow !== flow) return;
+      flow.left -= 1;
+      if (flow.left <= 0) {
+        advanceWatch(flow.next);
         return;
       }
-      if (left <= 0) {
-        stopCountdown();
-        replayLesson(lesson);
+      paint();
+    }, 1000);
+  }
+
+  function beginLooseReplay(s) {
+    const flow = { ac: new AbortController(), timer: null, ready: true, left: LOOSE_REPLAY_SEC, next: null };
+    state.endFlow = flow;
+    if (state.looseAutoReplays >= LOOSE_AUTO_REPLAYS) {
+      const text = isNl() ? "Tik op Opnieuw om nog eens te oefenen." : "Tap Opnieuw to practise again.";
+      setNextWait(text);
+      announceNext(text);
+      return;
+    }
+    const paint = () => setNextWait(looseReplayText(flow.left));
+    paint();
+    announceNext(looseReplayText(flow.left));
+    flow.timer = setInterval(() => {
+      if (state.endFlow !== flow) return;
+      if (!nextModalOpen()) {
+        stopEndFlow();
         return;
       }
-      if (waitEl) {
-        waitEl.classList.remove("hidden");
-        waitEl.textContent = looseReplayText(left);
+      flow.left -= 1;
+      if (flow.left <= 0) {
+        stopEndFlow();
+        state.looseAutoReplays += 1;
+        replayLesson(s.lesson);
+        return;
       }
-      left -= 1;
-    };
-    tick();
-    state.countdown = setInterval(tick, 1000);
+      paint();
+    }, 1000);
   }
 
   async function replayLesson(lesson) {
     if (state.replaying) return;
     state.replaying = true;
-    stopCountdown();
-    state.pendingNext = null;
-    $("#next-modal")?.classList.add("hidden");
+    stopEndFlow();
+    closeNextModal();
     const wantFs = !!state.pendingFullscreen;
     const armed = !!state.fsRestoreArmed;
     restoreLooseModalHome();
+    const s = state.player;
     try {
-      lesson = lesson || state.player.lesson || lessonById(state.route.params.id);
+      lesson = lesson || s.lesson || lessonById(state.route.params.id);
       if (!lesson?.id) return;
+      // The end-of-clip save must land before the reset, or it re-marks the lesson.
+      try { await s.saveP; } catch {}
       try {
         await api("/app/reset", { method: "POST", body: JSON.stringify({ lessonId: lesson.id }) });
       } catch {}
-      const video = state.player.video;
-      if (video) {
+      if (state.player !== s) return;
+      if (s.video && isCurrent(s)) {
+        // Fresh buckets: the server forgot them, resending would count the clip twice.
+        resetWatchTracking(s);
         state.pendingFullscreen = false;
         state.fsRestoreArmed = false;
-        try { video.currentTime = 0; } catch {}
-        const playP = video.play();
-        if (playP && playP.catch) playP.catch(() => {});
-        if (wantFs && !armed) enterFullscreenWhenPlaying(video);
+        try { s.video.currentTime = 0; } catch {}
+        Promise.resolve(s.video.play()).catch(() => {});
+        if (wantFs && !armed) enterFullscreenWhenPlaying(s);
       } else {
         state.pendingFullscreen = wantFs;
         state.fsRestoreArmed = false;
-        startPlayback(lesson, state.bootstrap?.lastAudioIndex || 0, 0);
+        startPlayback(lesson, currentAudioIndex(), 0);
       }
     } finally {
       state.replaying = false;
     }
-  }
-
-  function beginNextHandoff(next) {
-    stopCountdown();
-    const waitEl = $("#next-wait");
-    const preferred = currentAudioIndex();
-    let audioIndex = preferredAudioIndex(next.vimeoId, preferred);
-    const caps = state.player?.caps || capabilities(false);
-    const COUNT = NEXT_COUNTDOWN_SEC;
-    let readyFor = 0;
-    let upgraded = false;
-    let inflight = false;
-
-    const tick = async () => {
-      if (inflight) return;
-      inflight = true;
-      try {
-        let st = state.nextPrep && String(state.nextPrep.videoId) === String(next.vimeoId) ? state.nextPrep : null;
-        try {
-          let q;
-          try {
-            q = await api("/api/playback/query", {
-              method: "POST",
-              body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }),
-            });
-          } catch (err) {
-            const fb = englishFallbackIndex(err, audioIndex);
-            if (fb === null) throw err;
-            audioIndex = fb;
-            upgraded = false;
-            rememberResolvedAudio(next.vimeoId, preferred, fb);
-            clientLog("play_audio_fallback", { videoId: String(next.vimeoId), lessonId: next.id, from: 1, to: 0, via: "next" });
-            q = await api("/api/playback/query", {
-              method: "POST",
-              body: JSON.stringify({ videoId: String(next.vimeoId), audioIndex, capabilities: caps }),
-            });
-          }
-          rememberResolvedAudio(next.vimeoId, preferred, audioIndex);
-          if (!upgraded) {
-            upgraded = true;
-            st = await api("/api/playback/prepare", {
-              method: "POST",
-              body: JSON.stringify({ videoId: String(next.vimeoId), recipe: q.recipe, audioIndex, intent: "play" }),
-            });
-          } else {
-            st = await api(`/api/playback/status?videoId=${encodeURIComponent(next.vimeoId)}&recipe=${encodeURIComponent(q.recipe)}&audioIndex=${audioIndex}&intent=play`);
-          }
-        } catch (err) {
-          clientLog("next_poll_error", {
-            nextId: next.id,
-            videoId: String(next.vimeoId),
-            status: err.status || 0,
-            error: err.message || "",
-          }, 10000);
-        }
-        const pct = prepPct(st, next);
-        const ready = !!(st && st.state === "ready" && st.playlistUrl);
-        if (st) state.nextPrep = { ...st, pct, videoId: String(next.vimeoId) };
-        const rated = everyoneRated();
-        if (!ready) {
-          readyFor = 0;
-          if (waitEl) {
-            waitEl.classList.remove("hidden");
-            waitEl.textContent = nextWaitText(false, pct, 0);
-          }
-          clientLog("next_wait", {
-            nextId: next.id,
-            videoId: String(next.vimeoId),
-            pct,
-            state: st?.state || "unknown",
-            recipe: st?.recipe || "",
-          }, 10000);
-          return;
-        }
-        if (readyFor === 0) {
-          clientLog("next_ready", { nextId: next.id, videoId: String(next.vimeoId), pct });
-        }
-        if (!rated) {
-          readyFor = 0;
-          if (waitEl) waitEl.classList.add("hidden");
-          return;
-        }
-        readyFor += 1;
-        if (waitEl) {
-          waitEl.classList.remove("hidden");
-          waitEl.textContent = nextWaitText(true, 100, Math.max(0, COUNT - readyFor));
-        }
-        if (readyFor >= COUNT) {
-          stopCountdown();
-          advanceWatch(next);
-        }
-      } finally {
-        inflight = false;
-      }
-    };
-
-    tick();
-    state.countdown = setInterval(tick, 1000);
   }
 
   function advanceWatch(next) {
@@ -3136,56 +3412,74 @@
       go("/home");
       return;
     }
-    stopCountdown();
-    state.pendingNext = null;
-    $("#next-modal")?.classList.add("hidden");
     const video = state.player.video;
-    if (video) {
-      if (video._vbBind) {
-        try { video._vbBind.abort(); } catch {}
-        video._vbBind = null;
-      }
-      if (video._vbHls) {
-        try { video._vbHls.destroy(); } catch {}
-        video._vbHls = null;
-      }
-    }
-    unbindFullscreenWatch();
-    if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-    state.nextPrep = null;
+    stopEndFlow();
+    closeNextModal();
     history.pushState({}, "", `/watch/${next.id}`);
     state.route = parseRoute();
-    const audioIndex = currentAudioIndex();
-    const run = async () => {
-      if (video && available(next.vimeoId)) {
-        await startPlayback(next, audioIndex, undefined, video);
-      }
-      state.keepWatchStage = !!$("#stage") && !!state.player.video;
+    const gen = state.renderGen;
+    if (!video || !video.isConnected || !available(next.vimeoId)) {
       render();
-    };
-    run();
-  }
-
-  function teardownPlayer() {
-    state.playGen++;
-    unbindFullscreenWatch();
-    if (state.prefetch) { clearInterval(state.prefetch); state.prefetch = null; }
-    stopCountdown();
-    state.pendingNext = null;
-    state.nextPrep = null;
-    const video = state.player.video;
-    if (video) {
-      if (video._vbBind) {
-        try { video._vbBind.abort(); } catch {}
-        video._vbBind = null;
-      }
-      try { if (video._vbHls) video._vbHls.destroy(); } catch {}
-      try { video.pause(); video.removeAttribute("src"); video.load(); } catch {}
+      return;
     }
-    state.player = { video: null, lesson: null, recipe: null };
+    // Reuse the <video> (and with it fullscreen); render around it once it plays.
+    startPlayback(next, currentAudioIndex(), undefined, video).then(() => {
+      if (gen !== state.renderGen) return;
+      keepWatchIfPlaying();
+      render();
+    });
   }
 
-  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+  function finishLoose() {
+    stopEndFlow();
+    state.pendingFullscreen = false;
+    state.fsRestoreArmed = false;
+    exitFullscreen(state.player.video);
+    closeNextModal();
+    go("/loose");
+  }
+
+  // Escape in the score dialog: "Klaar" for loose lessons, otherwise close it.
+  function dismissNextModal() {
+    if (isLoose(state.player.lesson || lessonById(state.route.params.id))) {
+      finishLoose();
+      return;
+    }
+    stopEndFlow();
+    closeNextModal();
+  }
+
+  function trapFocus(e, root) {
+    const items = $$("button:not([disabled]), a[href], input:not([disabled]), textarea", root);
+    if (!items.length) return;
+    const first = items[0];
+    const last = items[items.length - 1];
+    const inside = root.contains(document.activeElement);
+    if (e.shiftKey && (!inside || document.activeElement === first)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  function onKeydown(e) {
+    if (nextModalOpen()) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        dismissNextModal();
+      } else if (e.key === "Tab") {
+        trapFocus(e, $("#next-modal"));
+      }
+      return;
+    }
+    if (e.key !== "Escape") return;
+    const open = $$("[data-menu-panel]").find((m) => !m.classList.contains("hidden"));
+    if (!open) return;
+    closePopMenus();
+    open.closest("[data-menu]")?.querySelector("[aria-expanded]")?.focus();
+  }
 
   function paintLocalized() {
     $$("[data-nl]").forEach((el) => {
@@ -3202,7 +3496,7 @@
     if (short) short.textContent = meta.short;
     $$("[data-action=audio]").forEach((btn) => {
       const on = Number(btn.dataset.index) === cur;
-      btn.setAttribute("aria-selected", on ? "true" : "false");
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
       btn.classList.toggle("bg-card", on);
       btn.classList.toggle("font-bold", on);
       btn.classList.toggle("text-muted", !on);
@@ -3212,6 +3506,38 @@
     paintLocalized();
     const methodBtn = $("[data-action=method-menu]");
     if (methodBtn) methodBtn.setAttribute("aria-label", isNl() ? "Hoofdstukken" : "The Method");
+  }
+
+  // ---------------------------------------------------------------------------
+  // Feedback for failed actions.
+
+  function errorText(err) {
+    if (err?.body?.error) return String(err.body.error);
+    if (err instanceof TypeError) return "Geen verbinding met de server";
+    return err?.message || "Onbekende fout";
+  }
+
+  let toastTimer = null;
+
+  function ensureToast() {
+    let el = document.getElementById("toast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "toast";
+      el.className = "toast hidden";
+      el.setAttribute("role", "status");
+      el.setAttribute("aria-live", "polite");
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function showToast(text) {
+    const el = ensureToast();
+    el.textContent = text;
+    el.classList.remove("hidden");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.add("hidden"), TOAST_MS);
   }
 
   function onLinkClick(e) {
@@ -3227,6 +3553,7 @@
     $$("[data-action]").forEach((el) => {
       el.addEventListener("click", onAction);
     });
+    $("#admin-login")?.addEventListener("submit", onAdminLogin);
     const noteInput = $("#note-input");
     if (noteInput) {
       noteInput.addEventListener("keydown", (e) => {
@@ -3243,9 +3570,70 @@
   }
 
   async function onAction(e) {
-    const el = e.currentTarget;
+    try {
+      await handleAction(e.currentTarget, e);
+    } catch (err) {
+      showToast(errorText(err));
+    }
+  }
+
+  async function rateFromHistory(el, lessonId, score, slug) {
+    const key = String(lessonId);
+    const had = Object.prototype.hasOwnProperty.call(state.bootstrap?.latestScore || {}, key);
+    const before = state.bootstrap?.latestScore?.[key];
+    const row = el.closest("[data-history-id]");
+    if (state.bootstrap) state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [key]: score };
+    if (row) paintHistoryRate(row, lessonId, score);
+    try {
+      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId, score, slug }) });
+    } catch (err) {
+      if (state.bootstrap) {
+        const latest = { ...(state.bootstrap.latestScore || {}) };
+        if (had) latest[key] = before;
+        else delete latest[key];
+        state.bootstrap.latestScore = latest;
+      }
+      if (row) paintHistoryRate(row, lessonId, latestScoreOf(lessonId) || 0);
+      showToast("Score niet bewaard: " + errorText(err));
+    }
+  }
+
+  async function rateFromModal(el, score, slug) {
+    const lesson = state.player.lesson || lessonById(state.route.params.id);
+    if (!lesson) return;
+    const row = el.closest("[data-rate-player]") || $("#next-modal");
+    const paint = (picked) => {
+      $$("[data-action=rate]", row).forEach((btn) => {
+        const on = btn === picked;
+        btn.classList.toggle("ring-2", on);
+        btn.classList.toggle("ring-accent", on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    };
+    paint(el);
+    setNextError("");
+    state.looseAutoReplays = 0;
+    if (isLoose(lesson)) armFullscreenRestore(); // must run inside the click
+    try {
+      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score, slug }) });
+    } catch (err) {
+      paint(null);
+      const picked = { ...(state.ratePicked || {}) };
+      delete picked[slug];
+      state.ratePicked = picked;
+      setNextError("Score niet bewaard: " + errorText(err) + ". Probeer opnieuw.");
+      return;
+    }
+    state.ratePicked = { ...(state.ratePicked || {}), [slug]: score };
+    if (state.bootstrap && slug === state.bootstrap.profile?.slug) {
+      state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(lesson.id)]: score };
+    }
+    if (!isLoose(lesson)) maybeStartNextCountdown();
+  }
+
+  async function handleAction(el, e) {
     const action = el.getAttribute("data-action");
-    if (action === "admin-refresh" || action === "admin-confirm" || action === "admin-cancel" || action === "admin-cleanup") {
+    if (action === "admin-refresh" || action === "admin-confirm" || action === "admin-cancel" || action === "admin-cleanup" || action === "admin-logout") {
       await onAdminAction(action);
       return;
     }
@@ -3256,14 +3644,19 @@
       return;
     }
     if (action === "pick-profile") {
-      await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: el.dataset.slug }) });
-      await refresh();
+      try {
+        await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: el.dataset.slug }) });
+        await refresh();
+      } catch (err) {
+        showToast("Profiel kiezen mislukt: " + errorText(err));
+        return;
+      }
       touchActive();
       go("/home", true);
       return;
     }
     if (action === "switch-profile") {
-      teardownPlayer();
+      disposePlayback();
       try { await api("/app/mate", { method: "POST", body: JSON.stringify({ slug: "" }) }); } catch {}
       if (state.bootstrap) state.bootstrap.mate = null;
       go("/profiles");
@@ -3278,7 +3671,13 @@
       closePopMenus();
       const slug = el.dataset.slug;
       if (!slug) return;
-      const res = await api("/app/mate", { method: "POST", body: JSON.stringify({ slug }) });
+      let res;
+      try {
+        res = await api("/app/mate", { method: "POST", body: JSON.stringify({ slug }) });
+      } catch (err) {
+        showToast("Medespeler toevoegen mislukt: " + errorText(err));
+        return;
+      }
       if (state.bootstrap) state.bootstrap.mate = res.mate || null;
       keepWatchIfPlaying();
       render();
@@ -3290,18 +3689,27 @@
       const mate = mateOf();
       if (!profile || !slug) return;
       if (mate && slug === mate.slug) {
-        await api("/app/mate", { method: "POST", body: JSON.stringify({ slug: "" }) });
+        try {
+          await api("/app/mate", { method: "POST", body: JSON.stringify({ slug: "" }) });
+        } catch (err) {
+          showToast("Medespeler weghalen mislukt: " + errorText(err));
+          return;
+        }
         state.bootstrap.mate = null;
         keepWatchIfPlaying();
         render();
         return;
       }
       if (mate && slug === profile.slug) {
-        await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: mate.slug }) });
-        await refresh();
+        try {
+          await api("/app/profile", { method: "POST", body: JSON.stringify({ slug: mate.slug }) });
+          await refresh();
+        } catch (err) {
+          showToast("Profiel wisselen mislukt: " + errorText(err));
+          return;
+        }
         touchActive();
         if (state.route.name === "watch" && !lessonById(state.route.params.id)) {
-          teardownPlayer();
           go("/home", true);
           return;
         }
@@ -3309,7 +3717,6 @@
         render();
         return;
       }
-      teardownPlayer();
       go("/profiles");
       return;
     }
@@ -3335,20 +3742,20 @@
       togglePopMenu("#method-menu");
       return;
     }
-    if (action === "fullscreen") {
-      const video = state.player.video;
-      const stage = $("#stage");
-      if (video?.webkitEnterFullscreen) { video.webkitEnterFullscreen(); return; }
-      (stage || video)?.requestFullscreen?.().catch(() => {});
-      return;
-    }
     if (action === "audio") {
       closePopMenus();
       const idx = Number(el.dataset.index) === 1 ? 1 : 0;
-      if (idx === currentAudioIndex() && state.route.name === "watch" && state.player.video) return;
-      const t = state.player.video?.currentTime || 0;
-      const lesson = state.player.lesson || lessonById(state.route.params.id);
-      const res = await api("/app/audio", { method: "POST", body: JSON.stringify({ audioIndex: idx }) });
+      const s = state.player;
+      if (idx === currentAudioIndex() && state.route.name === "watch" && s.video) return;
+      const t = Number(s.video?.currentTime) || 0;
+      const lesson = s.lesson || lessonById(state.route.params.id);
+      let res;
+      try {
+        res = await api("/app/audio", { method: "POST", body: JSON.stringify({ audioIndex: idx }) });
+      } catch (err) {
+        showToast("Taal wijzigen mislukt: " + errorText(err));
+        return;
+      }
       if (state.bootstrap) {
         state.bootstrap.lastAudioIndex = res.audioIndex ?? idx;
         state.bootstrap.language = res.language || (idx === 1 ? "nl" : "en");
@@ -3383,45 +3790,19 @@
       const slug = el.dataset.slug || state.bootstrap?.profile?.slug;
       const historyId = Number(el.dataset.lesson);
       if (!slug || score < 1) return;
-      if (historyId) {
-        if (state.bootstrap) {
-          state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(historyId)]: score };
-        }
-        const row = el.closest("[data-history-id]");
-        if (row) paintHistoryRate(row, historyId, score);
-        await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: historyId, score, slug }) });
-        return;
-      }
-      const lesson = state.player.lesson || lessonById(state.route.params.id);
-      if (!lesson) return;
-      const row = el.closest("[data-rate-player]") || $("#next-modal");
-      $$("[data-action=rate]", row).forEach((btn) => {
-        const on = btn === el;
-        btn.classList.toggle("ring-2", on);
-        btn.classList.toggle("ring-accent", on);
-      });
-      state.ratePicked = { ...(state.ratePicked || {}), [slug]: score };
-      if (isLoose(lesson)) armFullscreenRestore();
-      else if (everyoneRated()) startNextCountdown();
-      await api("/app/rating", { method: "POST", body: JSON.stringify({ lessonId: lesson.id, score, slug }) });
-      if (state.bootstrap && slug === state.bootstrap.profile?.slug) {
-        state.bootstrap.latestScore = { ...(state.bootstrap.latestScore || {}), [String(lesson.id)]: score };
-      }
+      if (historyId) await rateFromHistory(el, historyId, score, slug);
+      else await rateFromModal(el, score, slug);
       return;
     }
     if (action === "replay") {
       const lesson = state.player.lesson || lessonById(state.route.params.id);
+      state.looseAutoReplays = 0;
       if (isLoose(lesson)) armFullscreenRestore();
       await replayLesson(lesson);
       return;
     }
     if (action === "loose-done") {
-      stopCountdown();
-      state.pendingNext = null;
-      state.pendingFullscreen = false;
-      state.fsRestoreArmed = false;
-      exitFullscreen(state.player?.video);
-      go("/loose");
+      finishLoose();
       return;
     }
     if (action === "play-next") {
@@ -3433,19 +3814,29 @@
     }
   }
 
+  function focusMain() {
+    const target = $("[data-autofocus]") || $("main");
+    if (!target) return;
+    if (target.tagName === "MAIN") target.setAttribute("tabindex", "-1");
+    try { target.focus({ preventScroll: true }); } catch {}
+  }
+
   async function render() {
-    const keepStage = !!state.keepWatchStage;
+    const gen = ++state.renderGen;
+    const stale = () => gen !== state.renderGen;
+    const s = state.player;
+    const keepStage = state.keepWatchStage && state.route.name === "watch" && !!s.video
+      && sameId(s.lesson?.id, state.route.params.id) && !!$("#stage");
     state.keepWatchStage = false;
-    if (keepStage && $("#stage")) {
+    stopEndFlow();
+    state.modalReturnFocus = null;
+    if (keepStage) {
       const stage = $("#stage");
+      stage.querySelector("#next-modal")?.remove(); // the dialog is re-rendered with the page
       stage.remove();
       state.savedStage = stage;
-      unbindFullscreenWatch();
-      stopCountdown();
-      state.pendingNext = null;
-      state.playGen++;
     } else {
-      teardownPlayer();
+      disposePlayback();
       state.savedStage = null;
     }
     const route = state.route;
@@ -3456,9 +3847,11 @@
     if (!state.bootstrap) {
       $("#app").innerHTML = `<div class="grid place-items-center min-h-dvh text-muted">Laden…</div>`;
       try { await refresh(); } catch (e) {
+        if (stale()) return;
         $("#app").innerHTML = `<div class="grid place-items-center min-h-dvh p-6">Kon de app niet laden. ${esc(e.message)}</div>`;
         return;
       }
+      if (stale()) return;
     }
     if (!state.bootstrap.profile && route.name !== "profiles") {
       go("/profiles", true);
@@ -3482,16 +3875,18 @@
     else if (route.name === "home") renderHome();
     else if (route.name === "path") renderPath();
     else if (route.name === "history") renderHistory();
-    else if (route.name === "stats") await renderStats();
-    else if (route.name === "admin") await renderAdmin();
+    else if (route.name === "stats") await renderStats(stale);
+    else if (route.name === "admin") await renderAdmin(stale);
     else if (route.name === "practice") renderPractice();
     else if (route.name === "loose") renderLoose();
     else if (route.name === "lessons") renderLessons();
-    else if (route.name === "watch") await renderWatch();
+    else if (route.name === "watch") await renderWatch(stale);
     else renderHome();
+    if (stale()) return;
     bind();
     wireHScroll();
     if (route.name === "lessons") wireLessonsScroll();
+    focusMain();
     const hash = location.hash.replace(/^#/, "");
     if (hash) {
       requestAnimationFrame(() => {
@@ -3520,20 +3915,7 @@
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       touchActive();
-      if (state.player.video && state.player.lesson) {
-        const v = state.player.video;
-        api("/app/progress", {
-          method: "POST",
-          body: JSON.stringify({
-            lessonId: state.player.lesson.id,
-            vimeoId: state.player.lesson.vimeoId,
-            position: v.currentTime || 0,
-            duration: v.duration || state.player.lesson.seconds,
-            playedDelta: takePlayedDelta(v),
-            playedBuckets: [...(state.player.seenBuckets || [])],
-          }),
-        }).catch(() => {});
-      }
+      saveProgress(state.player, { force: true, keepalive: true });
       return;
     }
     lockIfIdle();
@@ -3550,7 +3932,9 @@
     if (inside) return;
     closePopMenus();
   });
+  document.addEventListener("keydown", onKeydown);
 
+  ensureToast();
   state.route = parseRoute();
   render();
 })();

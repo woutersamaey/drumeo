@@ -1,4 +1,8 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+/* Markup lives only in the SPA and the shell. Scanning the whole folder also
+   picked up words from PHP, SQL and the vendored hls.js as utilities. */
+@source "../public/assets/app.js";
+@source "../views";
 
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -605,8 +609,7 @@ button.tap {
   min-width: 0;
   min-height: 0;
 }
-.stage:fullscreen,
-.stage:-webkit-full-screen {
+.stage:fullscreen {
   aspect-ratio: auto;
   width: 100vw;
   height: 100dvh;
@@ -615,20 +618,43 @@ button.tap {
   background: #000;
 }
 .stage:fullscreen .vp,
-.stage:fullscreen .vp video,
-.stage:-webkit-full-screen .vp,
-.stage:-webkit-full-screen .vp video {
+.stage:fullscreen .vp video {
   height: 100%;
   max-height: none;
 }
-.stage:fullscreen #next-modal,
-.stage:-webkit-full-screen #next-modal {
+.stage:fullscreen #next-modal {
   position: absolute;
   inset: 0;
   width: auto;
   height: auto;
   max-height: none;
   z-index: 60;
+}
+/* Safari before 16.4 only knows the prefixed pseudo-class. Kept inside
+   @supports: in a shared selector list or as a duplicate rule, the minifier
+   rewrites or drops the prefixed copy. */
+@supports selector(:-webkit-full-screen) {
+  .stage:-webkit-full-screen {
+    aspect-ratio: auto;
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    background: #000;
+  }
+  .stage:-webkit-full-screen .vp,
+  .stage:-webkit-full-screen .vp video {
+    height: 100%;
+    max-height: none;
+  }
+  .stage:-webkit-full-screen #next-modal {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    max-height: none;
+    z-index: 60;
+  }
 }
 @media (min-width: 64rem) {
   .stage {
@@ -898,5 +924,35 @@ button.tap {
   }
   .nav-hover:hover {
     background: var(--color-card);
+  }
+}
+
+/* Focus moves to <main> after a route change; no focus ring on the page itself. */
+main:focus {
+  outline: none;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 70;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.75rem 1rem;
+  border-radius: 0.9rem;
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  border-left: 4px solid #f87171;
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+}
+.toast.hidden {
+  display: none;
+}
+@media (min-width: 64rem) {
+  .toast {
+    bottom: 2rem;
   }
 }
